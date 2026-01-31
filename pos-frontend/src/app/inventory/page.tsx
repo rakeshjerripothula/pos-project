@@ -6,14 +6,16 @@ import { InventoryData, ProductData } from "@/lib/types";
 import UpdateInventory from "@/components/UpdateInventory";
 import AddInventory from "@/components/AddInventory";
 import InventoryTsvUpload from "@/components/InventoryTsvUpload";
-import AuthGuard from "@/components/AuthGuard";
+import AuthGuard, { isOperator } from "@/components/AuthGuard";
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryData[]>([]);
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUserOperator, setIsUserOperator] = useState(false);
 
   useEffect(() => {
+    setIsUserOperator(isOperator());
     loadData();
   }, []);
 
@@ -107,9 +109,25 @@ export default function InventoryPage() {
               marginBottom: 24,
             }}
           >
-            <InventoryTsvUpload onUpload={uploadInventoryTsv} />
+            {/* Hide TSV upload for OPERATORs */}
+            {!isUserOperator && <InventoryTsvUpload onUpload={uploadInventoryTsv} />}
             <div style={{ marginTop: 16 }}>
-              <AddInventory products={products} onAdd={createInventory} />
+              {/* Hide AddInventory for OPERATORs */}
+              {!isUserOperator ? (
+                <AddInventory products={products} onAdd={createInventory} />
+              ) : (
+                <div
+                  style={{
+                    padding: 16,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 8,
+                    color: "#64748b",
+                    fontSize: 14,
+                  }}
+                >
+                  Viewing inventory in read-only mode. Contact a supervisor to update inventory.
+                </div>
+              )}
             </div>
           </div>
 
@@ -205,11 +223,23 @@ export default function InventoryPage() {
                         <td style={{ padding: "12px" }}>{i.productName}</td>
                         <td style={{ padding: "12px" }}>{i.quantity}</td>
                         <td style={{ padding: "12px" }}>
-                          <UpdateInventory
-                            productId={i.productId}
-                            initialQuantity={i.quantity}
-                            onUpdate={updateInventory}
-                          />
+                          {/* Hide UpdateInventory for OPERATORs */}
+                          {!isUserOperator ? (
+                            <UpdateInventory
+                              productId={i.productId}
+                              initialQuantity={i.quantity}
+                              onUpdate={updateInventory}
+                            />
+                          ) : (
+                            <span
+                              style={{
+                                color: "#9ca3af",
+                                fontSize: 13,
+                              }}
+                            >
+                              View only
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))

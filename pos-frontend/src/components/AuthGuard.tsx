@@ -22,11 +22,40 @@ interface AuthCheckResponse {
 // Event name for user updates
 const USER_UPDATE_EVENT = "pos-user-update";
 
-export default function AuthGuard({ children }: { children: React.ReactNode }) {
+// User role type
+export type UserRole = "OPERATOR" | "SUPERVISOR";
+
+interface AuthGuardProps {
+  children: React.ReactNode;
+  requiredRole?: UserRole;
+}
+
+// Helper functions for role checking
+export function isOperator(): boolean {
+  if (typeof window === "undefined") return false;
+  const auth = getAuth();
+  return auth?.role === "OPERATOR";
+}
+
+export function isSupervisor(): boolean {
+  if (typeof window === "undefined") return false;
+  const auth = getAuth();
+  return auth?.role === "SUPERVISOR";
+}
+
+export function canAccess(requiredRole: UserRole): boolean {
+  if (requiredRole === "SUPERVISOR") {
+    return isSupervisor();
+  }
+  return true; // Both OPERATOR and SUPERVISOR can access OPERATOR-level pages
+}
+
+export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   // Dispatch event to notify components that user is set
   function notifyUserUpdate(user: User | null) {
@@ -65,6 +94,16 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         };
         setCurrentUser(user);
         setIsAuthenticated(true);
+        
+        // Check role-based access
+        if (requiredRole && user.role === "OPERATOR" && requiredRole === "SUPERVISOR") {
+          setAccessDenied(true);
+          setIsLoading(false);
+          setAuthCheckComplete();
+          notifyUserUpdate(user);
+          return;
+        }
+        
         setIsLoading(false);
         setAuthCheckComplete();
         notifyUserUpdate(user);
@@ -161,6 +200,80 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return null;
+  }
+
+  // Show access denied page for OPERATORs trying to access SUPERVISOR-only pages
+  if (accessDenied) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          backgroundColor: "#f8fafc",
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            textAlign: "center",
+            maxWidth: 400,
+          }}
+        >
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              backgroundColor: "#fee2e2",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              fontSize: 32,
+            }}
+          >
+            🔒
+          </div>
+          <h1
+            style={{
+              fontSize: 24,
+              fontWeight: "bold",
+              color: "#991b1b",
+              marginBottom: 8,
+            }}
+          >
+            Access Denied
+          </h1>
+          <p
+            style={{
+              color: "#64748b",
+              fontSize: 16,
+              marginBottom: 24,
+            }}
+          >
+            You do not have permission to access this page. Please contact your administrator if you believe this is an error.
+          </p>
+          <button
+            onClick={() => router.replace("/orders")}
+            style={{
+              padding: "10px 24px",
+              backgroundColor: "#667eea",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            Go to Orders
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

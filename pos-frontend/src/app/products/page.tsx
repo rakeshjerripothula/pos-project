@@ -6,7 +6,7 @@ import { ProductData, InventoryData, ClientData } from "@/lib/types";
 import AddProduct from "@/components/AddProduct";
 import ProductTsvUpload from "@/components/ProductTsvUpload";
 import EditProductModal from "@/components/EditProductModal";
-import AuthGuard from "@/components/AuthGuard";
+import AuthGuard, { isOperator } from "@/components/AuthGuard";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductData[]>([]);
@@ -14,6 +14,7 @@ export default function ProductsPage() {
   const [inventory, setInventory] = useState<InventoryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
+  const [isUserOperator, setIsUserOperator] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,6 +22,7 @@ export default function ProductsPage() {
   const [filterBarcode, setFilterBarcode] = useState("");
 
   useEffect(() => {
+    setIsUserOperator(isOperator());
     loadData();
   }, []);
 
@@ -170,9 +172,25 @@ export default function ProductsPage() {
               marginBottom: 24,
             }}
           >
-            <ProductTsvUpload onUpload={uploadProductTsv} />
+            {/* Hide TSV upload for OPERATORs */}
+            {!isUserOperator && <ProductTsvUpload onUpload={uploadProductTsv} />}
             <div style={{ marginTop: 16 }}>
-              <AddProduct clients={clients} onAdd={addProduct} />
+              {/* Hide AddProduct for OPERATORs */}
+              {!isUserOperator ? (
+                <AddProduct clients={clients} onAdd={addProduct} />
+              ) : (
+                <div
+                  style={{
+                    padding: 16,
+                    backgroundColor: "#f8fafc",
+                    borderRadius: 8,
+                    color: "#64748b",
+                    fontSize: 14,
+                  }}
+                >
+                  Viewing products in read-only mode. Contact a supervisor to add or edit products.
+                </div>
+              )}
             </div>
           </div>
 
@@ -491,21 +509,34 @@ export default function ProductsPage() {
                             {inventoryMap.get(p.id) ?? 0}
                           </td>
                           <td style={{ padding: "12px" }}>
-                            <button
-                              onClick={() => setEditingProduct(p)}
-                              style={{
-                                padding: "6px 12px",
-                                backgroundColor: "#667eea",
-                                color: "white",
-                                border: "none",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                fontSize: 13,
-                                fontWeight: 500,
-                              }}
-                            >
-                              Edit
-                            </button>
+                            {/* Hide Edit button for OPERATORs */}
+                            {!isUserOperator && (
+                              <button
+                                onClick={() => setEditingProduct(p)}
+                                style={{
+                                  padding: "6px 12px",
+                                  backgroundColor: "#667eea",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: 6,
+                                  cursor: "pointer",
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                }}
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {isUserOperator && (
+                              <span
+                                style={{
+                                  color: "#9ca3af",
+                                  fontSize: 13,
+                                }}
+                              >
+                                View only
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );

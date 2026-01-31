@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { getUser, clearAllAuth, User } from "@/lib/auth";
 import { useEffect, useState } from "react";
+import { isOperator } from "@/components/AuthGuard";
 
 // Event name for user updates
 const USER_UPDATE_EVENT = "pos-user-update";
@@ -65,7 +66,8 @@ export default function Navbar() {
     { href: "/products", label: "Products" },
     { href: "/inventory", label: "Inventory" },
     { href: "/orders", label: "Orders" },
-    { href: "/reports", label: "Reports" },
+    // Hide Reports for OPERATORs - they cannot access reports
+    ...(!isOperator() ? [{ href: "/reports", label: "Reports" }] as const : []),
   ];
 
   return (

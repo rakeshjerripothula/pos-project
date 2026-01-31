@@ -88,7 +88,7 @@ export default function DaySalesReportPage() {
     data && data.content.length > 0 ? totalRevenue / data.content.length : 0;
 
   return (
-    <AuthGuard>
+    <AuthGuard requiredRole="SUPERVISOR">
       <div
         style={{
           minHeight: "calc(100vh - 64px)",

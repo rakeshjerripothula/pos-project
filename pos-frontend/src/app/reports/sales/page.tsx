@@ -112,7 +112,7 @@ export default function SalesReportPage() {
   ) || 0;
 
   return (
-    <AuthGuard>
+    <AuthGuard requiredRole="SUPERVISOR">
       <div
         style={{
           minHeight: "calc(100vh - 64px)",

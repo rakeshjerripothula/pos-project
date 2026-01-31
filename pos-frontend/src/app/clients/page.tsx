@@ -5,13 +5,15 @@ import { apiGet } from "@/lib/api";
 import { ClientData } from "@/lib/types";
 import ClientTable from "@/components/ClientTable";
 import AddClient from "@/components/AddClient";
-import AuthGuard from "@/components/AuthGuard";
+import AuthGuard, { isOperator } from "@/components/AuthGuard";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<ClientData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUserOperator, setIsUserOperator] = useState(false);
 
   useEffect(() => {
+    setIsUserOperator(isOperator());
     loadClients();
   }, []);
 
@@ -110,7 +112,21 @@ export default function ClientsPage() {
               marginBottom: 24,
             }}
           >
-            <AddClient onAdd={addClient} />
+            {/* Hide AddClient for OPERATORs - they can only view */}
+            {!isUserOperator && <AddClient onAdd={addClient} />}
+            {isUserOperator && (
+              <div
+                style={{
+                  padding: 16,
+                  backgroundColor: "#f8fafc",
+                  borderRadius: 8,
+                  color: "#64748b",
+                  fontSize: 14,
+                }}
+              >
+                Viewing clients in read-only mode. Contact a supervisor to add new clients.
+              </div>
+            )}
           </div>
 
           {loading ? (

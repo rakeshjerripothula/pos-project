@@ -5,7 +5,7 @@ import AuthGuard from "@/components/AuthGuard";
 
 export default function ReportsPage() {
   return (
-    <AuthGuard>
+    <AuthGuard requiredRole="SUPERVISOR">
       <div
         style={{
           minHeight: "calc(100vh - 64px)",

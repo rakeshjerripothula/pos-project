@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ClientData } from "@/lib/types";
+import { isOperator } from "@/components/AuthGuard";
 
 export default function ClientTable({
   clients,
@@ -15,6 +16,7 @@ export default function ClientTable({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [loading, setLoading] = useState(false);
+  const isUserOperator = isOperator();
 
   function startEdit(client: ClientData) {
     setEditingId(client.id);
@@ -135,36 +137,48 @@ export default function ClientTable({
                   </button>
                 </div>
               ) : (
-                <div style={{ display: "flex", gap: 4 }}>
-                  <button
-                    onClick={() => startEdit(c)}
+                // Hide edit and toggle buttons for OPERATORs
+                !isUserOperator ? (
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button
+                      onClick={() => startEdit(c)}
+                      style={{
+                        padding: "4px 8px",
+                        backgroundColor: "#0070f3",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 4,
+                        cursor: "pointer",
+                        fontSize: 12,
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onToggle(c.id, c.enabled)}
+                      style={{
+                        padding: "4px 8px",
+                        backgroundColor: c.enabled ? "#ffc107" : "#28a745",
+                        color: "white",
+                        border: "none",
+                        borderRadius: 4,
+                        cursor: "pointer",
+                        fontSize: 12,
+                      }}
+                    >
+                      {c.enabled ? "Disable" : "Enable"}
+                    </button>
+                  </div>
+                ) : (
+                  <span
                     style={{
-                      padding: "4px 8px",
-                      backgroundColor: "#0070f3",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 4,
-                      cursor: "pointer",
+                      color: "#9ca3af",
                       fontSize: 12,
                     }}
                   >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onToggle(c.id, c.enabled)}
-                    style={{
-                      padding: "4px 8px",
-                      backgroundColor: c.enabled ? "#ffc107" : "#28a745",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 4,
-                      cursor: "pointer",
-                      fontSize: 12,
-                    }}
-                  >
-                    {c.enabled ? "Disable" : "Enable"}
-                  </button>
-                </div>
+                    View only
+                  </span>
+                )
               )}
             </td>
           </tr>
