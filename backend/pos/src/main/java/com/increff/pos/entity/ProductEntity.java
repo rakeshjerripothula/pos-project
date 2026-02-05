@@ -11,8 +11,8 @@ import java.math.BigDecimal;
         name = "product",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_product_barcode", columnNames = {"barcode"}),
-                @UniqueConstraint(name = "uk_product_name_client", columnNames = {"product_name", "client_id"})
-        }
+                @UniqueConstraint(name = "uk_client_name_mrp", columnNames = {"client_id", "product_name", "mrp"}),
+    }
 )
 @Getter
 @Setter

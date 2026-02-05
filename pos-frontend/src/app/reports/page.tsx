@@ -6,100 +6,33 @@ import AuthGuard from "@/components/AuthGuard";
 export default function ReportsPage() {
   return (
     <AuthGuard requiredRole="SUPERVISOR">
-      <div
-        style={{
-          minHeight: "calc(100vh - 64px)",
-          backgroundColor: "#f8fafc",
-          padding: 24,
-        }}
-      >
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-          <h1
-            style={{
-              fontSize: 28,
-              fontWeight: "bold",
-              color: "#1e293b",
-              marginBottom: 24,
-            }}
-          >
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
+        <div className="max-w-[1400px] mx-auto">
+          <h1 className="mb-4 text-2xl font-bold text-slate-800">
             Reports
           </h1>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: 24,
-            }}
-          >
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Link
               href="/reports/sales"
-              style={{
-                padding: 32,
-                backgroundColor: "white",
-                borderRadius: 12,
-                textDecoration: "none",
-                color: "inherit",
-                display: "block",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-4px)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
-              }}
+              className="block p-5 text-white transition-all bg-blue-500 rounded-lg hover:bg-blue-600 hover:shadow-md no-underline"
             >
-              <h2
-                style={{
-                  fontSize: 22,
-                  fontWeight: "bold",
-                  marginBottom: 12,
-                  color: "#1e293b",
-                }}
-              >
+              <h2 className="mb-2 text-lg font-bold">
                 Sales Report
               </h2>
-              <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
+              <p className="text-sm text-white/80">
                 View sales aggregated by client for a specified date range
               </p>
             </Link>
 
             <Link
               href="/reports/day-sales"
-              style={{
-                padding: 32,
-                backgroundColor: "white",
-                borderRadius: 12,
-                textDecoration: "none",
-                color: "inherit",
-                display: "block",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-4px)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
-              }}
+              className="block p-5 text-white transition-all bg-blue-500 rounded-lg hover:bg-blue-600 hover:shadow-md no-underline"
             >
-              <h2
-                style={{
-                  fontSize: 22,
-                  fontWeight: "bold",
-                  marginBottom: 12,
-                  color: "#1e293b",
-                }}
-              >
+              <h2 className="mb-2 text-lg font-bold">
                 Day-on-Day Sales Report
               </h2>
-              <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
+              <p className="text-sm text-white/80">
                 View daily sales totals for invoiced orders
               </p>
             </Link>
@@ -109,3 +42,4 @@ export default function ReportsPage() {
     </AuthGuard>
   );
 }
+

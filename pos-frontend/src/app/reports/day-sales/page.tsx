@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { apiPost } from "@/lib/api";
+import { apiPost, apiExport } from "@/lib/api";
 import { DaySalesPageData } from "@/lib/types";
 import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
+import toast from "react-hot-toast";
 
 interface DaySalesForm {
   startDate: string;
@@ -66,7 +67,7 @@ export default function DaySalesReportPage() {
 
       setData(result);
     } catch (error: any) {
-      alert("Failed to load report: " + error.message);
+      toast.error("Failed to load report: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -87,76 +88,48 @@ export default function DaySalesReportPage() {
   const avgDailyRevenue =
     data && data.content.length > 0 ? totalRevenue / data.content.length : 0;
 
+  async function handleExportCsv() {
+    if (!startDate || !endDate) {
+      return;
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const form = {
+      startDate: start.toISOString().split("T")[0],
+      endDate: end.toISOString().split("T")[0],
+    };
+
+    try {
+      await apiExport("/reports/day-sales/export", form);
+      toast.success("CSV downloaded successfully");
+    } catch (error: any) {
+      toast.error("Failed to export CSV: " + error.message);
+    }
+  }
+
   return (
     <AuthGuard requiredRole="SUPERVISOR">
-      <div
-        style={{
-          minHeight: "calc(100vh - 64px)",
-          backgroundColor: "#f8fafc",
-          padding: 24,
-        }}
-      >
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
-            <h1
-              style={{
-                fontSize: 28,
-                fontWeight: "bold",
-                color: "#1e293b",
-              }}
-            >
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-6">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-slate-800">
               Day-on-Day Sales Report
             </h1>
             <Link
               href="/reports"
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#6b7280",
-                color: "white",
-                textDecoration: "none",
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 500,
-              }}
+              className="px-5 py-2.5 text-sm font-medium text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition-colors no-underline"
             >
               Back to Reports
             </Link>
           </div>
 
           {/* Filters */}
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: 12,
-              padding: 20,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              marginBottom: 24,
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: 16,
-              }}
-            >
+          <div className="p-5 mb-6 bg-white rounded-xl shadow-sm">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_auto]">
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
+                <label className="block mb-2 text-sm font-medium text-gray-700">
                   Start Date
                 </label>
                 <input
@@ -166,26 +139,12 @@ export default function DaySalesReportPage() {
                     setStartDate(e.target.value);
                     setPage(0);
                   }}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: 14,
-                  }}
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
+                <label className="block mb-2 text-sm font-medium text-gray-700">
                   End Date
                 </label>
                 <input
@@ -195,38 +154,22 @@ export default function DaySalesReportPage() {
                     setEndDate(e.target.value);
                     setPage(0);
                   }}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: 14,
-                  }}
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-end",
-                }}
-              >
+              <div className="flex items-end">
                 <button
                   onClick={() => {
                     setPage(0);
                     loadReport();
                   }}
                   disabled={loading}
-                  style={{
-                    padding: "10px 20px",
-                    backgroundColor: "#667eea",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 8,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    fontSize: 14,
-                    fontWeight: 500,
-                  }}
+                  className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
+                    loading 
+                      ? "bg-blue-400 cursor-not-allowed" 
+                      : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+                  }`}
                 >
                   {loading ? "Loading..." : "Generate Report"}
                 </button>
@@ -236,159 +179,59 @@ export default function DaySalesReportPage() {
 
           {/* Summary */}
           {data && data.content.length > 0 && (
-            <div
-              style={{
-                backgroundColor: "white",
-                borderRadius: 12,
-                padding: 20,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                marginBottom: 24,
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                gap: 16,
-              }}
-            >
+            <div className="grid grid-cols-2 gap-4 mb-6 md:grid-cols-6 p-5 bg-white rounded-xl shadow-sm">
               <div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>Total Days</div>
-                <div
-                  style={{ fontSize: 24, fontWeight: "bold", color: "#1e293b" }}
-                >
-                  {data.totalElements}
-                </div>
+                <div className="text-xs text-slate-500">Total Days</div>
+                <div className="text-2xl font-bold text-slate-800">{data.totalElements}</div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Total Orders
-                </div>
-                <div
-                  style={{ fontSize: 24, fontWeight: "bold", color: "#1e293b" }}
-                >
-                  {totalOrders}
-                </div>
+                <div className="text-xs text-slate-500">Total Orders</div>
+                <div className="text-2xl font-bold text-slate-800">{totalOrders}</div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Total Items Sold
-                </div>
-                <div
-                  style={{ fontSize: 24, fontWeight: "bold", color: "#1e293b" }}
-                >
-                  {totalItems}
-                </div>
+                <div className="text-xs text-slate-500">Total Items Sold</div>
+                <div className="text-2xl font-bold text-slate-800">{totalItems}</div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Total Revenue
-                </div>
-                <div
-                  style={{ fontSize: 24, fontWeight: "bold", color: "#1e293b" }}
-                >
-                  ₹{totalRevenue.toFixed(2)}
-                </div>
+                <div className="text-xs text-slate-500">Total Revenue</div>
+                <div className="text-2xl font-bold text-slate-800">₹{totalRevenue.toFixed(2)}</div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Avg Daily Revenue
-                </div>
-                <div
-                  style={{ fontSize: 24, fontWeight: "bold", color: "#1e293b" }}
+                <div className="text-xs text-slate-500">Avg Daily Revenue</div>
+                <div className="text-2xl font-bold text-slate-800">₹{avgDailyRevenue.toFixed(2)}</div>
+              </div>
+              <div className="flex items-center justify-end">
+                <button
+                  onClick={handleExportCsv}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2"
                 >
-                  ₹{avgDailyRevenue.toFixed(2)}
-                </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export CSV
+                </button>
               </div>
             </div>
           )}
 
           {/* Report Table */}
           {loading ? (
-            <div style={{ textAlign: "center", padding: 48 }}>Loading...</div>
+            <div className="py-12 text-center text-slate-500">Loading...</div>
           ) : data && data.content.length === 0 ? (
-            <div
-              style={{
-                backgroundColor: "white",
-                borderRadius: 12,
-                padding: 48,
-                textAlign: "center",
-                color: "#6b7280",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              }}
-            >
+            <div className="p-12 text-center text-slate-500 bg-white rounded-xl shadow-sm">
               No data available. Please select date range and generate report.
             </div>
           ) : data ? (
             <>
-              <div
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 12,
-                  padding: 24,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                  overflowX: "auto",
-                }}
-              >
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                  }}
-                >
+              <div className="p-6 bg-white rounded-xl shadow-sm overflow-x-auto">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                      <th
-                        style={{
-                          padding: "12px",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          color: "#374151",
-                          fontSize: 14,
-                        }}
-                      >
-                        Date
-                      </th>
-                      <th
-                        style={{
-                          padding: "12px",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          color: "#374151",
-                          fontSize: 14,
-                        }}
-                      >
-                        Orders
-                      </th>
-                      <th
-                        style={{
-                          padding: "12px",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          color: "#374151",
-                          fontSize: 14,
-                        }}
-                      >
-                        Items Sold
-                      </th>
-                      <th
-                        style={{
-                          padding: "12px",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          color: "#374151",
-                          fontSize: 14,
-                        }}
-                      >
-                        Revenue
-                      </th>
-                      <th
-                        style={{
-                          padding: "12px",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          color: "#374151",
-                          fontSize: 14,
-                        }}
-                      >
-                        Avg Order Value
-                      </th>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">Date</th>
+                      <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">Orders</th>
+                      <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">Items Sold</th>
+                      <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">Revenue</th>
+                      <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">Avg Order Value</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -398,13 +241,8 @@ export default function DaySalesReportPage() {
                           ? item.totalRevenue / item.invoicedOrdersCount
                           : 0;
                       return (
-                        <tr
-                          key={idx}
-                          style={{
-                            borderBottom: "1px solid #e5e7eb",
-                          }}
-                        >
-                          <td style={{ padding: "12px" }}>
+                        <tr key={idx} className="border-b border-gray-100">
+                          <td className="px-3 py-3 text-sm">
                             {mounted
                               ? new Date(item.date).toLocaleDateString("en-IN", {
                                   year: "numeric",
@@ -413,18 +251,10 @@ export default function DaySalesReportPage() {
                                 })
                               : ""}
                           </td>
-                          <td style={{ padding: "12px" }}>
-                            {item.invoicedOrdersCount}
-                          </td>
-                          <td style={{ padding: "12px" }}>
-                            {item.invoicedItemsCount}
-                          </td>
-                          <td style={{ padding: "12px" }}>
-                            ₹{Number(item.totalRevenue).toFixed(2)}
-                          </td>
-                          <td style={{ padding: "12px" }}>
-                            ₹{avgOrderValue.toFixed(2)}
-                          </td>
+                          <td className="px-3 py-3 text-sm">{item.invoicedOrdersCount}</td>
+                          <td className="px-3 py-3 text-sm">{item.invoicedItemsCount}</td>
+                          <td className="px-3 py-3 text-sm">₹{Number(item.totalRevenue).toFixed(2)}</td>
+                          <td className="px-3 py-3 text-sm">₹{avgOrderValue.toFixed(2)}</td>
                         </tr>
                       );
                     })}
@@ -434,65 +264,33 @@ export default function DaySalesReportPage() {
 
               {/* Pagination */}
               {data.totalElements > pageSize && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginTop: 24,
-                    padding: "16px 24px",
-                    backgroundColor: "white",
-                    borderRadius: 12,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <div style={{ color: "#6b7280", fontSize: 14 }}>
+                <div className="flex items-center justify-between mt-6 p-6 bg-white rounded-xl shadow-sm">
+                  <div className="text-sm text-slate-500">
                     Showing {data.content.length} of {data.totalElements} days
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className="flex gap-2">
                     <button
                       onClick={() => setPage(Math.max(0, page - 1))}
                       disabled={page === 0}
-                      style={{
-                        padding: "8px 16px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: 8,
-                        cursor: page === 0 ? "not-allowed" : "pointer",
-                        opacity: page === 0 ? 0.5 : 1,
-                        backgroundColor: "white",
-                        fontSize: 14,
-                      }}
+                      className={`px-4 py-2 text-sm border border-gray-300 rounded-lg ${
+                        page === 0 
+                          ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
+                          : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      }`}
                     >
                       Previous
                     </button>
-                    <span
-                      style={{
-                        padding: "8px 16px",
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      Page {page + 1} of{" "}
-                      {Math.ceil(data.totalElements / pageSize)}
+                    <span className="px-4 py-2 text-sm text-gray-700">
+                      Page {page + 1} of {Math.ceil(data.totalElements / pageSize)}
                     </span>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={(page + 1) * pageSize >= data.totalElements}
-                      style={{
-                        padding: "8px 16px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: 8,
-                        cursor:
-                          (page + 1) * pageSize >= data.totalElements
-                            ? "not-allowed"
-                            : "pointer",
-                        opacity:
-                          (page + 1) * pageSize >= data.totalElements
-                            ? 0.5
-                            : 1,
-                        backgroundColor: "white",
-                        fontSize: 14,
-                      }}
+                      className={`px-4 py-2 text-sm border border-gray-300 rounded-lg ${
+                        (page + 1) * pageSize >= data.totalElements 
+                          ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
+                          : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      }`}
                     >
                       Next
                     </button>

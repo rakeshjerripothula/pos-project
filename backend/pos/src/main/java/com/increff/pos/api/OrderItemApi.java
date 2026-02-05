@@ -2,7 +2,8 @@ package com.increff.pos.api;
 
 import com.increff.pos.dao.OrderItemDao;
 import com.increff.pos.entity.OrderItemEntity;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,7 +12,8 @@ import java.util.List;
 @Transactional
 public class OrderItemApi {
 
-    private final OrderItemDao orderItemDao;
+    @Autowired
+    private OrderItemDao orderItemDao;
 
     public OrderItemApi(OrderItemDao orderItemDao) {
         this.orderItemDao = orderItemDao;

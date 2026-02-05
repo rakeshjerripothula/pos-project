@@ -4,6 +4,10 @@ import com.increff.invoice.model.internal.InvoiceItemModel;
 import com.increff.invoice.model.internal.InvoiceModel;
 import org.springframework.stereotype.Component;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
 @Component
 public class XmlBuilderUtil {
 
@@ -12,7 +16,7 @@ public class XmlBuilderUtil {
 
         xml.append("<invoice>");
         xml.append("<invoiceNumber>").append(invoiceModel.getInvoiceNumber()).append("</invoiceNumber>");
-        xml.append("<invoiceDate>").append(invoiceModel.getInvoiceDate()).append("</invoiceDate>");
+        xml.append("<invoiceDate>").append(formatInvoiceDate(invoiceModel.getInvoiceDate())).append("</invoiceDate>");
         xml.append("<clientName>").append(invoiceModel.getClientName()).append("</clientName>");
 
         xml.append("<items>");
@@ -31,4 +35,11 @@ public class XmlBuilderUtil {
 
         return xml.toString();
     }
+
+    private String formatInvoiceDate(ZonedDateTime dateTime) {
+        return dateTime
+                .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
+                .format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
+    }
+
 }

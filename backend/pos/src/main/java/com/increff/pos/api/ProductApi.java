@@ -4,10 +4,13 @@ import com.increff.pos.dao.ProductDao;
 import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 @Service
 @Transactional
@@ -29,34 +32,87 @@ public class ProductApi {
             throw new ApiException(ApiStatus.CONFLICT, "Barcode already exists", "barcode", "Barcode already exists");
         }
 
+        if (productDao.existsByClientIdAndProductNameAndMrp(
+                product.getClientId(),
+                product.getProductName(),
+                product.getMrp())) {
+
+            throw new ApiException(
+                    ApiStatus.CONFLICT,
+                    "Product already exists for this client with same name and MRP",
+                    "product",
+                    "Duplicate product for client"
+            );
+        }
+
         return productDao.save(product);
     }
 
     public ProductEntity updateProduct(Integer productId, ProductEntity product) {
 
         ProductEntity existing = productDao.findById(productId)
-                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "Product not found", "productId", "Product not found"));
+                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND,
+                        "Product not found",
+                        "productId",
+                        "Product not found"
+                ));
 
-        if (!clientApi.isClientEnabled(product.getClientId())) {
+        if (!existing.getClientId().equals(product.getClientId())) {
+            throw new ApiException(
+                    ApiStatus.BAD_REQUEST,
+                    "Client cannot be changed for product",
+                    "clientId",
+                    "Client change not allowed"
+            );
+        }
+
+        Integer clientId = existing.getClientId();
+
+        if (!clientApi.isClientEnabled(clientId)) {
             throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
         }
 
-        if (productDao.existsByBarcodeAndIdNot(
-                product.getBarcode(), productId)) {
-            throw new ApiException(ApiStatus.CONFLICT, "Barcode already exists", "barcode", "Barcode already exists");
+        String newName = product.getProductName();
+        BigDecimal newMrp = product.getMrp();
+        String newBarcode = product.getBarcode();
+
+        if (productDao.existsByBarcodeAndNotId(newBarcode, productId)) {
+            throw new ApiException(
+                    ApiStatus.CONFLICT,
+                    "Barcode already exists",
+                    "barcode",
+                    "Barcode already exists"
+            );
         }
 
-        existing.setProductName(product.getProductName());
-        existing.setMrp(product.getMrp());
-        existing.setClientId(product.getClientId());
-        existing.setBarcode(product.getBarcode());
+        if (productDao.existsByClientIdAndProductNameAndMrpAndNotId(
+                clientId,
+                newName,
+                newMrp,
+                productId)) {
+
+            throw new ApiException(
+                    ApiStatus.CONFLICT,
+                    "Product already exists for this client with same name and MRP",
+                    "product",
+                    "Duplicate product for client"
+            );
+        }
+
+        existing.setProductName(newName);
+        existing.setMrp(newMrp);
+        existing.setBarcode(newBarcode);
         existing.setImageUrl(product.getImageUrl());
 
         return productDao.save(existing);
     }
 
-    public List<ProductEntity> listProductsForEnabledClients() {
-        return productDao.findProductsForEnabledClients();
+    public List<ProductEntity> getAll() {
+        return productDao.selectAll();
+    }
+
+    public Page<ProductEntity> listProductsForEnabledClients(Pageable pageable) {
+        return productDao.findProductsForEnabledClients(pageable);
     }
 
     public ProductEntity getProductById(Integer id) {
@@ -66,25 +122,36 @@ public class ProductApi {
 
     public List<ProductEntity> bulkCreateProducts(List<ProductEntity> products) {
 
-        for (ProductEntity product : products) {
+        List<String> barcodes = products.stream()
+                .map(ProductEntity::getBarcode)
+                .toList();
 
-            if (!clientApi.isClientEnabled(product.getClientId())) {
-                throw new ApiException(
-                    ApiStatus.FORBIDDEN,
-                    "Client disabled for product: " + product.getProductName(),
-                    "clientId",
-                    "Client disabled for product: " + product.getProductName()
-                );
-            }
+        List<Integer> clientIds = products.stream()
+                .map(ProductEntity::getClientId)
+                .distinct()
+                .toList();
 
-            if (productDao.existsByBarcode(product.getBarcode())) {
-                throw new ApiException(
+        List<String> existingBarcodes =
+                productDao.findExistingBarcodes(barcodes);
+
+        if (!existingBarcodes.isEmpty()) {
+            throw new ApiException(
                     ApiStatus.CONFLICT,
-                    "Duplicate barcode: " + product.getBarcode(),
+                    "Duplicate barcodes: " + existingBarcodes,
                     "barcode",
-                    "Duplicate barcode: " + product.getBarcode()
-                );
-            }
+                    "Duplicate barcodes found"
+            );
+        }
+
+        List<Integer> disabledClients = clientApi.getDisabledClientIds(clientIds);
+
+        if (!disabledClients.isEmpty()) {
+            throw new ApiException(
+                    ApiStatus.FORBIDDEN,
+                    "Disabled clients: " + disabledClients,
+                    "clientId",
+                    "Some clients are disabled"
+            );
         }
 
         return productDao.saveAll(products);

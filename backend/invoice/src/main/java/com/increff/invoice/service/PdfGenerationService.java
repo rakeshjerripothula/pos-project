@@ -1,5 +1,7 @@
 package com.increff.invoice.service;
 
+import com.increff.invoice.exception.ApiException;
+import com.increff.invoice.exception.ApiStatus;
 import com.increff.invoice.model.internal.InvoiceModel;
 import com.increff.invoice.util.XmlBuilderUtil;
 import org.apache.fop.apps.*;
@@ -41,7 +43,7 @@ public class PdfGenerationService {
             return Base64.getEncoder().encodeToString(pdfBytes);
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to generate invoice PDF", e);
+            throw new ApiException(ApiStatus.INTERNAL_ERROR, "Could not create Invoice");
         }
     }
 }

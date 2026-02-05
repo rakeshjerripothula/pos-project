@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# TODO / planning docs
+TODO*.md
+*TODO*.md
+# IDE
+.idea/
+*.class
+
+# Generated files
+backend/pos/invoices/*.pdf
+
+# Logs
+*.log

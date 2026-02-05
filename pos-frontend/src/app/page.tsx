@@ -16,122 +16,35 @@ export default function Home() {
   }, [router]);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="flex min-h-screen">
       {/* Left Panel - Main Content */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "48px",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-        }}
-      >
-        <div style={{ maxWidth: 600, textAlign: "center" }}>
+      <div className="flex-1 flex flex-col items-center justify-center px-12 py-12 bg-gradient-to-br from-blue-500 to-purple-600">
+        <div className="max-w-lg text-center">
           {/* Logo */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 16,
-              marginBottom: 32,
-            }}
-          >
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 16,
-                backgroundColor: "white",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#667eea",
-                fontSize: 32,
-                fontWeight: "bold",
-              }}
-            >
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center text-blue-500 text-3xl font-bold shadow-lg">
               P
             </div>
-            <h1
-              style={{
-                fontSize: 48,
-                fontWeight: "bold",
-                color: "white",
-              }}
-            >
+            <h1 className="text-5xl font-bold text-white">
               PoS System
             </h1>
           </div>
 
-          <p
-            style={{
-              fontSize: 20,
-              color: "rgba(255,255,255,0.9)",
-              marginBottom: 48,
-              lineHeight: 1.6,
-            }}
-          >
+          <p className="text-xl text-white/90 mb-12 leading-relaxed">
             Point of Sale Management System
           </p>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 16,
-              justifyContent: "center",
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/login"
-              style={{
-                display: "inline-block",
-                padding: "14px 32px",
-                backgroundColor: "white",
-                color: "#667eea",
-                textDecoration: "none",
-                borderRadius: 8,
-                fontSize: 16,
-                fontWeight: 600,
-                transition: "all 0.2s",
-                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 6px 12px rgba(0,0,0,0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
-              }}
+              className="inline-block px-8 py-3.5 bg-white text-blue-500 no-underline rounded-lg text-base font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
             >
               Sign In
             </Link>
 
             <Link
               href="/signup"
-              style={{
-                display: "inline-block",
-                padding: "14px 32px",
-                backgroundColor: "transparent",
-                color: "white",
-                textDecoration: "none",
-                borderRadius: 8,
-                fontSize: 16,
-                fontWeight: 600,
-                border: "2px solid white",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent";
-              }}
+              className="inline-block px-8 py-3.5 text-white no-underline rounded-lg text-base font-semibold border-2 border-white hover:bg-white/10 transition-all duration-200"
             >
               Create Account
             </Link>
@@ -139,31 +52,14 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Right Panel - Features */}
-      <div
-        style={{
-          flex: 1,
-          display: "none",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 48,
-          backgroundColor: "#f8fafc",
-        }}
-        className="lg:flex"
-      >
-        <div style={{ maxWidth: 500 }}>
-          <h2
-            style={{
-              fontSize: 32,
-              fontWeight: "bold",
-              color: "#1e293b",
-              marginBottom: 32,
-            }}
-          >
+      {/* Right Panel - Features - Hidden on small screens */}
+      <div className="flex-1 hidden lg:flex items-center justify-center px-12 py-12 bg-slate-50">
+        <div className="max-w-md">
+          <h2 className="text-3xl font-bold text-slate-800 mb-8">
             Streamline Your Sales Operations
           </h2>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div className="flex flex-col gap-6">
             {[
               {
                 title: "Client Management",
@@ -188,43 +84,16 @@ export default function Home() {
             ].map((feature) => (
               <div
                 key={feature.title}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 16,
-                  padding: 20,
-                  backgroundColor: "white",
-                  borderRadius: 12,
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-                }}
+                className="flex items-start gap-4 p-5 bg-white rounded-xl shadow-sm"
               >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    backgroundColor: "#f1f5f9",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 24,
-                    flexShrink: 0,
-                  }}
-                >
+                <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center text-2xl flex-shrink-0">
                   {feature.icon}
                 </div>
                 <div>
-                  <h3
-                    style={{
-                      fontSize: 18,
-                      fontWeight: 600,
-                      color: "#1e293b",
-                      marginBottom: 4,
-                    }}
-                  >
+                  <h3 className="text-lg font-semibold text-slate-800 mb-1">
                     {feature.title}
                   </h3>
-                  <p style={{ fontSize: 14, color: "#64748b" }}>
+                  <p className="text-sm text-slate-500">
                     {feature.description}
                   </p>
                 </div>
@@ -236,3 +105,4 @@ export default function Home() {
     </div>
   );
 }
+

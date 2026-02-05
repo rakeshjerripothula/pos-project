@@ -1,8 +1,10 @@
 package com.increff.pos.controller;
 
 import com.increff.pos.dto.ProductDto;
+import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.ProductData;
 import com.increff.pos.model.form.ProductForm;
+import com.increff.pos.model.form.ProductSearchForm;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,11 @@ public class ProductController {
     @Autowired
     private ProductDto productDto;
 
+    @GetMapping
+    public List<ProductData> getAll() {
+        return productDto.getAll();
+    }
+
     @PostMapping
     public ProductData add(@Valid @RequestBody ProductForm productForm) {
         return productDto.createProduct(productForm);
@@ -31,24 +38,14 @@ public class ProductController {
         return productDto.updateProduct(id, productForm);
     }
 
-    @GetMapping
-    public List<ProductData> getAll(
-            @RequestParam(required = false) Integer clientId,
-            @RequestParam(required = false) String barcode,
-            @RequestParam(required = false) String name) {
-
-        return productDto.getAllProducts();
+    @PostMapping("/list")
+    public PagedResponse<ProductData> list(@RequestBody @Valid ProductSearchForm form) {
+        return productDto.listProducts(form);
     }
 
     @GetMapping("/{id}")
     public ProductData getById(@PathVariable Integer id) {
         return productDto.getById(id);
-    }
-
-    @PostMapping("/bulk")
-    public List<ProductData> bulkCreate(
-            @RequestBody @Valid List<ProductForm> forms) {
-        return productDto.bulkCreateProducts(forms);
     }
 
     @PostMapping("/upload/tsv")

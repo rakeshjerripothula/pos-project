@@ -97,11 +97,13 @@ public class OrderDto extends AbstractDto {
     public OrderPageData getOrders(OrderPageForm form) {
 
         ZonedDateTime start = null;
+
         ZonedDateTime end = null;
 
         if (!Objects.isNull(form.getStartDate())) {
             start = ZonedDateTime.parse(form.getStartDate());
         }
+
         if (!Objects.isNull(form.getEndDate())) {
             end = ZonedDateTime.parse(form.getEndDate());
         }

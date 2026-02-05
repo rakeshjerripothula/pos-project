@@ -2,7 +2,9 @@ package com.increff.pos.controller;
 
 import com.increff.pos.dto.InventoryDto;
 import com.increff.pos.model.data.InventoryData;
+import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.form.InventoryForm;
+import com.increff.pos.model.form.InventorySearchForm;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -23,9 +25,9 @@ public class InventoryController {
         return inventoryDto.upsert(form);
     }
 
-    @GetMapping
-    public List<InventoryData> getAll() {
-        return inventoryDto.list();
+    @PostMapping("/list")
+    public PagedResponse<InventoryData> list(@RequestBody @Valid InventorySearchForm form) {
+        return inventoryDto.list(form);
     }
 
     @GetMapping("/{productId}")
@@ -33,12 +35,6 @@ public class InventoryController {
         return inventoryDto.getByProductId(productId);
     }
 
-    @PostMapping("/bulk")
-    public List<InventoryData> bulkUpsert(
-            @RequestBody @Valid List<InventoryForm> forms) {
-        return inventoryDto.bulkUpsert(forms);
-    }
-//
     @PostMapping("/upload/tsv")
     public List<InventoryData> uploadInventoryTsv(
             @RequestParam("file") MultipartFile file) {

@@ -4,17 +4,24 @@ import com.increff.pos.entity.InventoryEntity;
 import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.flow.InventoryFlow;
 import com.increff.pos.model.data.InventoryData;
+import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.form.InventoryForm;
 import com.increff.pos.api.ProductApi;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
+import com.increff.pos.model.form.InventorySearchForm;
 import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static com.increff.pos.util.Utils.parse;
 
@@ -30,20 +37,44 @@ public class InventoryDto extends AbstractDto {
     public InventoryData upsert(InventoryForm form) {
         checkValid(form);
 
-        InventoryEntity saved =
-                inventoryFlow.upsert(ConversionUtil.inventoryFormToEntity(form));
+        InventoryEntity saved = inventoryFlow.upsert(ConversionUtil.inventoryFormToEntity(form));
 
         ProductEntity product = productApi.getProductById(form.getProductId());
         return ConversionUtil.inventoryEntityToData(saved, product);
     }
 
-    public List<InventoryData> list() {
-        return inventoryFlow.listForEnabledClients().stream()
-                .map(inventory -> {
-                    ProductEntity product = productApi.getProductById(inventory.getProductId());
-                    return ConversionUtil.inventoryEntityToData(inventory, product);
-                })
+    public PagedResponse<InventoryData> list(InventorySearchForm form) {
+
+        Pageable pageable = PageRequest.of(
+                form.getPage(),
+                form.getPageSize(),
+                Sort.by("productId").ascending()
+        );
+
+        Page<InventoryEntity> page =
+                inventoryFlow.listForEnabledClients(pageable);
+
+        if (page.isEmpty()) {
+            return new PagedResponse<>(List.of(), 0L);
+        }
+
+        List<Integer> productIds = page.getContent().stream()
+                .map(InventoryEntity::getProductId)
+                .distinct()
                 .toList();
+
+        Map<Integer, ProductEntity> productMap =
+                productApi.getByIds(productIds).stream()
+                        .collect(Collectors.toMap(ProductEntity::getId, p -> p));
+
+        List<InventoryData> data = page.getContent().stream()
+                .map(inv -> ConversionUtil.inventoryEntityToData(
+                        inv,
+                        productMap.get(inv.getProductId())
+                ))
+                .toList();
+
+        return new PagedResponse<>(data, page.getTotalElements());
     }
 
     public InventoryData getByProductId(Integer productId) {
@@ -68,19 +99,38 @@ public class InventoryDto extends AbstractDto {
             }
         }
 
-        return inventoryFlow.bulkUpsert(
+        List<InventoryEntity> saved =
+                inventoryFlow.bulkUpsert(
                         forms.stream()
                                 .map(ConversionUtil::inventoryFormToEntity)
                                 .toList()
-                ).stream()
-                .map(inventory -> {
-                    ProductEntity product = productApi.getProductById(inventory.getProductId());
-                    return ConversionUtil.inventoryEntityToData(inventory, product);
-                })
+                );
+
+        List<Integer> productIds = saved.stream()
+                .map(InventoryEntity::getProductId)
+                .distinct()
                 .toList();
+
+        Map<Integer, ProductEntity> productMap =
+                productApi.getByIds(productIds).stream()
+                        .collect(Collectors.toMap(ProductEntity::getId, p -> p));
+
+        return saved.stream()
+                .map(inv -> ConversionUtil.inventoryEntityToData(
+                        inv,
+                        productMap.get(inv.getProductId())
+                ))
+                .toList();
+
     }
 
     public List<InventoryData> uploadTsv(MultipartFile file) {
+
+        List<InventoryForm> forms = parseInventoryTsv(file);
+        return bulkUpsert(forms);
+    }
+
+    public List<InventoryForm> parseInventoryTsv(MultipartFile file) {
 
         List<String[]> rows = parse(file);
         List<InventoryForm> forms = new ArrayList<>();
@@ -91,10 +141,10 @@ public class InventoryDto extends AbstractDto {
 
             if (r.length < 2) {
                 throw new ApiException(
-                    ApiStatus.BAD_DATA,
-                    "Invalid inventory TSV at line " + (i + 2),
-                    "file",
-                    "Invalid format at line " + (i + 2)
+                        ApiStatus.BAD_DATA,
+                        "Invalid inventory TSV at line " + (i + 2),
+                        "file",
+                        "Invalid format at line " + (i + 2)
                 );
             }
 
@@ -103,10 +153,10 @@ public class InventoryDto extends AbstractDto {
 
             if (!seenProductIds.add(productId)) {
                 throw new ApiException(
-                    ApiStatus.BAD_DATA,
-                    "Duplicate productId in TSV: " + productId,
-                    "productId",
-                    "Duplicate productId: " + productId
+                        ApiStatus.BAD_DATA,
+                        "Duplicate productId in TSV: " + productId,
+                        "productId",
+                        "Duplicate productId: " + productId
                 );
             }
 
@@ -116,7 +166,7 @@ public class InventoryDto extends AbstractDto {
             forms.add(f);
         }
 
-        return bulkUpsert(forms);
+        return forms;
     }
 
     private void validateProductId(Integer productId) {

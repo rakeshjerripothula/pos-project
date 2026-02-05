@@ -8,3 +8,15 @@
 /dataSources.local.xml
 # Editor-based HTTP Client requests
 /httpRequests/
+# IDE
+.idea/
+*.class
+
+# Generated files
+backend/pos/invoices/*.pdf
+
+# Node
+node_modules/
+
+# Logs
+*.log

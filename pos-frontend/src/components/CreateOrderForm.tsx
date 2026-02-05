@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProductData } from "@/lib/types";
+import toast from "react-hot-toast";
 
 interface OrderItemRow {
   barcode: string;
   quantity: number;
   sellingPrice: number;
 }
+
+const ORDER_DRAFT_KEY = "pos_order_draft";
 
 export default function CreateOrderForm({
   products,
@@ -24,6 +27,30 @@ export default function CreateOrderForm({
     { barcode: "", quantity: 1, sellingPrice: 0 },
   ]);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    setMounted(true);
+    const savedDraft = localStorage.getItem(ORDER_DRAFT_KEY);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setItems(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to parse order draft:", e);
+      }
+    }
+  }, []);
+
+  // Save draft to localStorage whenever items change (only after mounted)
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem(ORDER_DRAFT_KEY, JSON.stringify(items));
+    }
+  }, [items, mounted]);
 
   function updateItem(index: number, field: string, value: any) {
     const copy = [...items];
@@ -60,10 +87,14 @@ export default function CreateOrderForm({
       setLoading(true);
       await onCreate(orderItems);
 
-      alert("Order created successfully");
+      // Clear draft after successful order creation
+      if (mounted) {
+        localStorage.removeItem(ORDER_DRAFT_KEY);
+      }
       setItems([{ barcode: "", quantity: 1, sellingPrice: 0 }]);
+      toast.success("Order created successfully");
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setLoading(false);
     }
@@ -71,65 +102,87 @@ export default function CreateOrderForm({
 
   return (
     <div>
-      <table border={1} cellPadding={8} style={{ marginTop: 16 }}>
-        <thead>
-          <tr>
-            <th>Barcode</th>
-            <th>Quantity</th>
-            <th>Selling Price</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  value={item.barcode}
-                  onChange={(e) =>
-                    updateItem(i, "barcode", e.target.value)
-                  }
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min={1}
-                  value={item.quantity}
-                  onChange={(e) =>
-                    updateItem(i, "quantity", Number(e.target.value))
-                  }
-                />
-              </td>
-              <td>
-                <input
-                  type="number"
-                  min={0}
-                  value={item.sellingPrice}
-                  onChange={(e) =>
-                    updateItem(i, "sellingPrice", Number(e.target.value))
-                  }
-                />
-              </td>
-              <td>
-                {items.length > 1 && (
-                  <button onClick={() => removeRow(i)}>❌</button>
-                )}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b-2 border-gray-200">
+              <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Barcode</th>
+              <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Quantity</th>
+              <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Selling Price</th>
+              <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700 w-16">Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <div style={{ marginTop: 12 }}>
-        <button onClick={addRow}>+ Add Item</button>
+          </thead>
+          <tbody>
+            {items.map((item, i) => (
+              <tr key={i} className="border-b border-gray-100">
+                <td className="px-2 py-2.5">
+                  <input
+                    value={item.barcode}
+                    onChange={(e) =>
+                      updateItem(i, "barcode", e.target.value)
+                    }
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter barcode..."
+                  />
+                </td>
+                <td className="px-2 py-2.5">
+                  <input
+                    type="number"
+                    min={1}
+                    value={item.quantity}
+                    onChange={(e) =>
+                      updateItem(i, "quantity", Number(e.target.value))
+                    }
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </td>
+                <td className="px-2 py-2.5">
+                  <input
+                    type="number"
+                    min={0}
+                    value={item.sellingPrice}
+                    onChange={(e) =>
+                      updateItem(i, "sellingPrice", Number(e.target.value))
+                    }
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </td>
+                <td className="px-2 py-2.5">
+                  {items.length > 1 && (
+                    <button
+                      onClick={() => removeRow(i)}
+                      className="px-3 py-1.5 text-xs text-white transition-colors bg-red-500 rounded-md hover:bg-red-600 cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <div style={{ marginTop: 16 }}>
-        <button onClick={submit} disabled={loading}>
+      <div className="mt-4 flex justify-between items-center">
+        <button
+          onClick={addRow}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+        >
+          + Add Item
+        </button>
+        <button
+          onClick={submit}
+          disabled={loading}
+          className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
+            loading 
+              ? "bg-gray-400 cursor-not-allowed opacity-60" 
+              : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+          }`}
+        >
           {loading ? "Creating..." : "Create Order"}
         </button>
       </div>
     </div>
   );
 }
+

@@ -161,39 +161,11 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          backgroundColor: "#f8fafc",
-        }}
-      >
-        <div
-          style={{
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              border: "3px solid #e2e8f0",
-              borderTopColor: "#667eea",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-              margin: "0 auto 16px",
-            }}
-          />
-          <p style={{ color: "#64748b", fontSize: 14 }}>Verifying authentication...</p>
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="text-center">
+          <div className="w-10 h-10 mx-auto mb-4 border-3 border-slate-200 rounded-full border-t-blue-500 animate-spin" />
+          <p className="text-sm text-slate-500">Verifying authentication...</p>
         </div>
-        <style jsx>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
       </div>
     );
   }
@@ -205,69 +177,20 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
   // Show access denied page for OPERATORs trying to access SUPERVISOR-only pages
   if (accessDenied) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "100vh",
-          backgroundColor: "#f8fafc",
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            textAlign: "center",
-            maxWidth: 400,
-          }}
-        >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              backgroundColor: "#fee2e2",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-              fontSize: 32,
-            }}
-          >
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center bg-red-100 rounded-full text-3xl">
             🔒
           </div>
-          <h1
-            style={{
-              fontSize: 24,
-              fontWeight: "bold",
-              color: "#991b1b",
-              marginBottom: 8,
-            }}
-          >
+          <h1 className="mb-2 text-2xl font-bold text-red-800">
             Access Denied
           </h1>
-          <p
-            style={{
-              color: "#64748b",
-              fontSize: 16,
-              marginBottom: 24,
-            }}
-          >
+          <p className="mb-6 text-slate-500">
             You do not have permission to access this page. Please contact your administrator if you believe this is an error.
           </p>
           <button
             onClick={() => router.replace("/orders")}
-            style={{
-              padding: "10px 24px",
-              backgroundColor: "#667eea",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 14,
-              fontWeight: 500,
-            }}
+            className="px-6 py-2.5 text-white bg-blue-500 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors cursor-pointer"
           >
             Go to Orders
           </button>

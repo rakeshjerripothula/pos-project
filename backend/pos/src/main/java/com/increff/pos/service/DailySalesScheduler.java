@@ -19,29 +19,16 @@ public class DailySalesScheduler {
     @Autowired
     private DaySalesApi daySalesApi;
 
-    @Scheduled(cron = "0 0 1 * * ?")
+    @Scheduled(cron = "0 0 0 * * ?")
     public void calculateDailySales() {
-        LocalDate yesterdayUtc = ZonedDateTime
-                .now(ZoneId.of("UTC"))
-                .toLocalDate()
-                .minusDays(1);
 
-        logger.info("Starting day-on-day sales calculation for {}", yesterdayUtc);
+        ZoneId ist = ZoneId.of("Asia/Kolkata");
 
-        daySalesApi.calculateForDate(yesterdayUtc);
+        LocalDate yesterdayIst = ZonedDateTime.now(ist).toLocalDate().minusDays(1);
 
-        logger.info("Completed day-on-day sales calculation for {}", yesterdayUtc);
+        logger.info("Calculating day sales for IST date {}", yesterdayIst);
+
+        daySalesApi.calculateForDate(yesterdayIst);
     }
 
-    public void recalculateHistoricalData(LocalDate startDate, LocalDate endDate) {
-        logger.info("Starting historical day sales recalculation from {} to {}", startDate, endDate);
-
-        LocalDate currentDate = startDate;
-        while (!currentDate.isAfter(endDate)) {
-            daySalesApi.calculateForDate(currentDate);
-            currentDate = currentDate.plusDays(1);
-        }
-
-        logger.info("Completed historical day sales recalculation");
-    }
 }

@@ -5,6 +5,7 @@ import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.*;
 import com.increff.pos.model.form.*;
+import com.increff.pos.model.internal.DaySalesAggregate;
 import com.increff.pos.model.internal.SalesReportRow;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -12,6 +13,7 @@ import org.modelmapper.convention.MatchingStrategies;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -84,13 +86,22 @@ public final class ConversionUtil {
         return itemData;
     }
 
+    public static OrderItemEntity createOrderItem(OrderItemEntity item, Integer orderId) {
+        OrderItemEntity orderItem = new OrderItemEntity();
+        orderItem.setOrderId(orderId);
+        orderItem.setProductId(item.getProductId());
+        orderItem.setQuantity(item.getQuantity());
+        orderItem.setSellingPrice(item.getSellingPrice());
+        return orderItem;
+    }
+
     public static ProductEntity productFormToEntity(ProductForm form) {
         
         ProductEntity entity = new ProductEntity();
-        entity.setProductName(normalize(form.getProductName()));
+        entity.setProductName(normalize(form.getProductName().trim()));
         entity.setMrp(form.getMrp().setScale(2, RoundingMode.HALF_UP));
         entity.setClientId(form.getClientId());
-        entity.setBarcode(form.getBarcode());
+        entity.setBarcode(normalize(form.getBarcode().trim()));
         entity.setImageUrl(form.getImageUrl());
         return entity;
     }
@@ -109,8 +120,6 @@ public final class ConversionUtil {
         data.setImageUrl(entity.getImageUrl());
         return data;
     }
-
-    // ==================== INVENTORY CONVERSIONS ====================
 
     public static InventoryEntity inventoryFormToEntity(InventoryForm form) {
         if (Objects.isNull(form)) {
@@ -211,10 +220,19 @@ public final class ConversionUtil {
         return data;
     }
 
+    public static DaySalesEntity daySalesAggregateToEntity(LocalDate date, DaySalesAggregate aggregate){
+        DaySalesEntity entity = new DaySalesEntity();
+        entity.setDate(date);
+        entity.setInvoicedOrdersCount(aggregate.getInvoicedOrdersCountAsInt());
+        entity.setInvoicedItemsCount(aggregate.getInvoicedItemsCountAsInt());
+        entity.setTotalRevenue(aggregate.getTotalRevenue().setScale(2, RoundingMode.HALF_UP));
+        return entity;
+    }
+
     public static SalesReportRowData salesReportRowToData(SalesReportRow row) {
         SalesReportRowData data = new SalesReportRowData();
         data.setProductName(row.getProductName());
-        data.setQuantitySold(row.getQuantitySold().intValue());
+        data.setQuantitySold(row.getQuantitySold());
         data.setRevenue(row.getRevenue().doubleValue());
         return data;
     }
@@ -227,11 +245,20 @@ public final class ConversionUtil {
         return value.trim().toLowerCase();
     }
 
-    public static BigDecimal scaleToTwoDecimalPlaces(BigDecimal value) {
-        if (Objects.isNull(value)) {
-            return null;
+    public static ProductForm tsvRowToProductForm(String[] r){
+        ProductForm f = new ProductForm();
+        f.setProductName(r[0].trim());
+
+        f.setMrp(new BigDecimal(r[1].trim()).setScale(2, RoundingMode.HALF_UP));
+
+        f.setClientId(Integer.parseInt(r[2].trim()));
+        f.setBarcode(r[3].trim());
+
+        if (r.length > 4 && !r[4].trim().isEmpty()) {
+            f.setImageUrl(r[4].trim());
         }
-        return value.setScale(2, RoundingMode.HALF_UP);
+
+        return f;
     }
 
     public static <S, T> T map(S source, Class<T> targetClass) {

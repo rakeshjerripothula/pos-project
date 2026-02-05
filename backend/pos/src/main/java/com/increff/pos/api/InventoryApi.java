@@ -5,11 +5,15 @@ import com.increff.pos.entity.InventoryEntity;
 import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -48,8 +52,8 @@ public class InventoryApi {
         return inventoryDao.save(inventory);
     }
 
-    public List<InventoryEntity> listAll() {
-        return inventoryDao.findAll();
+    public Page<InventoryEntity> listAll(Pageable pageable) {
+        return inventoryDao.findAll(pageable);
     }
 
     public InventoryEntity getByProductId(Integer productId) {
@@ -61,17 +65,13 @@ public class InventoryApi {
                 ));
     }
 
-    public List<InventoryEntity> getByProductIds(List<Integer> productIds) {
-        List<InventoryEntity> inventories = inventoryDao.findByProductIds(productIds);
 
-        for (InventoryEntity inventory : inventories) {
-            ProductEntity product = productApi.getProductById(inventory.getProductId());
-            if (!clientApi.isClientEnabled(product.getClientId())) {
-                throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
-            }
-        }
-        
-        return inventories;
+    public List<InventoryEntity> getByProductIds(List<Integer> productIds) {
+        return inventoryDao.findByProductIds(productIds);
+    }
+
+    public Page<InventoryEntity> listForEnabledClients(Pageable pageable) {
+        return inventoryDao.findForEnabledClients(pageable);
     }
 
     public List<InventoryEntity> bulkUpsert(List<InventoryEntity> inventoryEntities) {

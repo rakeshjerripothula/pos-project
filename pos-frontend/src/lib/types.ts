@@ -1,5 +1,16 @@
 export type OrderStatus = "CREATED" | "INVOICED" | "CANCELLED";
 
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+export interface ApiError {
+  code: string;
+  message: string;
+  fieldErrors?: FieldError[];
+}
+
 export interface OrderData {
   id?: number;
   orderId?: number;
@@ -20,6 +31,31 @@ export interface ClientData {
   id: number;
   clientName: string;
   enabled: boolean;
+}
+
+export interface PagedResponse<T> {
+  data: T[];
+  total: number;
+}
+
+export interface ClientSearchForm {
+  page: number;
+  pageSize: number;
+  clientName?: string;
+  enabled?: boolean;
+}
+
+export interface ProductSearchForm {
+  page: number;
+  pageSize: number;
+  clientId?: number;
+  barcode?: string;
+  productName?: string;
+}
+
+export interface InventorySearchForm {
+  page: number;
+  pageSize: number;
 }
 
 export interface ProductData {

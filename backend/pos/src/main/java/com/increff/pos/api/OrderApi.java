@@ -3,7 +3,9 @@ package com.increff.pos.api;
 import com.increff.pos.dao.OrderDao;
 import com.increff.pos.entity.OrderEntity;
 import com.increff.pos.domain.OrderStatus;
-import jakarta.transaction.Transactional;
+import com.increff.pos.exception.ApiException;
+import com.increff.pos.exception.ApiStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,8 +28,12 @@ public class OrderApi {
     public OrderEntity getById(Integer orderId) {
         return orderDao.findById(orderId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Order not found: " + orderId)
-                );
+                        new ApiException(
+                                ApiStatus.NOT_FOUND,
+                                "Order not found",
+                                "orderId",
+                                "Order not found: " + orderId
+                        ));
     }
 
     public OrderEntity update(OrderEntity order) {

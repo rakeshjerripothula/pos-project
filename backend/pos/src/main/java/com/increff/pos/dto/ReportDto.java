@@ -67,7 +67,6 @@ public class ReportDto extends AbstractDto{
     public DaySalesPageData getDaySales(DaySalesReportForm form) {
         checkValid(form);
 
-        // LocalDate, not ZonedDateTime
         var startDate = form.getStartDate();
         var endDate = form.getEndDate();
 

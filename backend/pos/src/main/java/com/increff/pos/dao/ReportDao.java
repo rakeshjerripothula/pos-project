@@ -98,7 +98,7 @@ public class ReportDao {
         return new PageImpl<>(rows, pageable, total);
     }
 
-    public DaySalesAggregate getDaySalesAggregate(LocalDate date) {
+    public DaySalesAggregate getDaySalesAggregate(ZonedDateTime utcStart, ZonedDateTime utcEnd) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<DaySalesAggregate> cq =
@@ -107,17 +107,21 @@ public class ReportDao {
         Root<OrderEntity> order = cq.from(OrderEntity.class);
         Root<OrderItemEntity> item = cq.from(OrderItemEntity.class);
 
-        Predicate joinPredicate =
-                cb.equal(item.get("orderId"), order.get("id"));
+        List<Predicate> predicates = new ArrayList<>();
 
-        Predicate statusPredicate =
-                cb.equal(order.get("status"), OrderStatus.INVOICED);
+        // Join
+        predicates.add(cb.equal(item.get("orderId"), order.get("id")));
 
-        Predicate datePredicate =
-                cb.equal(
-                        cb.function("DATE", LocalDate.class, order.get("createdAt")),
-                        date
-                );
+        // Only invoiced orders
+        predicates.add(cb.equal(order.get("status"), OrderStatus.INVOICED));
+
+        // UTC time range (IMPORTANT)
+        predicates.add(
+                cb.greaterThanOrEqualTo(order.get("createdAt"), utcStart)
+        );
+        predicates.add(
+                cb.lessThan(order.get("createdAt"), utcEnd)
+        );
 
         Expression<Long> ordersCount =
                 cb.countDistinct(order.get("id"));
@@ -136,7 +140,7 @@ public class ReportDao {
                         itemsCount,
                         revenue
                 ))
-                .where(cb.and(joinPredicate, statusPredicate, datePredicate));
+                .where(predicates.toArray(new Predicate[0]));
 
         return em.createQuery(cq).getSingleResult();
     }

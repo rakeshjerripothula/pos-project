@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 export default function AddClient({
   onAdd,
@@ -12,7 +13,7 @@ export default function AddClient({
 
   async function submit() {
     if (!clientName.trim()) {
-      alert("Client name is required");
+      toast.error("Client name is required");
       return;
     }
 
@@ -21,14 +22,14 @@ export default function AddClient({
       await onAdd(clientName);
       setClientName("");
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+    <div className="flex items-center gap-3">
       <input
         value={clientName}
         onChange={(e) => setClientName(e.target.value)}
@@ -39,52 +40,20 @@ export default function AddClient({
             submit();
           }
         }}
-        style={{
-          flex: 1,
-          padding: "12px 16px",
-          border: "1px solid #d1d5db",
-          borderRadius: 8,
-          fontSize: 16,
-          transition: "all 0.2s",
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = "#667eea";
-          e.currentTarget.style.outline = "none";
-          e.currentTarget.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = "#d1d5db";
-          e.currentTarget.style.boxShadow = "none";
-        }}
+        className="flex-1 px-4 py-2 text-sm transition-all border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       <button
         onClick={submit}
         disabled={loading}
-        style={{
-          padding: "12px 24px",
-          backgroundColor: loading ? "#9ca3af" : "#667eea",
-          color: "white",
-          border: "none",
-          borderRadius: 8,
-          fontSize: 16,
-          fontWeight: 500,
-          cursor: loading ? "not-allowed" : "pointer",
-          transition: "all 0.2s",
-          whiteSpace: "nowrap",
-        }}
-        onMouseEnter={(e) => {
-          if (!loading) {
-            e.currentTarget.style.backgroundColor = "#5568d3";
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!loading) {
-            e.currentTarget.style.backgroundColor = "#667eea";
-          }
-        }}
+        className={`px-5 py-2 text-sm font-medium text-white rounded-md transition-all whitespace-nowrap ${
+          loading 
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+        }`}
       >
         {loading ? "Adding..." : "Add Client"}
       </button>
     </div>
   );
 }
+

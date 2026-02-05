@@ -26,8 +26,4 @@ public class ClientEntity extends AbstractEntity{
     @Column(nullable = false)
     private Boolean enabled = true;
 
-    public void toggleEnabled() {
-        this.enabled = !this.enabled;
-    }
-
 }

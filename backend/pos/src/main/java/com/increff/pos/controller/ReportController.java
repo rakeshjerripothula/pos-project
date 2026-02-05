@@ -5,9 +5,18 @@ import com.increff.pos.model.data.DaySalesPageData;
 import com.increff.pos.model.data.SalesReportPageData;
 import com.increff.pos.model.form.DaySalesReportForm;
 import com.increff.pos.model.form.SalesReportForm;
+import com.increff.pos.util.CsvExportUtil;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/reports")
@@ -25,6 +34,44 @@ public class ReportController {
     @PostMapping("/sales")
     public SalesReportPageData getSalesReport(@RequestBody @Valid SalesReportForm form) {
         return reportDto.getSalesReport(form);
+    }
+
+    @PostMapping("/sales/export")
+    public ResponseEntity<byte[]> exportSalesReport(@RequestBody @Valid SalesReportForm form) {
+        try {
+            SalesReportPageData reportData = reportDto.getSalesReport(form);
+            byte[] csvData = CsvExportUtil.exportSalesReportToCsv(reportData.getRows());
+            
+            String filename = "sales-report-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ".csv";
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentLength(csvData.length);
+            
+            return new ResponseEntity<>(csvData, headers, HttpStatus.OK);
+        } catch (IOException e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/day-sales/export")
+    public ResponseEntity<byte[]> exportDaySalesReport(@RequestBody @Valid DaySalesReportForm form) {
+        try {
+            DaySalesPageData reportData = reportDto.getDaySales(form);
+            byte[] csvData = CsvExportUtil.exportDaySalesReportToCsv(reportData.getContent());
+            
+            String filename = "day-sales-report-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ".csv";
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", filename);
+            headers.setContentLength(csvData.length);
+            
+            return new ResponseEntity<>(csvData, headers, HttpStatus.OK);
+        } catch (IOException e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }

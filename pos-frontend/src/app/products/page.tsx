@@ -1,66 +1,105 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { apiGet } from "@/lib/api";
-import { ProductData, InventoryData, ClientData } from "@/lib/types";
+import { apiGet, apiPost, apiPut } from "@/lib/api";
+import { ProductData, InventoryData, ClientData, PagedResponse, ProductSearchForm, InventorySearchForm } from "@/lib/types";
 import AddProduct from "@/components/AddProduct";
 import ProductTsvUpload from "@/components/ProductTsvUpload";
 import EditProductModal from "@/components/EditProductModal";
 import AuthGuard, { isOperator } from "@/components/AuthGuard";
+import ClientSelect from "@/components/ClientSelect";
+import toast from "react-hot-toast";
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<ProductData[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductData[]>([]);
   const [clients, setClients] = useState<ClientData[]>([]);
   const [inventory, setInventory] = useState<InventoryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
   const [isUserOperator, setIsUserOperator] = useState(false);
 
-  // Filters
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const pageSize = 10;
+
+  // Filter state (client-side)
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterClientId, setFilterClientId] = useState<number | "">("");
+  const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterBarcode, setFilterBarcode] = useState("");
 
   useEffect(() => {
     setIsUserOperator(isOperator());
-    loadData();
+    loadAllData();
   }, []);
 
-  async function loadData() {
+  async function loadAllData() {
     setLoading(true);
     try {
-      const [productsData, clientsData, inventoryData] = await Promise.all([
-        apiGet<ProductData[]>("/products"),
-        apiGet<ClientData[]>("/clients"),
-        apiGet<InventoryData[]>("/inventory"),
-      ]);
-
-      setProducts(productsData);
+      // Load ALL clients first (needed for dropdowns and display)
+      const clientsData = await apiGet<ClientData[]>("/clients");
       setClients(clientsData);
-      setInventory(inventoryData);
+
+      // Load ALL products for client-side filtering and pagination
+      let allProductsData: ProductData[] = [];
+      let productPage = 0;
+      const productPageSize = 100;
+      let productHasMore = true;
+
+      while (productHasMore) {
+        const form: ProductSearchForm = { page: productPage, pageSize: productPageSize };
+        try {
+          const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
+          allProductsData = [...allProductsData, ...data.data];
+          productHasMore = (productPage + 1) * productPageSize < data.total;
+          productPage++;
+        } catch (e) {
+          break;
+        }
+      }
+      setAllProducts(allProductsData);
+
+      // Load ALL inventory for mapping
+      let allInventory: InventoryData[] = [];
+      let invPage = 0;
+      const invPageSize = 100;
+      let invHasMore = true;
+
+      while (invHasMore) {
+        const invForm: InventorySearchForm = { page: invPage, pageSize: invPageSize };
+        try {
+          const invData = await apiPost<PagedResponse<InventoryData>>("/inventory/list", invForm);
+          allInventory = [...allInventory, ...invData.data];
+          invHasMore = (invPage + 1) * invPageSize < invData.total;
+          invPage++;
+        } catch (e) {
+          break;
+        }
+      }
+      setInventory(allInventory);
+      
+      // Reset to first page when reloading
+      setPage(0);
     } catch (error: any) {
-      alert("Failed to load data: " + error.message);
+      toast.error("Failed to load data: " + error.message);
     } finally {
       setLoading(false);
     }
   }
 
-  const inventoryMap = useMemo(() => {
-    const map = new Map<number, number>();
-    inventory.forEach((inv) => {
-      map.set(inv.productId, inv.quantity);
-    });
-    return map;
-  }, [inventory]);
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0);
+  }, [searchTerm, filterClientId, filterBarcode]);
 
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+  // Client-side filtering and pagination
+  const { filteredProducts, paginatedProducts, totalElements, inventoryMap } = useMemo(() => {
+    const filtered = allProducts.filter((p) => {
       const matchesSearch =
         !searchTerm ||
         p.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.barcode.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesClient = !filterClientId || p.clientId === filterClientId;
+      const matchesClient = filterClientId === null || p.clientId === filterClientId;
 
       const matchesBarcode =
         !filterBarcode ||
@@ -68,28 +107,46 @@ export default function ProductsPage() {
 
       return matchesSearch && matchesClient && matchesBarcode;
     });
-  }, [products, searchTerm, filterClientId, filterBarcode]);
 
-  async function addProduct(product: {
+    const total = filtered.length;
+    const start = page * pageSize;
+    const end = start + pageSize;
+    const paginated = filtered.slice(start, end);
+
+    // Create inventory map
+    const map = new Map<number, number>();
+    inventory.forEach((inv) => {
+      map.set(inv.productId, inv.quantity);
+    });
+
+    return { 
+      filteredProducts: filtered, 
+      paginatedProducts: paginated, 
+      totalElements: total,
+      inventoryMap: map 
+    };
+  }, [allProducts, searchTerm, filterClientId, filterBarcode, page, inventory]);
+
+  const totalPages = Math.ceil(totalElements / pageSize);
+
+  function clearFilters() {
+    setSearchTerm("");
+    setFilterClientId(null);
+    setFilterBarcode("");
+  }
+
+async function addProduct(product: {
     productName: string;
     barcode: string;
     mrp: number;
     clientId: number;
   }) {
-    const res = await fetch("http://localhost:8080/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(product),
-    });
-
-    if (!res.ok) {
-      throw new Error(await res.text());
-    }
-
-    await loadData();
+    await apiPost("/products", product);
+    loadAllData();
+    toast.success("Product created successfully");
   }
 
-  async function updateProduct(
+async function updateProduct(
     id: number,
     product: {
       productName: string;
@@ -99,31 +156,28 @@ export default function ProductsPage() {
       imageUrl?: string;
     }
   ) {
-    const res = await fetch(`http://localhost:8080/products/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(product),
-    });
-
-    if (!res.ok) {
-      throw new Error(await res.text());
-    }
-
-    await loadData();
+    await apiPut(`/products/${id}`, product);
+    loadAllData();
+    toast.success("Product updated successfully");
   }
 
-  async function updateInventory(productId: number, quantity: number) {
-    const res = await fetch("http://localhost:8080/inventory", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ productId, quantity }),
-    });
+async function updateInventory(productId: number, quantity: number) {
+    await apiPost("/inventory", { productId, quantity });
+    // Reload inventory
+    let allInventory: InventoryData[] = [];
+    let page = 0;
+    const pageSize = 100;
+    let hasMore = true;
 
-    if (!res.ok) {
-      throw new Error(await res.text());
+    while (hasMore) {
+      const form: InventorySearchForm = { page, pageSize };
+      const data = await apiPost<PagedResponse<InventoryData>>("/inventory/list", form);
+      allInventory = [...allInventory, ...data.data];
+      hasMore = (page + 1) * pageSize < data.total;
+      page++;
     }
-
-    await loadData();
+    setInventory(allInventory);
+    toast.success("Inventory updated successfully");
   }
 
   async function uploadProductTsv(file: File) {
@@ -136,188 +190,77 @@ export default function ProductsPage() {
     });
 
     if (!res.ok) {
-      throw new Error(await res.text());
+      const text = await res.text();
+      throw new Error(text || `HTTP error! status: ${res.status}`);
     }
 
-    await loadData();
+    // Reload products
+    loadAllData();
   }
 
   return (
     <AuthGuard>
-      <div
-        style={{
-          minHeight: "calc(100vh - 64px)",
-          backgroundColor: "#f8fafc",
-          padding: 24,
-        }}
-      >
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-          <h1
-            style={{
-              fontSize: 28,
-              fontWeight: "bold",
-              color: "#1e293b",
-              marginBottom: 24,
-            }}
-          >
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
+        <div className="max-w-[1400px] mx-auto">
+          <h1 className="mb-4 text-2xl font-bold text-slate-800">
             Products
           </h1>
 
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: 12,
-              padding: 24,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              marginBottom: 24,
-            }}
-          >
-            {/* Hide TSV upload for OPERATORs */}
-            {!isUserOperator && <ProductTsvUpload onUpload={uploadProductTsv} />}
-            <div style={{ marginTop: 16 }}>
-              {/* Hide AddProduct for OPERATORs */}
-              {!isUserOperator ? (
+          {/* Hide TSV upload section for OPERATORs */}
+          {!isUserOperator && (
+            <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
+              <ProductTsvUpload onUpload={uploadProductTsv} />
+              <div className="mt-3">
                 <AddProduct clients={clients} onAdd={addProduct} />
-              ) : (
-                <div
-                  style={{
-                    padding: 16,
-                    backgroundColor: "#f8fafc",
-                    borderRadius: 8,
-                    color: "#64748b",
-                    fontSize: 14,
-                  }}
-                >
-                  Viewing products in read-only mode. Contact a supervisor to add or edit products.
-                </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Filters */}
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: 12,
-              padding: 20,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              marginBottom: 24,
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: 16,
-              }}
-            >
+          <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[180px_1fr_180px_auto]">
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
-                  Search (Name/Barcode)
+                <label className="block mb-1.5 text-xs font-medium text-gray-700">
+                  Search Name
                 </label>
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search products..."
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: 14,
-                  }}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
+                <label className="block mb-1.5 text-xs font-medium text-gray-700">
                   Filter by Client
                 </label>
-                <select
+                <ClientSelect
+                  clients={clients}
                   value={filterClientId}
-                  onChange={(e) =>
-                    setFilterClientId(e.target.value ? Number(e.target.value) : "")
-                  }
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: 14,
-                  }}
-                >
-                  <option value="">All Clients</option>
-                  {clients
-                    .filter((c) => c.enabled)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.clientName}
-                      </option>
-                    ))}
-                </select>
+                  onChange={setFilterClientId}
+                  placeholder="Search client..."
+                />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
-                  Filter by Barcode
+                <label className="block mb-1.5 text-xs font-medium text-gray-700">
+                  Search by Barcode
                 </label>
                 <input
                   type="text"
                   value={filterBarcode}
                   onChange={(e) => setFilterBarcode(e.target.value)}
                   placeholder="Enter barcode..."
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: 14,
-                  }}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
-              <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <div className="flex items-end">
                 <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setFilterClientId("");
-                    setFilterBarcode("");
-                  }}
-                  style={{
-                    padding: "10px 20px",
-                    backgroundColor: "#6b7280",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    fontSize: 14,
-                    fontWeight: 500,
-                  }}
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
                 >
                   Clear Filters
                 </button>
@@ -327,223 +270,115 @@ export default function ProductsPage() {
 
           {/* Products Table */}
           {loading ? (
-            <div style={{ textAlign: "center", padding: 48 }}>Loading...</div>
+            <div className="py-8 text-center text-slate-500">Loading...</div>
           ) : (
-            <div
-              style={{
-                backgroundColor: "white",
-                borderRadius: 12,
-                padding: 24,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                overflowX: "auto",
-              }}
-            >
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                }}
-              >
+            <div className="p-4 bg-white rounded-lg shadow-sm overflow-x-auto">
+              <table className="w-full border-collapse">
                 <thead>
-                  <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      ID
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      Image
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      Product Name
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      Barcode
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      MRP
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      Client
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      Inventory
-                    </th>
-                    <th
-                      style={{
-                        padding: "12px",
-                        textAlign: "left",
-                        fontWeight: 600,
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      Actions
-                    </th>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">ID</th>
+                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Image</th>
+                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Product Name</th>
+                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Barcode</th>
+                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">MRP</th>
+                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Client</th>
+                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Inventory</th>
+                    {!isUserOperator && (
+                      <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Actions</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.length === 0 ? (
+                  {paginatedProducts.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan={8}
-                        style={{
-                          textAlign: "center",
-                          padding: 48,
-                          color: "#6b7280",
-                        }}
-                      >
+                      <td colSpan={isUserOperator ? 7 : 8} className="py-10 text-center text-slate-500">
                         No products found
                       </td>
                     </tr>
                   ) : (
-                    filteredProducts.map((p) => {
+                    paginatedProducts.map((p) => {
                       const client = clients.find((c) => c.id === p.clientId);
                       return (
-                        <tr
-                          key={p.id}
-                          style={{
-                            borderBottom: "1px solid #e5e7eb",
-                          }}
-                        >
-                          <td style={{ padding: "12px" }}>{p.id}</td>
-                          <td style={{ padding: "12px" }}>
+                        <tr key={p.id} className="border-b border-gray-100">
+                          <td className="px-2 py-2.5 text-sm">{p.id}</td>
+                          <td className="px-2 py-2.5">
                             {p.imageUrl ? (
                               <img
                                 src={p.imageUrl}
                                 alt={p.productName}
-                                style={{
-                                  width: 50,
-                                  height: 50,
-                                  objectFit: "cover",
-                                  border: "1px solid #e5e7eb",
-                                  borderRadius: 6,
-                                }}
+                                className="w-10 h-10 object-cover border border-gray-200 rounded-md"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).style.display =
                                     "none";
                                 }}
                               />
                             ) : (
-                              <div
-                                style={{
-                                  width: 50,
-                                  height: 50,
-                                  backgroundColor: "#f3f4f6",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: 10,
-                                  color: "#9ca3af",
-                                  border: "1px solid #e5e7eb",
-                                  borderRadius: 6,
-                                }}
-                              >
+                              <div className="w-10 h-10 bg-gray-100 flex items-center justify-content-center text-xs text-gray-400 border border-gray-200 rounded-md">
                                 No Image
                               </div>
                             )}
                           </td>
-                          <td style={{ padding: "12px" }}>{p.productName}</td>
-                          <td style={{ padding: "12px" }}>{p.barcode}</td>
-                          <td style={{ padding: "12px" }}>
-                            ₹{Number(p.mrp).toFixed(2)}
+                          <td className="px-2 py-2.5 text-sm">{p.productName}</td>
+                          <td className="px-2 py-2.5 text-sm">{p.barcode}</td>
+                          <td className="px-2 py-2.5 text-sm">₹{Number(p.mrp).toFixed(2)}</td>
+                          <td className="px-2 py-2.5 text-sm">
+                            {client?.clientName || `Client ${p.clientId}`}
                           </td>
-                          <td style={{ padding: "12px" }}>
-                            {client?.clientName || p.clientId}
-                          </td>
-                          <td style={{ padding: "12px" }}>
+                          <td className="px-2 py-2.5 text-sm">
                             {inventoryMap.get(p.id) ?? 0}
                           </td>
-                          <td style={{ padding: "12px" }}>
-                            {/* Hide Edit button for OPERATORs */}
-                            {!isUserOperator && (
+                          {!isUserOperator && (
+                            <td className="px-2 py-2.5">
                               <button
                                 onClick={() => setEditingProduct(p)}
-                                style={{
-                                  padding: "6px 12px",
-                                  backgroundColor: "#667eea",
-                                  color: "white",
-                                  border: "none",
-                                  borderRadius: 6,
-                                  cursor: "pointer",
-                                  fontSize: 13,
-                                  fontWeight: 500,
-                                }}
+                                className="px-3 py-1.5 text-xs text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
                               >
                                 Edit
                               </button>
-                            )}
-                            {isUserOperator && (
-                              <span
-                                style={{
-                                  color: "#9ca3af",
-                                  fontSize: 13,
-                                }}
-                              >
-                                View only
-                              </span>
-                            )}
-                          </td>
+                            </td>
+                          )}
                         </tr>
                       );
                     })
                   )}
                 </tbody>
               </table>
+
+              {/* Pagination */}
+              {totalElements > 0 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                  <div className="text-sm text-slate-500">
+                    Showing {paginatedProducts.length} of {totalElements} products
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPage(Math.max(0, page - 1))}
+                      disabled={page === 0}
+                      className={`px-4 py-1.5 text-sm border border-gray-300 rounded-md ${
+                        page === 0 
+                          ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
+                          : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    <span className="px-3 py-1.5 text-sm text-gray-700">
+                      Page {page + 1} of {totalPages || 1}
+                    </span>
+                    <button
+                      onClick={() => setPage(page + 1)}
+                      disabled={page >= totalPages - 1}
+                      className={`px-4 py-1.5 text-sm border border-gray-300 rounded-md ${
+                        page >= totalPages - 1 
+                          ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
+                          : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -566,3 +401,4 @@ export default function ProductsPage() {
     </AuthGuard>
   );
 }
+

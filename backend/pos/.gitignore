@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+# IDE
+.idea/
+*.class
+
+# Generated files
+backend/pos/invoices/*.pdf
+
+# Node
+node_modules/
+
+# Logs
+*.log

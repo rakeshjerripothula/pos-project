@@ -30,10 +30,7 @@ public class ApiException extends RuntimeException {
         super(message);
         this.status = status;
 
-        FieldErrorData error = new FieldErrorData();
-        error.setCode("");
-        error.setField(field);
-        error.setMessage(errorMessage);
+        FieldErrorData error = new FieldErrorData(field, errorMessage, "");
 
         this.errors = List.of(error);
     }

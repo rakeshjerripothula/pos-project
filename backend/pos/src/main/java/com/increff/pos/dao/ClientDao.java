@@ -3,10 +3,14 @@ package com.increff.pos.dao;
 import com.increff.pos.entity.ClientEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,22 +33,58 @@ public class ClientDao {
         return em.merge(client);
     }
 
-    public List<ClientEntity> saveAll(List<ClientEntity> clients) {
-        for (ClientEntity client : clients) {
-            em.persist(client);
-        }
-        return clients;
+    public List<ClientEntity> selectAll() {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
+
+        Root<ClientEntity> client = cq.from(ClientEntity.class);
+
+        cq.select(client)
+                .orderBy(cb.asc(client.get("id")));
+
+        TypedQuery<ClientEntity> query = em.createQuery(cq);
+        return query.getResultList();
     }
 
     public Optional<ClientEntity> findById(Integer clientId) {
         return Optional.ofNullable(em.find(ClientEntity.class, clientId));
     }
 
-    public List<ClientEntity> findAll() {
+    public Page<ClientEntity> findAll(Pageable pageable) {
+
         CriteriaBuilder cb = em.getCriteriaBuilder();
+
         CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
         Root<ClientEntity> root = cq.from(ClientEntity.class);
         cq.select(root);
+
+        List<ClientEntity> data = em.createQuery(cq)
+                .setFirstResult((int) pageable.getOffset())
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
+
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<ClientEntity> countRoot = countQuery.from(ClientEntity.class);
+        countQuery.select(cb.count(countRoot));
+
+        Long total = em.createQuery(countQuery).getSingleResult();
+
+        return new PageImpl<>(data, pageable, total);
+    }
+
+    public List<Integer> findDisabledClientIds(List<Integer> clientIds) {
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
+        Root<ClientEntity> root = cq.from(ClientEntity.class);
+
+        cq.select(root.get("id"))
+                .where(
+                        cb.and(
+                                root.get("id").in(clientIds),
+                                cb.isFalse(root.get("enabled"))
+                        )
+                );
 
         return em.createQuery(cq).getResultList();
     }

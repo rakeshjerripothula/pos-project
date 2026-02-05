@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -71,99 +70,47 @@ export default function Navbar() {
   ];
 
   return (
-    <nav
-      style={{
-        backgroundColor: "#1e293b",
-        color: "white",
-        padding: "16px 24px",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 1400,
-          margin: "0 auto",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+    <nav className="px-6 py-4 bg-slate-800 shadow-md">
+      <div className="flex items-center justify-between max-w-[1400px] mx-auto">
+        <div className="flex items-center gap-8">
           <Link
             href="/orders"
-            style={{
-              fontSize: 20,
-              fontWeight: "bold",
-              color: "white",
-              textDecoration: "none",
-            }}
+            className="text-xl font-bold text-white no-underline"
           >
             PoS System
           </Link>
-          <div style={{ display: "flex", gap: 16 }}>
+          <div className="flex gap-1">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                style={{
-                  color: pathname === item.href ? "#60a5fa" : "white",
-                  textDecoration: "none",
-                  padding: "8px 12px",
-                  borderRadius: 4,
-                  backgroundColor:
-                    pathname === item.href ? "rgba(96, 165, 250, 0.1)" : "transparent",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  if (pathname !== item.href) {
-                    e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (pathname !== item.href) {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }
-                }}
+                className={`px-4 py-2 rounded-md transition-all duration-200 text-sm font-medium no-underline border-b-2 ${
+                  pathname === item.href
+                    ? "border-blue-400 text-white bg-white/10"
+                    : "border-transparent text-white hover:bg-white/10"
+                }`}
               >
                 {item.label}
               </Link>
             ))}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="flex items-center gap-4">
           {user ? (
             <>
-              <div style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ color: "#94a3b8" }}>{user.email}</span>
-                <span
-                  style={{
-                    padding: "2px 8px",
-                    backgroundColor: user.role === "SUPERVISOR" ? "#10b981" : "#3b82f6",
-                    borderRadius: 12,
-                    fontSize: 12,
-                  }}
-                >
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-slate-400">{user.email}</span>
+                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  user.role === "SUPERVISOR" 
+                    ? "bg-emerald-500" 
+                    : "bg-blue-500"
+                }`}>
                   {user.role}
                 </span>
               </div>
               <button
                 onClick={handleLogout}
-                style={{
-                  padding: "6px 16px",
-                  backgroundColor: "#ef4444",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 4,
-                  cursor: "pointer",
-                  fontSize: 14,
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#dc2626";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ef4444";
-                }}
+                className="px-4 py-1.5 text-sm text-white transition-colors bg-red-500 border-none rounded-md hover:bg-red-600 cursor-pointer"
               >
                 Logout
               </button>
@@ -171,22 +118,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              style={{
-                padding: "6px 16px",
-                backgroundColor: "#667eea",
-                color: "white",
-                textDecoration: "none",
-                borderRadius: 4,
-                fontSize: 14,
-                fontWeight: 500,
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#5568d3";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#667eea";
-              }}
+              className="px-4 py-1.5 text-sm font-medium text-white no-underline rounded-md bg-blue-500 hover:bg-blue-600 transition-colors"
             >
               Sign In
             </Link>

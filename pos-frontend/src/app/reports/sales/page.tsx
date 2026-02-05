@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { apiGet, apiPost } from "@/lib/api";
+import { useState, useEffect, useRef } from "react";
+import { apiGet, apiPost, apiExport } from "@/lib/api";
 import {
   SalesReportPageData,
   ClientData,
@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
 import Select from "react-select";
+import toast from "react-hot-toast";
 
 interface ClientOption {
   value: number;
@@ -22,6 +23,7 @@ export default function SalesReportPage() {
   const [endDate, setEndDate] = useState("");
   const [clientId, setClientId] = useState<number | "">("");
   const [clients, setClients] = useState<ClientData[]>([]);
+  const clientsLoadedRef = useRef(false);
   const [page, setPage] = useState(0);
   const [mounted, setMounted] = useState(false);
   const pageSize = 10;
@@ -58,6 +60,8 @@ export default function SalesReportPage() {
   const selectedClient = clientOptions.find((o) => o.value === clientId) || null;
 
   async function loadClients() {
+    if (clientsLoadedRef.current) return;
+    clientsLoadedRef.current = true;
     try {
       const clientsData = await apiGet<ClientData[]>("/clients");
       setClients(clientsData);
@@ -96,7 +100,7 @@ export default function SalesReportPage() {
 
       setData(result);
     } catch (error: any) {
-      alert("Failed to load report: " + error.message);
+      toast.error("Failed to load report: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -111,76 +115,54 @@ export default function SalesReportPage() {
     0
   ) || 0;
 
+  async function handleExportCsv() {
+    if (!startDate || !endDate) {
+      return;
+    }
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const form: any = {
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    };
+
+    if (clientId) {
+      form.clientId = clientId;
+    }
+
+    try {
+      await apiExport("/reports/sales/export", form);
+      toast.success("CSV downloaded successfully");
+    } catch (error: any) {
+      toast.error("Failed to export CSV: " + error.message);
+    }
+  }
+
   return (
     <AuthGuard requiredRole="SUPERVISOR">
-      <div
-        style={{
-          minHeight: "calc(100vh - 64px)",
-          backgroundColor: "#f8fafc",
-          padding: 24,
-        }}
-      >
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
-            }}
-          >
-            <h1
-              style={{
-                fontSize: 28,
-                fontWeight: "bold",
-                color: "#1e293b",
-              }}
-            >
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-6">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-slate-800">
               Sales Report
             </h1>
             <Link
               href="/reports"
-              style={{
-                padding: "10px 20px",
-                backgroundColor: "#6b7280",
-                color: "white",
-                textDecoration: "none",
-                borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 500,
-              }}
+              className="px-5 py-2.5 text-sm font-medium text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition-colors no-underline"
             >
               Back to Reports
             </Link>
           </div>
 
           {/* Filters */}
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: 12,
-              padding: 20,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              marginBottom: 24,
-            }}
-          >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: 16,
-              }}
-            >
+          <div className="p-5 mb-6 bg-white rounded-xl shadow-sm">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_200px_auto]">
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
+                <label className="block mb-2 text-sm font-medium text-gray-700">
                   Start Date
                 </label>
                 <input
@@ -190,26 +172,12 @@ export default function SalesReportPage() {
                     setStartDate(e.target.value);
                     setPage(0);
                   }}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: 14,
-                  }}
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
+                <label className="block mb-2 text-sm font-medium text-gray-700">
                   End Date
                 </label>
                 <input
@@ -219,26 +187,12 @@ export default function SalesReportPage() {
                     setEndDate(e.target.value);
                     setPage(0);
                   }}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: 14,
-                  }}
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 8,
-                    fontSize: 14,
-                    fontWeight: 500,
-                    color: "#374151",
-                  }}
-                >
+                <label className="block mb-2 text-sm font-medium text-gray-700">
                   Client
                 </label>
                 {mounted ? (
@@ -251,46 +205,55 @@ export default function SalesReportPage() {
                       setClientId(option ? option.value : "")
                     }
                     menuPortalTarget={typeof document !== 'undefined' ? document.body : undefined}
+                    className="w-full"
+                    classNamePrefix="react-select"
                     styles={{
+                      control: (base) => ({
+                        ...base,
+                        borderRadius: "0.5rem",
+                        border: "1px solid #d1d5db",
+                        fontSize: "14px",
+                        minHeight: "42px",
+                        backgroundColor: "white",
+                      }),
                       menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
+                      menu: (base) => ({
+                        ...base,
+                        borderRadius: "0.5rem",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                      }),
+                      option: (base, state) => ({
+                        ...base,
+                        fontSize: "14px",
+                        backgroundColor: state.isSelected 
+                          ? "#667eea" 
+                          : state.isFocused 
+                            ? "#f3f4f6" 
+                            : "white",
+                        color: state.isSelected ? "white" : "#374151",
+                        padding: "10px 14px",
+                      }),
                     }}
                   />
                 ) : (
-                  <div style={{
-                    padding: "10px 14px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: 8,
-                    fontSize: 14,
-                    color: "#6b7280",
-                    backgroundColor: "#f9fafb",
-                  }}>
+                  <div className="px-3.5 py-2.5 text-sm text-slate-500 bg-gray-50 border border-gray-300 rounded-lg">
                     Loading clients...
                   </div>
                 )}
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-end",
-                }}
-              >
+              <div className="flex items-end">
                 <button
                   onClick={() => {
                     setPage(0);
                     loadReport();
                   }}
                   disabled={loading}
-                  style={{
-                    padding: "10px 20px",
-                    backgroundColor: "#667eea",
-                    color: "white",
-                    border: "none",
-                    borderRadius: 8,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    fontSize: 14,
-                    fontWeight: 500,
-                  }}
+                  className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
+                    loading 
+                      ? "bg-blue-400 cursor-not-allowed" 
+                      : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+                  }`}
                 >
                   {loading ? "Loading..." : "Generate Report"}
                 </button>
@@ -300,134 +263,57 @@ export default function SalesReportPage() {
 
           {/* Summary */}
           {data && data.rows.length > 0 && (
-            <div
-              style={{
-                backgroundColor: "white",
-                borderRadius: 12,
-                padding: 20,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                marginBottom: 24,
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: 16,
-              }}
-            >
+            <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-4 p-5 bg-white rounded-xl shadow-sm">
               <div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Total Products
-                </div>
-                <div
-                  style={{ fontSize: 24, fontWeight: "bold", color: "#1e293b" }}
-                >
-                  {data.totalElements}
-                </div>
+                <div className="text-xs text-slate-500">Total Products</div>
+                <div className="text-2xl font-bold text-slate-800">{data.totalElements}</div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Total Quantity Sold
-                </div>
-                <div
-                  style={{ fontSize: 24, fontWeight: "bold", color: "#1e293b" }}
-                >
-                  {totalQuantity}
-                </div>
+                <div className="text-xs text-slate-500">Total Quantity Sold</div>
+                <div className="text-2xl font-bold text-slate-800">{totalQuantity}</div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>
-                  Total Revenue
-                </div>
-                <div
-                  style={{ fontSize: 24, fontWeight: "bold", color: "#1e293b" }}
+                <div className="text-xs text-slate-500">Total Revenue</div>
+                <div className="text-2xl font-bold text-slate-800">₹{totalRevenue.toFixed(2)}</div>
+              </div>
+              <div className="flex items-center justify-end">
+                <button
+                  onClick={handleExportCsv}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2"
                 >
-                  ₹{totalRevenue.toFixed(2)}
-                </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export CSV
+                </button>
               </div>
             </div>
           )}
 
           {/* Report Table */}
           {loading ? (
-            <div style={{ textAlign: "center", padding: 48 }}>Loading...</div>
+            <div className="py-12 text-center text-slate-500">Loading...</div>
           ) : data && data.rows.length === 0 ? (
-            <div
-              style={{
-                backgroundColor: "white",
-                borderRadius: 12,
-                padding: 48,
-                textAlign: "center",
-                color: "#6b7280",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              }}
-            >
+            <div className="p-12 text-center text-slate-500 bg-white rounded-xl shadow-sm">
               No sales data available for the selected date range.
             </div>
           ) : data ? (
             <>
-              <div
-                style={{
-                  backgroundColor: "white",
-                  borderRadius: 12,
-                  padding: 24,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                  overflowX: "auto",
-                }}
-              >
-                <table
-                  style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                  }}
-                >
+              <div className="p-6 bg-white rounded-xl shadow-sm overflow-x-auto">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr style={{ borderBottom: "2px solid #e5e7eb" }}>
-                      <th
-                        style={{
-                          padding: "12px",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          color: "#374151",
-                          fontSize: 14,
-                        }}
-                      >
-                        Product Name
-                      </th>
-                      <th
-                        style={{
-                          padding: "12px",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          color: "#374151",
-                          fontSize: 14,
-                        }}
-                      >
-                        Quantity Sold
-                      </th>
-                      <th
-                        style={{
-                          padding: "12px",
-                          textAlign: "left",
-                          fontWeight: 600,
-                          color: "#374151",
-                          fontSize: 14,
-                        }}
-                      >
-                        Revenue
-                      </th>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">Product Name</th>
+                      <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">Quantity Sold</th>
+                      <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">Revenue</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.rows.map((item, idx) => (
-                      <tr
-                        key={idx}
-                        style={{
-                          borderBottom: "1px solid #e5e7eb",
-                        }}
-                      >
-                        <td style={{ padding: "12px" }}>{item.productName}</td>
-                        <td style={{ padding: "12px" }}>{item.quantitySold}</td>
-                        <td style={{ padding: "12px" }}>
-                          ₹{Number(item.revenue).toFixed(2)}
-                        </td>
+                      <tr key={idx} className="border-b border-gray-100">
+                        <td className="px-3 py-3 text-sm">{item.productName}</td>
+                        <td className="px-3 py-3 text-sm">{item.quantitySold}</td>
+                        <td className="px-3 py-3 text-sm">₹{Number(item.revenue).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -436,65 +322,33 @@ export default function SalesReportPage() {
 
               {/* Pagination */}
               {data.totalElements > pageSize && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginTop: 24,
-                    padding: "16px 24px",
-                    backgroundColor: "white",
-                    borderRadius: 12,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <div style={{ color: "#6b7280", fontSize: 14 }}>
+                <div className="flex items-center justify-between mt-6 p-6 bg-white rounded-xl shadow-sm">
+                  <div className="text-sm text-slate-500">
                     Showing {data.rows.length} of {data.totalElements} products
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className="flex gap-2">
                     <button
                       onClick={() => setPage(Math.max(0, page - 1))}
                       disabled={page === 0}
-                      style={{
-                        padding: "8px 16px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: 8,
-                        cursor: page === 0 ? "not-allowed" : "pointer",
-                        opacity: page === 0 ? 0.5 : 1,
-                        backgroundColor: "white",
-                        fontSize: 14,
-                      }}
+                      className={`px-4 py-2 text-sm border border-gray-300 rounded-lg ${
+                        page === 0 
+                          ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
+                          : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      }`}
                     >
                       Previous
                     </button>
-                    <span
-                      style={{
-                        padding: "8px 16px",
-                        color: "#374151",
-                        fontSize: 14,
-                      }}
-                    >
-                      Page {page + 1} of{" "}
-                      {Math.ceil(data.totalElements / pageSize)}
+                    <span className="px-4 py-2 text-sm text-gray-700">
+                      Page {page + 1} of {Math.ceil(data.totalElements / pageSize)}
                     </span>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={(page + 1) * pageSize >= data.totalElements}
-                      style={{
-                        padding: "8px 16px",
-                        border: "1px solid #d1d5db",
-                        borderRadius: 8,
-                        cursor:
-                          (page + 1) * pageSize >= data.totalElements
-                            ? "not-allowed"
-                            : "pointer",
-                        opacity:
-                          (page + 1) * pageSize >= data.totalElements
-                            ? 0.5
-                            : 1,
-                        backgroundColor: "white",
-                        fontSize: 14,
-                      }}
+                      className={`px-4 py-2 text-sm border border-gray-300 rounded-lg ${
+                        (page + 1) * pageSize >= data.totalElements 
+                          ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
+                          : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      }`}
                     >
                       Next
                     </button>

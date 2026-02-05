@@ -8,8 +8,10 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(
-        name = "order_item",
-        indexes = {
+        name = "order_item",uniqueConstraints = @UniqueConstraint(
+            name = "uk_order_product",
+            columnNames = {"order_id", "product_id"}
+        ), indexes = {
                 @Index(name = "idx_order_item_order_id", columnList = "order_id"),
                 @Index(name = "idx_order_item_product_id", columnList = "product_id"),
                 @Index(name = "idx_order_item_order_product", columnList = "order_id, product_id")

@@ -4,11 +4,15 @@ import com.increff.pos.api.ClientApi;
 import com.increff.pos.api.InventoryApi;
 import com.increff.pos.api.ProductApi;
 import com.increff.pos.entity.InventoryEntity;
+import com.increff.pos.entity.OrderItemEntity;
 import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -16,6 +20,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class InventoryFlow {
 
     @Autowired
@@ -44,13 +49,65 @@ public class InventoryFlow {
         return inventoryApi.upsert(inventory);
     }
 
+    public List<InventoryEntity> validateAndGetInventories(List<OrderItemEntity> items) {
+
+        List<Integer> productIds = items.stream()
+                .map(OrderItemEntity::getProductId)
+                .distinct()
+                .toList();
+
+        List<InventoryEntity> inventories = inventoryApi.getByProductIds(productIds);
+
+        if (inventories.size() != productIds.size()) {
+            throw new ApiException(
+                    ApiStatus.NOT_FOUND,
+                    "Inventory not found for one or more products",
+                    "productId",
+                    "Inventory not found for one or more products"
+            );
+        }
+
+        List<ProductEntity> products = productApi.getByIds(productIds);
+
+        if (products.size() != productIds.size()) {
+            throw new ApiException(
+                    ApiStatus.NOT_FOUND,
+                    "One or more products not found",
+                    "productId",
+                    "One or more products not found"
+            );
+        }
+
+        Integer clientId = products.getFirst().getClientId();
+        for (ProductEntity product : products) {
+            if (!clientId.equals(product.getClientId())) {
+                throw new ApiException(
+                        ApiStatus.BAD_DATA,
+                        "All products in an order must belong to the same client",
+                        "clientId",
+                        "All products in an order must belong to the same client"
+                );
+            }
+        }
+
+        if (!clientApi.isClientEnabled(clientId)) {
+            throw new ApiException(
+                    ApiStatus.FORBIDDEN,
+                    "Client is disabled",
+                    "clientId",
+                    "Client is disabled"
+            );
+        }
+
+        return inventories;
+    }
+
+
     public InventoryEntity getByProductId(Integer productId) {
 
-        InventoryEntity inventory =
-                inventoryApi.getByProductId(productId);
+        InventoryEntity inventory = inventoryApi.getByProductId(productId);
 
-        ProductEntity product =
-                productApi.getProductById(productId);
+        ProductEntity product = productApi.getProductById(productId);
 
         if (!clientApi.isClientEnabled(product.getClientId())) {
             throw new ApiException(
@@ -64,20 +121,6 @@ public class InventoryFlow {
         return inventory;
     }
 
-    public List<InventoryEntity> listForEnabledClients() {
-
-        List<InventoryEntity> allInventories = inventoryApi.listAll();
-
-        Map<Integer, ProductEntity> productMap = getProductIds(allInventories);
-
-        return allInventories.stream()
-                .filter(inv -> {
-                    ProductEntity product = productMap.get(inv.getProductId());
-                    return !Objects.isNull(product) && clientApi.isClientEnabled(product.getClientId());
-                })
-                .toList();
-    }
-
     private Map<Integer, ProductEntity> getProductIds(List<InventoryEntity> allInventories) {
         List<Integer> productIds = allInventories.stream()
                 .map(InventoryEntity::getProductId)
@@ -86,6 +129,10 @@ public class InventoryFlow {
 
         List<ProductEntity> products = productApi.getByIds(productIds);
         return products.stream().collect(Collectors.toMap(ProductEntity::getId, product -> product));
+    }
+
+    public Page<InventoryEntity> listForEnabledClients(Pageable pageable) {
+        return inventoryApi.listForEnabledClients(pageable);
     }
 
     public List<InventoryEntity> bulkUpsert(List<InventoryEntity> inventories) {

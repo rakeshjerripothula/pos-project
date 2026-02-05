@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ProductData } from "@/lib/types";
+import ProductSelect from "@/components/ProductSelect";
+import toast from "react-hot-toast";
 
 export default function AddInventory({
   products,
@@ -10,53 +12,85 @@ export default function AddInventory({
   products: ProductData[];
   onAdd: (productId: number, quantity: number) => Promise<void>;
 }) {
-  const [productId, setProductId] = useState("");
+  const [productId, setProductId] = useState<number | null>(null);
   const [quantity, setQuantity] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function submit() {
+    const qty = Number(quantity);
     if (!productId || !quantity) {
-      alert("All fields required");
+      toast.error("All fields required");
+      return;
+    }
+
+    if (qty < 0) {
+      toast.error("Quantity cannot be negative");
       return;
     }
 
     setLoading(true);
     try {
-      await onAdd(Number(productId), Number(quantity));
-      setProductId("");
+      await onAdd(productId, qty);
+      setProductId(null);
       setQuantity("");
     } catch (e: any) {
-      alert(e.message);
+      toast.error(e.message);
     } finally {
       setLoading(false);
     }
   }
 
+  function handleQuantityChange(value: string) {
+    const numValue = Number(value);
+    if (numValue < 0) return;
+    setQuantity(value);
+  }
+
   return (
-    <div style={{ marginBottom: 16 }}>
-      <select
-        value={productId}
-        onChange={(e) => setProductId(e.target.value)}
-      >
-        <option value="">Select Product</option>
-        {products.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.productName}
-          </option>
-        ))}
-      </select>
+    <div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[160px_1fr_auto] items-end">
+        <div>
+          <label className="block mb-1.5 text-xs font-medium text-gray-700">
+            Product
+          </label>
+          <ProductSelect
+            products={products}
+            value={productId}
+            onChange={setProductId}
+            placeholder="Search product..."
+            isClearable={false}
+          />
+        </div>
 
-      <input
-        type="number"
-        placeholder="Quantity"
-        value={quantity}
-        onChange={(e) => setQuantity(e.target.value)}
-        style={{ marginLeft: 8 }}
-      />
+        <div>
+          <label className="block mb-1.5 text-xs font-medium text-gray-700">
+            Quantity
+          </label>
+          <input
+            type="number"
+            min={0}
+            placeholder="Quantity"
+            value={quantity}
+            onChange={(e) => handleQuantityChange(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
 
-      <button onClick={submit} disabled={loading}>
-        {loading ? "Adding..." : "Add Inventory"}
-      </button>
+        <div>
+          <button
+            onClick={submit}
+            disabled={loading}
+            className={`w-full px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
+              loading 
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+            }`}
+          >
+            {loading ? "Adding..." : "Add Inventory"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
+
