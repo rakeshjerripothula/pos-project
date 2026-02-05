@@ -5,6 +5,8 @@ import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.flow.InventoryFlow;
 import com.increff.pos.model.data.InventoryData;
 import com.increff.pos.model.data.PagedResponse;
+import com.increff.pos.model.data.TsvUploadError;
+import com.increff.pos.model.data.TsvUploadResult;
 import com.increff.pos.model.form.InventoryForm;
 import com.increff.pos.api.ProductApi;
 import com.increff.pos.exception.ApiException;
@@ -124,49 +126,109 @@ public class InventoryDto extends AbstractDto {
 
     }
 
-    public List<InventoryData> uploadTsv(MultipartFile file) {
-
-        List<InventoryForm> forms = parseInventoryTsv(file);
-        return bulkUpsert(forms);
+    public TsvUploadResult<InventoryData> uploadTsv(MultipartFile file) {
+        TsvUploadResult<InventoryForm> parseResult = parseInventoryTsv(file);
+        
+        if (!parseResult.isSuccess()) {
+            return TsvUploadResult.failure(parseResult.getErrors());
+        }
+        
+        List<InventoryData> savedData = bulkUpsert(parseResult.getData());
+        return TsvUploadResult.success(savedData);
     }
 
-    public List<InventoryForm> parseInventoryTsv(MultipartFile file) {
+    public TsvUploadResult<InventoryForm> parseInventoryTsv(MultipartFile file) {
 
         List<String[]> rows = parse(file);
         List<InventoryForm> forms = new ArrayList<>();
+        List<TsvUploadError> errors = new ArrayList<>();
         Set<Integer> seenProductIds = new HashSet<>();
 
         for (int i = 0; i < rows.size(); i++) {
             String[] r = rows.get(i);
+            int rowNumber = i + 2; // +2 because: 0-based index + header row
 
             if (r.length < 2) {
-                throw new ApiException(
-                        ApiStatus.BAD_DATA,
-                        "Invalid inventory TSV at line " + (i + 2),
-                        "file",
-                        "Invalid format at line " + (i + 2)
-                );
+                errors.add(new TsvUploadError(
+                    rowNumber,
+                    r,
+                    "Expected at least 2 columns, found " + r.length
+                ));
+                continue;
             }
 
-            Integer productId = Integer.parseInt(r[0].trim());
-            Integer quantity = Integer.parseInt(r[1].trim());
+            try {
+                // Validate product ID
+                Integer productId;
+                try {
+                    productId = Integer.parseInt(r[0].trim());
+                    if (productId <= 0) {
+                        errors.add(new TsvUploadError(
+                            rowNumber,
+                            r,
+                            "Product ID must be greater than 0"
+                        ));
+                        continue;
+                    }
+                } catch (NumberFormatException e) {
+                    errors.add(new TsvUploadError(
+                        rowNumber,
+                        r,
+                        "Invalid product ID format: " + r[0]
+                    ));
+                    continue;
+                }
 
-            if (!seenProductIds.add(productId)) {
-                throw new ApiException(
-                        ApiStatus.BAD_DATA,
-                        "Duplicate productId in TSV: " + productId,
-                        "productId",
-                        "Duplicate productId: " + productId
-                );
+                // Check for duplicate product IDs
+                if (!seenProductIds.add(productId)) {
+                    errors.add(new TsvUploadError(
+                        rowNumber,
+                        r,
+                        "Duplicate product ID: " + productId
+                    ));
+                    continue;
+                }
+
+                // Validate quantity
+                Integer quantity;
+                try {
+                    quantity = Integer.parseInt(r[1].trim());
+                    if (quantity < 0) {
+                        errors.add(new TsvUploadError(
+                            rowNumber,
+                            r,
+                            "Quantity cannot be negative"
+                        ));
+                        continue;
+                    }
+                } catch (NumberFormatException e) {
+                    errors.add(new TsvUploadError(
+                        rowNumber,
+                        r,
+                        "Invalid quantity format: " + r[1]
+                    ));
+                    continue;
+                }
+
+                InventoryForm f = new InventoryForm();
+                f.setProductId(productId);
+                f.setQuantity(quantity);
+                forms.add(f);
+
+            } catch (Exception e) {
+                errors.add(new TsvUploadError(
+                    rowNumber,
+                    r,
+                    "Unexpected error: " + e.getMessage()
+                ));
             }
-
-            InventoryForm f = new InventoryForm();
-            f.setProductId(productId);
-            f.setQuantity(quantity);
-            forms.add(f);
         }
 
-        return forms;
+        if (!errors.isEmpty()) {
+            return TsvUploadResult.failure(errors);
+        }
+
+        return TsvUploadResult.success(forms);
     }
 
     private void validateProductId(Integer productId) {

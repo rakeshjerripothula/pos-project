@@ -2,7 +2,6 @@ package com.increff.pos.api;
 
 import com.increff.pos.dao.InventoryDao;
 import com.increff.pos.entity.InventoryEntity;
-import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,8 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -21,12 +18,6 @@ public class InventoryApi {
 
     @Autowired
     private InventoryDao inventoryDao;
-
-    @Autowired
-    private ProductApi productApi;
-
-    @Autowired
-    private ClientApi clientApi;
 
     public InventoryEntity upsert(InventoryEntity inventoryEntity) {
 

@@ -1,15 +1,24 @@
 package com.increff.pos.controller;
 
 import com.increff.pos.dto.ProductDto;
+import com.increff.pos.exception.ApiException;
 import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.ProductData;
+import com.increff.pos.model.data.TsvUploadError;
+import com.increff.pos.model.data.TsvUploadResult;
 import com.increff.pos.model.form.ProductForm;
 import com.increff.pos.model.form.ProductSearchForm;
+import com.increff.pos.util.TsvErrorExportUtil;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -49,10 +58,50 @@ public class ProductController {
     }
 
     @PostMapping("/upload/tsv")
-    public List<ProductData> uploadProductTsv(
+    public ResponseEntity<?> uploadProductTsv(
             @RequestParam("file") MultipartFile file) {
-
-        return productDto.uploadProductsTsv(file);
+        
+        try {
+            TsvUploadResult<ProductData> result = productDto.uploadProductsTsv(file);
+            
+            if (!result.isSuccess()) {
+                byte[] errorData = TsvErrorExportUtil.exportErrorsToTsv(result.getErrors(), "products");
+                String filename = TsvErrorExportUtil.generateErrorFilename("products");
+                
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                headers.setContentDispositionFormData("attachment", filename);
+                headers.setContentLength(errorData.length);
+                
+                return new ResponseEntity<>(errorData, headers, HttpStatus.BAD_REQUEST);
+            }
+            
+            return ResponseEntity.ok(result.getData());
+            
+        } catch (ApiException e) {
+            // Convert ApiException to TSV error format
+            TsvUploadError error = new TsvUploadError(
+                null, // We don't have row number info from ApiException
+                new String[]{}, // Empty original data
+                e.getMessage()
+            );
+            
+            try {
+                byte[] errorData = TsvErrorExportUtil.exportErrorsToTsv(List.of(error), "products");
+                String filename = TsvErrorExportUtil.generateErrorFilename("products");
+                
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                headers.setContentDispositionFormData("attachment", filename);
+                headers.setContentLength(errorData.length);
+                
+                return new ResponseEntity<>(errorData, headers, HttpStatus.BAD_REQUEST);
+            } catch (IOException ioException) {
+                return new ResponseEntity<>("Failed to process error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        } catch (IOException e) {
+            return new ResponseEntity<>("Failed to process file", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }

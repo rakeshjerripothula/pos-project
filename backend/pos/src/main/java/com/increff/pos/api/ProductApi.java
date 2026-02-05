@@ -131,8 +131,7 @@ public class ProductApi {
                 .distinct()
                 .toList();
 
-        List<String> existingBarcodes =
-                productDao.findExistingBarcodes(barcodes);
+        List<String> existingBarcodes = productDao.findExistingBarcodes(barcodes);
 
         if (!existingBarcodes.isEmpty()) {
             throw new ApiException(

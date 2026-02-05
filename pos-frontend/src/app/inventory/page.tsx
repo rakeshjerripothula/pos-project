@@ -145,13 +145,57 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
       body: formData,
     });
 
-    if (!res.ok) {
+    if (res.ok) {
+      // Success - parse JSON response with uploaded data
+      const data = await res.json();
+      const count = data.length || 0;
+      toast.success(`${count} inventory record${count !== 1 ? 's' : ''} uploaded successfully`);
+      loadAllData();
+    } else if (res.status === 400) {
+      // Error - download the error TSV file
+      const blob = await res.blob();
+      const filename = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] || "inventory-upload-errors.tsv";
+      
+      // Parse the error TSV to show structured errors
+      const text = await blob.text();
+      const errorLines = text.split('\n').filter(line => line.trim());
+      
+      // Skip header row
+      const errors = errorLines.slice(1).map(line => {
+        const parts = line.split('\t');
+        if (parts.length >= 3) {
+          const rowNum = parts[0];
+          const originalData = parts[1];
+          const errorMsg = parts[2];
+          return { rowNum, originalData, errorMsg };
+        }
+        return null;
+      }).filter(Boolean);
+
+      // Create downloadable error file
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      // Show detailed error message
+      if (errors.length > 0) {
+        const errorSummary = errors.slice(0, 3).map((e: any) => 
+          `Row ${e.rowNum}: ${e.errorMsg}`
+        ).join('\n');
+        const moreText = errors.length > 3 ? `\n...and ${errors.length - 3} more errors (see downloaded file)` : '';
+        throw new Error(`${errors.length} error(s) found:\n${errorSummary}${moreText}\n\nError file downloaded.`);
+      } else {
+        throw new Error("Upload failed with errors. Error file downloaded.");
+      }
+    } else {
       const text = await res.text();
       throw new Error(text || `HTTP error! status: ${res.status}`);
     }
-
-    // Reload inventory
-    loadAllData();
   }
 
   return (

@@ -3,6 +3,8 @@ package com.increff.pos.dto;
 import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.ProductData;
+import com.increff.pos.model.data.TsvUploadError;
+import com.increff.pos.model.data.TsvUploadResult;
 import com.increff.pos.model.form.ProductForm;
 import com.increff.pos.api.ProductApi;
 import com.increff.pos.exception.ApiException;
@@ -22,7 +24,6 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static com.increff.pos.util.Utils.parse;
 
@@ -93,46 +94,124 @@ public class ProductDto extends AbstractDto {
                 .toList();
     }
 
-    public List<ProductData> uploadProductsTsv(MultipartFile file) {
-
-        List<ProductForm> forms = parseProductTsv(file);
-
-        return bulkCreateProducts(forms);
+    public TsvUploadResult<ProductData> uploadProductsTsv(MultipartFile file) {
+        TsvUploadResult<ProductForm> parseResult = parseProductTsv(file);
+        
+        if (!parseResult.isSuccess()) {
+            return TsvUploadResult.failure(parseResult.getErrors());
+        }
+        
+        List<ProductData> savedData = bulkCreateProducts(parseResult.getData());
+        return TsvUploadResult.success(savedData);
     }
 
-    public List<ProductForm> parseProductTsv(MultipartFile file) {
+    public TsvUploadResult<ProductForm> parseProductTsv(MultipartFile file) {
 
         List<String[]> rows = parse(file);
         List<ProductForm> forms = new ArrayList<>();
+        List<TsvUploadError> errors = new ArrayList<>();
 
         for (int i = 0; i < rows.size(); i++) {
             String[] r = rows.get(i);
+            int rowNumber = i + 2; // +2 because: 0-based index + header row
 
             if (r.length < 4) {
-                throw new ApiException(
-                        ApiStatus.BAD_DATA,
-                        "Invalid product TSV at line " + (i + 2),
-                        "file",
-                        "Expected at least 4 columns at line " + (i + 2)
-                );
+                errors.add(new TsvUploadError(
+                    rowNumber,
+                    r,
+                    "Expected at least 4 columns, found " + r.length
+                ));
+                continue;
             }
 
             try {
+                ProductForm form = new ProductForm();
+                
+                // Validate product name
+                if (r[0] == null || r[0].trim().isEmpty()) {
+                    errors.add(new TsvUploadError(
+                        rowNumber,
+                        r,
+                        "Product name is required"
+                    ));
+                    continue;
+                }
+                form.setProductName(r[0].trim());
 
-                ProductForm form = ConversionUtil.tsvRowToProductForm(r);
+                // Validate MRP
+                try {
+                    BigDecimal mrp = new BigDecimal(r[1].trim()).setScale(2, RoundingMode.HALF_UP);
+                    if (mrp.compareTo(BigDecimal.ZERO) <= 0) {
+                        errors.add(new TsvUploadError(
+                            rowNumber,
+                            r,
+                            "MRP must be greater than 0"
+                        ));
+                        continue;
+                    }
+                    form.setMrp(mrp);
+                } catch (NumberFormatException e) {
+                    errors.add(new TsvUploadError(
+                        rowNumber,
+                        r,
+                        "Invalid MRP format: " + r[1]
+                    ));
+                    continue;
+                }
+
+                // Validate client ID
+                try {
+                    Integer clientId = Integer.parseInt(r[2].trim());
+                    if (clientId <= 0) {
+                        errors.add(new TsvUploadError(
+                            rowNumber,
+                            r,
+                            "Client ID must be greater than 0"
+                        ));
+                        continue;
+                    }
+                    form.setClientId(clientId);
+                } catch (NumberFormatException e) {
+                    errors.add(new TsvUploadError(
+                        rowNumber,
+                        r,
+                        "Invalid client ID format: " + r[2]
+                    ));
+                    continue;
+                }
+
+                // Validate barcode
+                if (r[3] == null || r[3].trim().isEmpty()) {
+                    errors.add(new TsvUploadError(
+                        rowNumber,
+                        r,
+                        "Barcode is required"
+                    ));
+                    continue;
+                }
+                form.setBarcode(r[3].trim());
+
+                // Optional image URL
+                if (r.length > 4 && r[4] != null && !r[4].trim().isEmpty()) {
+                    form.setImageUrl(r[4].trim());
+                }
+
                 forms.add(form);
 
-            } catch (NumberFormatException e) {
-                throw new ApiException(
-                        ApiStatus.BAD_DATA,
-                        "Invalid number format at line " + (i + 2),
-                        "file",
-                        "Invalid number format at line " + (i + 2)
-                );
+            } catch (Exception e) {
+                errors.add(new TsvUploadError(
+                    rowNumber,
+                    r,
+                    "Unexpected error: " + e.getMessage()
+                ));
             }
         }
 
-        return forms;
+        if (!errors.isEmpty()) {
+            return TsvUploadResult.failure(errors);
+        }
+
+        return TsvUploadResult.success(forms);
     }
 
 

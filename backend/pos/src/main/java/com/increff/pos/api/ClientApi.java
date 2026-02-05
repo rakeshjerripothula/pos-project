@@ -5,7 +5,6 @@ import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
