@@ -161,25 +161,6 @@ async function updateProduct(
     toast.success("Product updated successfully");
   }
 
-async function updateInventory(productId: number, quantity: number) {
-    await apiPost("/inventory", { productId, quantity });
-    // Reload inventory
-    let allInventory: InventoryData[] = [];
-    let page = 0;
-    const pageSize = 100;
-    let hasMore = true;
-
-    while (hasMore) {
-      const form: InventorySearchForm = { page, pageSize };
-      const data = await apiPost<PagedResponse<InventoryData>>("/inventory/list", form);
-      allInventory = [...allInventory, ...data.data];
-      hasMore = (page + 1) * pageSize < data.total;
-      page++;
-    }
-    setInventory(allInventory);
-    toast.success("Inventory updated successfully");
-  }
-
   async function uploadProductTsv(file: File) {
     const formData = new FormData();
     formData.append("file", file);
@@ -262,7 +243,7 @@ async function updateInventory(productId: number, quantity: number) {
 
           {/* Filters */}
           <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[180px_1fr_180px_auto]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[180px_minmax(180px,280px)_180px_auto] max-w-6xl">
               <div>
                 <label className="block mb-1.5 text-xs font-medium text-gray-700">
                   Search Name
@@ -437,7 +418,6 @@ async function updateInventory(productId: number, quantity: number) {
               }
               onClose={() => setEditingProduct(null)}
               onUpdate={updateProduct}
-              onUpdateInventory={updateInventory}
             />
           )}
         </div>

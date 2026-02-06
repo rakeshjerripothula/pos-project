@@ -83,10 +83,10 @@ export default function AddProduct({
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 items-end">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-end">
         <div>
           <label className="block mb-1.5 text-xs font-medium text-gray-700">
-            Product Name
+            Product Name <span className="text-red-500">*</span>
           </label>
           <input
             placeholder="Product Name"
@@ -108,7 +108,7 @@ export default function AddProduct({
 
         <div>
           <label className="block mb-1.5 text-xs font-medium text-gray-700">
-            Barcode
+            Barcode <span className="text-red-500">*</span>
           </label>
           <input
             placeholder="Barcode"
@@ -130,7 +130,7 @@ export default function AddProduct({
 
         <div>
           <label className="block mb-1.5 text-xs font-medium text-gray-700">
-            MRP
+            MRP <span className="text-red-500">*</span>
           </label>
           <input
             placeholder="MRP"
@@ -153,19 +153,7 @@ export default function AddProduct({
 
         <div>
           <label className="block mb-1.5 text-xs font-medium text-gray-700">
-            Image URL
-          </label>
-          <input
-            placeholder="Image Url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-
-        <div>
-          <label className="block mb-1.5 text-xs font-medium text-gray-700">
-            Client
+            Client <span className="text-red-500">*</span>
           </label>
           <ClientSelect
             clients={clients}
@@ -181,6 +169,18 @@ export default function AddProduct({
           {getFieldError("clientId") && (
             <p className="mt-1 text-xs text-red-600">{getFieldError("clientId")}</p>
           )}
+        </div>
+
+        <div>
+          <label className="block mb-1.5 text-xs font-medium text-gray-700">
+            Image URL
+          </label>
+          <input
+            placeholder="Image Url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
         </div>
 
         <div>

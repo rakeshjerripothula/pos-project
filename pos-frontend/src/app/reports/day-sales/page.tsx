@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiPost, apiExport } from "@/lib/api";
 import { DaySalesPageData } from "@/lib/types";
 import Link from "next/link";
@@ -20,6 +20,7 @@ export default function DaySalesReportPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(0);
+  const initialLoadRef = useRef(false);
   const [mounted, setMounted] = useState(false);
   const pageSize = 10;
 
@@ -37,11 +38,13 @@ export default function DaySalesReportPage() {
     setMounted(true);
   }, []);
 
+  // Initial load of report - load once when dates are set
   useEffect(() => {
-    if (startDate && endDate) {
+    if (!initialLoadRef.current && startDate && endDate) {
+      initialLoadRef.current = true;
       loadReport();
     }
-  }, [startDate, endDate, page]);
+  }, [startDate, endDate]);
 
   async function loadReport() {
     if (!startDate || !endDate) {

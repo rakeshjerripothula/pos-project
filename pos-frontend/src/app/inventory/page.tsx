@@ -218,7 +218,7 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
 
           {/* Filters */}
           <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[180px_180px_auto]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] max-w-4xl">
               <div>
                 <label className="block mb-1.5 text-xs font-medium text-gray-700">
                   Search Product Name
@@ -266,7 +266,7 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
                     <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Product ID</th>
                     <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Product Name</th>
                     <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Barcode</th>
-                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Quantity</th>
+                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Available Quantity</th>
                     {!isUserOperator && (
                       <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Actions</th>
                     )}

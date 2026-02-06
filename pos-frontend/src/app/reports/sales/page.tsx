@@ -67,6 +67,7 @@ export default function SalesReportPage() {
       setClients(clientsData);
     } catch (e: any) {
       console.error("Failed to load clients: " + e.message);
+      toast.error("Failed to load clients: " + e.message);
     }
   }
 

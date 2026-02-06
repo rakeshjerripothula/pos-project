@@ -48,7 +48,7 @@ export default function AddInventory({
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[160px_1fr_auto] items-end">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px_auto] items-end max-w-4xl">
         <div>
           <label className="block mb-1.5 text-xs font-medium text-gray-700">
             Product

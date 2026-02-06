@@ -43,9 +43,10 @@ export default function OrdersPage() {
     }
   }, []);
 
+  // Initial load of orders
   useEffect(() => {
     loadOrders();
-  }, [status, startDate, endDate, page, clientId]);
+  }, []); // Empty dependency array - only run once on mount
 
   const clientOptions = clients.filter((c) => c.enabled).sort((a, b) => a.clientName.localeCompare(b.clientName))
                         .map((c) => ({value: c.id,label: c.clientName,}));
@@ -98,6 +99,7 @@ export default function OrdersPage() {
       // Only show error if it's not a network error
       if (error.message !== "Failed to fetch") {
         console.error("Failed to load orders:", error);
+        toast.error(error.message);
       }
       // Set empty data to prevent infinite loading
       setData({ content: [], page: 0, pageSize: pageSize, totalElements: 0 });

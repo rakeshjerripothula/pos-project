@@ -14,6 +14,7 @@ import com.increff.pos.model.form.OrderPageForm;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.util.ConversionUtil;
+import com.increff.pos.util.ValidationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -97,16 +98,26 @@ public class OrderDto extends AbstractDto {
     public OrderPageData getOrders(OrderPageForm form) {
 
         ZonedDateTime start = null;
-
         ZonedDateTime end = null;
 
-        if (!Objects.isNull(form.getStartDate())) {
-            start = ZonedDateTime.parse(form.getStartDate());
+        try {
+            if (!Objects.isNull(form.getStartDate())) {
+                start = ZonedDateTime.parse(form.getStartDate());
+            }
+
+            if (!Objects.isNull(form.getEndDate())) {
+                end = ZonedDateTime.parse(form.getEndDate());
+            }
+        } catch (Exception e) {
+            throw new ApiException(
+                ApiStatus.BAD_DATA,
+                "Invalid date format. Please use ISO date format (e.g., 2023-01-01T00:00:00Z)",
+                "dates",
+                "Invalid date format"
+            );
         }
 
-        if (!Objects.isNull(form.getEndDate())) {
-            end = ZonedDateTime.parse(form.getEndDate());
-        }
+        ValidationUtil.validateOptionalDateRange(start, end);
 
         int page = !Objects.isNull(form.getPage()) ? form.getPage() : 0;
         int pageSize = !Objects.isNull(form.getPageSize()) ? form.getPageSize() : 10;

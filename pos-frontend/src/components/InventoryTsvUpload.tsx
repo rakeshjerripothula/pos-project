@@ -46,8 +46,8 @@ export default function InventoryTsvUpload({
             disabled={loading}
             className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
               loading 
-                ? "bg-red-400 cursor-not-allowed" 
-                : "bg-emerald-500 hover:bg-emerald-600 cursor-pointer"
+                ? "bg-blue-400 cursor-not-allowed" 
+                : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
             }`}
           >
             {loading ? "Uploading..." : "Upload Inventory TSV"}

@@ -3,6 +3,7 @@ package com.increff.pos.controller;
 import com.increff.pos.dto.ReportDto;
 import com.increff.pos.model.data.DaySalesPageData;
 import com.increff.pos.model.data.SalesReportPageData;
+import com.increff.pos.model.data.SalesReportRowData;
 import com.increff.pos.model.form.DaySalesReportForm;
 import com.increff.pos.model.form.SalesReportForm;
 import com.increff.pos.util.CsvExportUtil;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @RestController
 @RequestMapping("/reports")
@@ -37,10 +39,10 @@ public class ReportController {
     }
 
     @PostMapping("/sales/export")
-    public ResponseEntity<byte[]> exportSalesReport(@RequestBody @Valid SalesReportForm form) {
+    public ResponseEntity<byte[]> exportSalesReport(@RequestBody SalesReportForm form) {
         try {
-            SalesReportPageData reportData = reportDto.getSalesReport(form);
-            byte[] csvData = CsvExportUtil.exportSalesReportToCsv(reportData.getRows());
+            List<SalesReportRowData> allRows = reportDto.getAllSalesReportForExport(form);
+            byte[] csvData = CsvExportUtil.exportSalesReportToCsv(allRows);
             
             String filename = "sales-report-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ".csv";
             

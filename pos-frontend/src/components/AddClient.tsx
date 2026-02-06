@@ -29,7 +29,7 @@ export default function AddClient({
   }
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 max-w-md">
       <input
         value={clientName}
         onChange={(e) => setClientName(e.target.value)}

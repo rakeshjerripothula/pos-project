@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -24,6 +25,14 @@ public class ReportApi {
             Pageable pageable
     ) {
         return reportDao.getSalesReport(startDate, endDate, clientId, pageable);
+    }
+
+    public List<SalesReportRow> getAllSalesReport(
+            ZonedDateTime startDate,
+            ZonedDateTime endDate,
+            Integer clientId
+    ) {
+        return reportDao.getAllSalesReport(startDate, endDate, clientId);
     }
 }
 

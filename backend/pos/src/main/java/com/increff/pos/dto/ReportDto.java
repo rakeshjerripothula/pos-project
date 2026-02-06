@@ -8,10 +8,12 @@ import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.DaySalesData;
 import com.increff.pos.model.data.DaySalesPageData;
 import com.increff.pos.model.data.SalesReportPageData;
+import com.increff.pos.model.data.SalesReportRowData;
 import com.increff.pos.model.form.DaySalesReportForm;
 import com.increff.pos.model.form.SalesReportForm;
 import com.increff.pos.model.internal.SalesReportRow;
 import com.increff.pos.util.ConversionUtil;
+import com.increff.pos.util.ValidationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,7 +39,7 @@ public class ReportDto extends AbstractDto{
         ZonedDateTime startDate = form.getStartDate();
         ZonedDateTime endDate = form.getEndDate();
 
-        validateStartAndEndDates(startDate, endDate);
+        ValidationUtil.validateOptionalDateRange(startDate, endDate);
 
         Integer page = Objects.nonNull(form.getPage()) ? form.getPage() : 0;
         Integer pageSize = Objects.nonNull(form.getPageSize()) ? form.getPageSize() : 10;
@@ -70,23 +72,7 @@ public class ReportDto extends AbstractDto{
         var startDate = form.getStartDate();
         var endDate = form.getEndDate();
 
-        if (Objects.isNull(startDate) || Objects.isNull(endDate)) {
-            throw new ApiException(
-                    ApiStatus.BAD_DATA,
-                    "Start and end date are required",
-                    "dates",
-                    "Start and end date are required"
-            );
-        }
-
-        if (startDate.isAfter(endDate)) {
-            throw new ApiException(
-                    ApiStatus.BAD_DATA,
-                    "Start date cannot be after end date",
-                    "dates",
-                    "Start date cannot be after end date"
-            );
-        }
+        ValidationUtil.validateOptionalDateRange(startDate, endDate);
 
         Integer page = Objects.nonNull(form.getPage()) ? form.getPage() : 0;
         Integer pageSize = Objects.nonNull(form.getPageSize()) ? form.getPageSize() : 10;
@@ -108,15 +94,23 @@ public class ReportDto extends AbstractDto{
         return response;
     }
 
+    public List<SalesReportRowData> getAllSalesReportForExport(SalesReportForm form) {
+        checkValid(form);
 
-    private void validateStartAndEndDates(ZonedDateTime startDate, ZonedDateTime endDate) {
-        if (Objects.isNull(startDate) || Objects.isNull(endDate)) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Start and end date are required", "dates", "Start and end date are required");
-        }
+        ZonedDateTime startDate = form.getStartDate();
+        ZonedDateTime endDate = form.getEndDate();
 
-        if (startDate.isAfter(endDate)) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Start date cannot be after end date", "dates", "Start date cannot be after end date");
-        }
+        ValidationUtil.validateOptionalDateRange(startDate, endDate);
+
+        List<SalesReportRow> allRows = reportApi.getAllSalesReport(
+                startDate,
+                endDate,
+                form.getClientId()
+        );
+
+        return allRows.stream()
+                .map(ConversionUtil::salesReportRowToData)
+                .toList();
     }
 
-}
+    }

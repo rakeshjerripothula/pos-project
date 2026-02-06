@@ -97,6 +97,49 @@ public class ReportDao {
         return new PageImpl<>(rows, pageable, total);
     }
 
+    public List<SalesReportRow> getAllSalesReport(
+            ZonedDateTime startDate,
+            ZonedDateTime endDate,
+            Integer clientId
+    ) {
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+
+        CriteriaQuery<SalesReportRow> cq = cb.createQuery(SalesReportRow.class);
+
+        Root<OrderEntity> order = cq.from(OrderEntity.class);
+        Root<OrderItemEntity> orderItem = cq.from(OrderItemEntity.class);
+        Root<ProductEntity> product = cq.from(ProductEntity.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        predicates.add(cb.equal(orderItem.get("orderId"), order.get("id")));
+        predicates.add(cb.equal(orderItem.get("productId"), product.get("id")));
+        predicates.add(cb.equal(order.get("status"), OrderStatus.INVOICED));
+        predicates.add(cb.between(order.get("createdAt"), startDate, endDate));
+
+        if (!Objects.isNull(clientId)) {
+            predicates.add(cb.equal(product.get("clientId"), clientId));
+        }
+
+        Expression<Integer> quantityExpr = cb.sum(orderItem.get("quantity"));
+        Expression<BigDecimal> revenueExpr = cb.sum(cb.prod(orderItem.get("quantity"), orderItem.get("sellingPrice")));
+
+        cq.select(cb.construct(
+                        SalesReportRow.class,
+                        product.get("productName").alias("productName"),
+                        quantityExpr,
+                        revenueExpr
+                ))
+                .where(predicates.toArray(new Predicate[0]))
+                .groupBy(product.get("id"), product.get("productName"))
+                .orderBy(cb.desc(revenueExpr));
+
+        TypedQuery<SalesReportRow> query = em.createQuery(cq);
+
+        return query.getResultList();
+    }
+
     public DaySalesAggregate getDaySalesAggregate(ZonedDateTime utcStart, ZonedDateTime utcEnd) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
