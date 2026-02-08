@@ -139,4 +139,22 @@ public class InventoryDao {
         return new PageImpl<>(data, pageable, total);
     }
 
+    public List<InventoryEntity> findAllForEnabledClients() {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+
+        CriteriaQuery<InventoryEntity> cq = cb.createQuery(InventoryEntity.class);
+        Root<InventoryEntity> inventoryRoot = cq.from(InventoryEntity.class);
+        Root<ProductEntity> productRoot = cq.from(ProductEntity.class);
+        Root<ClientEntity> clientRoot = cq.from(ClientEntity.class);
+
+        Predicate invToProduct = cb.equal(inventoryRoot.get("productId"), productRoot.get("id"));
+        Predicate productToClient = cb.equal(productRoot.get("clientId"), clientRoot.get("id"));
+        Predicate clientEnabled = cb.isTrue(clientRoot.get("enabled"));
+
+        cq.select(inventoryRoot)
+                .where(cb.and(invToProduct, productToClient, clientEnabled));
+
+        return em.createQuery(cq).getResultList();
+    }
+
 }

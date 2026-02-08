@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/inventory")
@@ -40,6 +41,11 @@ public class InventoryController {
     @GetMapping("/{productId}")
     public InventoryData getByProductId(@PathVariable Integer productId) {
         return inventoryDto.getByProductId(productId);
+    }
+
+    @GetMapping
+    public List<InventoryData> getAll() {
+        return inventoryDto.getAll();
     }
 
     @PostMapping("/upload/tsv")

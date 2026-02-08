@@ -502,6 +502,7 @@ async function cancelOrder(orderId: number) {
             </div>
           )}
 
+
           {/* Cancel Order Confirmation Modal */}
           <ConfirmModal
             isOpen={showCancelModal}

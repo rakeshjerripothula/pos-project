@@ -3,8 +3,6 @@ package com.increff.pos.dto;
 import com.increff.pos.api.DaySalesApi;
 import com.increff.pos.api.ReportApi;
 import com.increff.pos.entity.DaySalesEntity;
-import com.increff.pos.exception.ApiException;
-import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.DaySalesData;
 import com.increff.pos.model.data.DaySalesPageData;
 import com.increff.pos.model.data.SalesReportPageData;

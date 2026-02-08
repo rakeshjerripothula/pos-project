@@ -1,120 +1,129 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { apiGet, apiPost, apiPatch, apiPut } from "@/lib/api";
 import { ClientData, PagedResponse, ClientSearchForm } from "@/lib/types";
 import ClientTable from "@/components/ClientTable";
-import AddClient from "@/components/AddClient";
+import AddClientModal from "@/components/AddClientModal";
 import AuthGuard, { isOperator } from "@/components/AuthGuard";
 import toast from "react-hot-toast";
 
 export default function ClientsPage() {
-  const [allClients, setAllClients] = useState<ClientData[]>([]);
+  const [clients, setClients] = useState<ClientData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUserOperator, setIsUserOperator] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Pagination state
   const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const pageSize = 10;
 
-  // Search/Filter state (client-side)
+  // Search/Filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEnabled, setFilterEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
     setIsUserOperator(isOperator());
-    loadClients();
   }, []);
 
-  async function loadClients() {
-    setLoading(true);
-    try {
-      // Load ALL clients for client-side filtering and pagination
-      let allClients: ClientData[] = [];
-      let page = 0;
-      const pageSize = 100;
-      let hasMore = true;
-
-      while (hasMore) {
+  // Load clients when page, searchTerm, or filterEnabled changes
+  useEffect(() => {
+    let mounted = true;
+    async function loadClients() {
+      setLoading(true);
+      try {
         const form: ClientSearchForm = {
           page,
           pageSize,
+          clientName: searchTerm || undefined,
+          enabled: filterEnabled !== null ? filterEnabled : undefined,
         };
 
         const data = await apiPost<PagedResponse<ClientData>>("/clients/list", form);
-        allClients = [...allClients, ...data.data];
-        hasMore = (page + 1) * pageSize < data.total;
-        page++;
+        if (mounted) {
+          setClients(data.data);
+          setTotalElements(data.total);
+        }
+      } catch (error: any) {
+        if (mounted) {
+          toast.error("Failed to load clients: " + error.message);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-
-      setAllClients(allClients);
-      // Reset to first page when reloading
-      setPage(0);
-    } catch (error: any) {
-      toast.error("Failed to load clients: " + error.message);
-    } finally {
-      setLoading(false);
     }
-  }
-
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(0);
-  }, [searchTerm, filterEnabled]);
-
-  // Client-side filtering and pagination
-  const { filteredClients, paginatedClients, totalElements } = useMemo(() => {
-    const filtered = allClients.filter((c) => {
-      const matchesSearch =
-        !searchTerm ||
-        c.clientName.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesEnabled =
-        filterEnabled === null || c.enabled === filterEnabled;
-      return matchesSearch && matchesEnabled;
-    });
-
-    const total = filtered.length;
-    const start = page * pageSize;
-    const end = start + pageSize;
-    const paginated = filtered.slice(start, end);
-
-    return { filteredClients: filtered, paginatedClients: paginated, totalElements: total };
-  }, [allClients, searchTerm, filterEnabled, page]);
+    loadClients();
+    return () => { mounted = false; };
+  }, [page, searchTerm, filterEnabled]);
 
   const totalPages = Math.ceil(totalElements / pageSize);
 
-async function toggleClient(id: number, enabled: boolean) {
+  async function toggleClient(id: number, enabled: boolean) {
     try {
-      // Update the client and get the returned updated client
       const updatedClient = await apiPatch<ClientData>(`/clients/${id}/toggle`, { enabled });
       
-      // Update local state directly instead of reloading all clients
-      setAllClients(prev => 
+      setClients(prev => 
         prev.map(client => client.id === id ? updatedClient : client)
       );
       
-      // Show success toast
       toast.success(enabled ? "Client enabled" : "Client disabled");
     } catch (error: any) {
       toast.error("Failed to toggle client: " + error.message);
     }
   }
 
-async function addClient(clientName: string) {
+  async function addClient(clientName: string) {
     await apiPost("/clients", { clientName });
-    await loadClients();
+    setPage(0);
+    // Trigger reload
+    setLoading(true);
+    try {
+      const form: ClientSearchForm = {
+        page: 0,
+        pageSize,
+        clientName: "",
+        enabled: undefined,
+      };
+      const data = await apiPost<PagedResponse<ClientData>>("/clients/list", form);
+      setClients(data.data);
+      setTotalElements(data.total);
+    } catch (error: any) {
+      toast.error("Failed to reload clients: " + error.message);
+    } finally {
+      setLoading(false);
+    }
     toast.success("Client created successfully");
   }
 
-async function updateClient(id: number, clientName: string) {
+  async function updateClient(id: number, clientName: string) {
     await apiPut(`/clients/${id}`, { clientName });
-    await loadClients();
+    // Reload current page
+    setLoading(true);
+    try {
+      const form: ClientSearchForm = {
+        page,
+        pageSize,
+        clientName: searchTerm || undefined,
+        enabled: filterEnabled !== null ? filterEnabled : undefined,
+      };
+      const data = await apiPost<PagedResponse<ClientData>>("/clients/list", form);
+      setClients(data.data);
+      setTotalElements(data.total);
+    } catch (error: any) {
+      toast.error("Failed to reload clients: " + error.message);
+    } finally {
+      setLoading(false);
+    }
     toast.success("Client updated successfully");
   }
 
   function clearFilters() {
     setSearchTerm("");
     setFilterEnabled(null);
+    setPage(0);
   }
 
   return (
@@ -125,20 +134,20 @@ async function updateClient(id: number, clientName: string) {
             <h1 className="text-2xl font-bold text-slate-800">
               Clients
             </h1>
+            {!isUserOperator && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+              >
+                + Add Client
+              </button>
+            )}
           </div>
 
-          {/* Hide AddClient section for OPERATORs */}
-          {!isUserOperator && (
-            <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
-              <AddClient onAdd={addClient} />
-            </div>
-          )}
-
-          {loading && !allClients.length ? (
+          {loading && !clients.length ? (
             <div className="py-8 text-center text-slate-500">Loading...</div>
           ) : (
             <div className="p-4 bg-white rounded-lg shadow-sm">
-              {/* Search Bar */}
               <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-[180px_180px_auto]">
                 <div>
                   <label className="block mb-1.5 text-xs font-medium text-gray-700">
@@ -190,16 +199,15 @@ async function updateClient(id: number, clientName: string) {
               </div>
 
               <ClientTable
-                clients={paginatedClients}
+                clients={clients}
                 onToggle={toggleClient}
                 onUpdate={updateClient}
               />
 
-              {/* Pagination */}
               {totalElements > 0 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
                   <div className="text-sm text-slate-500">
-                    Showing {paginatedClients.length} of {totalElements} clients
+                    Showing {clients.length} of {totalElements} clients
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -237,6 +245,13 @@ async function updateClient(id: number, clientName: string) {
                 </div>
               )}
             </div>
+          )}
+
+          {showAddModal && (
+            <AddClientModal
+              onClose={() => setShowAddModal(false)}
+              onAdd={addClient}
+            />
           )}
         </div>
       </div>

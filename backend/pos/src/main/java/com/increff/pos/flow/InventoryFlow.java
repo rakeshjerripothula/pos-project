@@ -135,6 +135,10 @@ public class InventoryFlow {
         return inventoryApi.listForEnabledClients(pageable);
     }
 
+    public List<InventoryEntity> listAllForEnabledClients() {
+        return inventoryApi.listAllForEnabledClients();
+    }
+
     public List<InventoryEntity> bulkUpsert(List<InventoryEntity> inventories) {
         Map<Integer, ProductEntity> productMap = getProductIds(inventories);
 

@@ -1,131 +1,140 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { apiGet, apiPost, apiPut } from "@/lib/api";
-import { ProductData, InventoryData, ClientData, PagedResponse, ProductSearchForm, InventorySearchForm } from "@/lib/types";
-import AddProduct from "@/components/AddProduct";
-import ProductTsvUpload from "@/components/ProductTsvUpload";
+import { ProductData, InventoryData, ClientData, PagedResponse, ProductSearchForm } from "@/lib/types";
+import AddProductModal from "@/components/AddProductModal";
 import EditProductModal from "@/components/EditProductModal";
 import AuthGuard, { isOperator } from "@/components/AuthGuard";
 import ClientSelect from "@/components/ClientSelect";
 import toast from "react-hot-toast";
 
 export default function ProductsPage() {
-  const [allProducts, setAllProducts] = useState<ProductData[]>([]);
+  const [products, setProducts] = useState<ProductData[]>([]);
   const [clients, setClients] = useState<ClientData[]>([]);
   const [inventory, setInventory] = useState<InventoryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<ProductData | null>(null);
   const [isUserOperator, setIsUserOperator] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Pagination state
   const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const pageSize = 10;
 
-  // Filter state (client-side)
+  // Filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterBarcode, setFilterBarcode] = useState("");
 
+  // Track if data is already loaded to prevent duplicate calls
+  const loadedRef = useRef({
+    clients: false,
+    inventory: false,
+    products: false,
+  });
+
   useEffect(() => {
     setIsUserOperator(isOperator());
-    loadAllData();
   }, []);
 
-  async function loadAllData() {
-    setLoading(true);
-    try {
-      // Load ALL clients first (needed for dropdowns and display)
-      const clientsData = await apiGet<ClientData[]>("/clients");
-      setClients(clientsData);
-
-      // Load ALL products for client-side filtering and pagination
-      let allProductsData: ProductData[] = [];
-      let productPage = 0;
-      const productPageSize = 100;
-      let productHasMore = true;
-
-      while (productHasMore) {
-        const form: ProductSearchForm = { page: productPage, pageSize: productPageSize };
-        try {
-          const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
-          allProductsData = [...allProductsData, ...data.data];
-          productHasMore = (productPage + 1) * productPageSize < data.total;
-          productPage++;
-        } catch (e) {
-          break;
-        }
-      }
-      setAllProducts(allProductsData);
-
-      // Load ALL inventory for mapping
-      let allInventory: InventoryData[] = [];
-      let invPage = 0;
-      const invPageSize = 100;
-      let invHasMore = true;
-
-      while (invHasMore) {
-        const invForm: InventorySearchForm = { page: invPage, pageSize: invPageSize };
-        try {
-          const invData = await apiPost<PagedResponse<InventoryData>>("/inventory/list", invForm);
-          allInventory = [...allInventory, ...invData.data];
-          invHasMore = (invPage + 1) * invPageSize < invData.total;
-          invPage++;
-        } catch (e) {
-          break;
-        }
-      }
-      setInventory(allInventory);
-      
-      // Reset to first page when reloading
-      setPage(0);
-    } catch (error: any) {
-      toast.error("Failed to load data: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Reset page when filters change
+  // Load clients once
   useEffect(() => {
-    setPage(0);
-  }, [searchTerm, filterClientId, filterBarcode]);
+    if (loadedRef.current.clients) return;
+    loadedRef.current.clients = true;
+    
+    let mounted = true;
+    async function loadClients() {
+      try {
+        const data = await apiGet<ClientData[]>("/clients");
+        if (mounted) {
+          setClients(data);
+        }
+      } catch (error: any) {
+        if (mounted) {
+          console.warn("Failed to load clients: " + error.message);
+        }
+      }
+    }
+    loadClients();
+    return () => { mounted = false; };
+  }, []);
 
-  // Client-side filtering and pagination
-  const { filteredProducts, paginatedProducts, totalElements, inventoryMap } = useMemo(() => {
-    const filtered = allProducts.filter((p) => {
-      const matchesSearch =
-        !searchTerm ||
-        p.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.barcode.toLowerCase().includes(searchTerm.toLowerCase());
+  // Load inventory once
+  useEffect(() => {
+    if (loadedRef.current.inventory) return;
+    loadedRef.current.inventory = true;
+    
+    let mounted = true;
+    async function loadInventory() {
+      try {
+        const data = await apiGet<InventoryData[]>("/inventory");
+        if (mounted) {
+          setInventory(data);
+        }
+      } catch (error: any) {
+        if (mounted) {
+          console.warn("Failed to load inventory: " + error.message);
+        }
+      }
+    }
+    loadInventory();
+    return () => { mounted = false; };
+  }, []);
 
-      const matchesClient = filterClientId === null || p.clientId === filterClientId;
+  // Load products when page or filters change
+  useEffect(() => {
+    let mounted = true;
+    
+    // Skip if already loaded initial data and no filter changes
+    if (loadedRef.current.products && page === 0 && !searchTerm && !filterClientId && !filterBarcode) {
+      setLoading(false);
+      return;
+    }
+    
+    async function loadProducts() {
+      setLoading(true);
+      try {
+        const form: ProductSearchForm = {
+          page,
+          pageSize,
+          productName: searchTerm || undefined,
+          barcode: filterBarcode || undefined,
+          clientId: filterClientId || undefined,
+        };
 
-      const matchesBarcode =
-        !filterBarcode ||
-        p.barcode.toLowerCase().includes(filterBarcode.toLowerCase());
+        const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
+        if (mounted) {
+          setProducts(data.data);
+          setTotalElements(data.total);
+          // Mark as loaded only for initial load (page 0, no filters)
+          if (page === 0 && !searchTerm && !filterClientId && !filterBarcode) {
+            loadedRef.current.products = true;
+          }
+        }
+      } catch (error: any) {
+        if (mounted) {
+          toast.error("Failed to load products: " + error.message);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadProducts();
+    return () => { mounted = false; };
+  }, [page, searchTerm, filterClientId, filterBarcode]);
 
-      return matchesSearch && matchesClient && matchesBarcode;
-    });
-
-    const total = filtered.length;
-    const start = page * pageSize;
-    const end = start + pageSize;
-    const paginated = filtered.slice(start, end);
-
-    // Create inventory map
+  // Create inventory map for quick lookup
+  const inventoryMap = useMemo(() => {
     const map = new Map<number, number>();
     inventory.forEach((inv) => {
       map.set(inv.productId, inv.quantity);
     });
-
-    return { 
-      filteredProducts: filtered, 
-      paginatedProducts: paginated, 
-      totalElements: total,
-      inventoryMap: map 
-    };
-  }, [allProducts, searchTerm, filterClientId, filterBarcode, page, inventory]);
+    return map;
+  }, [inventory]);
 
   const totalPages = Math.ceil(totalElements / pageSize);
 
@@ -133,20 +142,42 @@ export default function ProductsPage() {
     setSearchTerm("");
     setFilterClientId(null);
     setFilterBarcode("");
+    setPage(0);
   }
 
-async function addProduct(product: {
+  async function addProduct(product: {
     productName: string;
     barcode: string;
     mrp: number;
     clientId: number;
+    imageUrl?: string;
   }) {
     await apiPost("/products", product);
-    loadAllData();
+    setPage(0);
+    loadedRef.current.products = false; // Allow reload
+    // Trigger reload
+    setLoading(true);
+    try {
+      const form: ProductSearchForm = {
+        page: 0,
+        pageSize,
+        productName: "",
+        barcode: "",
+        clientId: null,
+      };
+      const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
+      setProducts(data.data);
+      setTotalElements(data.total);
+      loadedRef.current.products = true;
+    } catch (error: any) {
+      toast.error("Failed to reload products: " + error.message);
+    } finally {
+      setLoading(false);
+    }
     toast.success("Product created successfully");
   }
 
-async function updateProduct(
+  async function updateProduct(
     id: number,
     product: {
       productName: string;
@@ -157,7 +188,24 @@ async function updateProduct(
     }
   ) {
     await apiPut(`/products/${id}`, product);
-    loadAllData();
+    // Reload current page
+    setLoading(true);
+    try {
+      const form: ProductSearchForm = {
+        page,
+        pageSize,
+        productName: searchTerm || undefined,
+        barcode: filterBarcode || undefined,
+        clientId: filterClientId || undefined,
+      };
+      const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
+      setProducts(data.data);
+      setTotalElements(data.total);
+    } catch (error: any) {
+      toast.error("Failed to reload products: " + error.message);
+    } finally {
+      setLoading(false);
+    }
     toast.success("Product updated successfully");
   }
 
@@ -171,21 +219,36 @@ async function updateProduct(
     });
 
     if (res.ok) {
-      // Success - parse JSON response with uploaded data
       const data = await res.json();
       const count = data.length || 0;
+      setPage(0);
+      loadedRef.current.products = false; // Allow reload
+      setLoading(true);
+      try {
+        const form: ProductSearchForm = {
+          page: 0,
+          pageSize,
+          productName: "",
+          barcode: "",
+          clientId: null,
+        };
+        const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
+        setProducts(data.data);
+        setTotalElements(data.total);
+        loadedRef.current.products = true;
+      } catch (error: any) {
+        toast.error("Failed to reload products: " + error.message);
+      } finally {
+        setLoading(false);
+      }
       toast.success(`${count} product${count !== 1 ? 's' : ''} uploaded successfully`);
-      loadAllData();
     } else if (res.status === 400) {
-      // Error - download the error TSV file
       const blob = await res.blob();
       const filename = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] || "products-upload-errors.tsv";
       
-      // Parse the error TSV to show structured errors
       const text = await blob.text();
       const errorLines = text.split('\n').filter(line => line.trim());
       
-      // Skip header row
       const errors = errorLines.slice(1).map(line => {
         const parts = line.split('\t');
         if (parts.length >= 3) {
@@ -197,7 +260,6 @@ async function updateProduct(
         return null;
       }).filter(Boolean);
 
-      // Create downloadable error file
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -207,19 +269,15 @@ async function updateProduct(
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      // Show detailed error message
       if (errors.length > 0) {
-        const errorSummary = errors.slice(0, 3).map((e: any) => 
-          `Row ${e.rowNum}: ${e.errorMsg}`
-        ).join('\n');
-        const moreText = errors.length > 3 ? `\n...and ${errors.length - 3} more errors (see downloaded file)` : '';
-        throw new Error(`${errors.length} error(s) found:\n${errorSummary}${moreText}\n\nError file downloaded.`);
+        toast.error(`${errors.length} error(s) found. Error file downloaded.`);
       } else {
-        throw new Error("Upload failed with errors. Error file downloaded.");
+        toast.error("Upload failed with errors. Error file downloaded.");
+        return;
       }
     } else {
       const text = await res.text();
-      throw new Error(text || `HTTP error! status: ${res.status}`);
+      toast.error(text || `HTTP error! status: ${res.status}`);
     }
   }
 
@@ -227,21 +285,20 @@ async function updateProduct(
     <AuthGuard>
       <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
         <div className="max-w-[1400px] mx-auto">
-          <h1 className="mb-4 text-2xl font-bold text-slate-800">
-            Products
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-slate-800">
+              Products
+            </h1>
+            {!isUserOperator && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+              >
+                + Add Product
+              </button>
+            )}
+          </div>
 
-          {/* Hide TSV upload section for OPERATORs */}
-          {!isUserOperator && (
-            <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
-              <ProductTsvUpload onUpload={uploadProductTsv} />
-              <div className="mt-3">
-                <AddProduct clients={clients} onAdd={addProduct} />
-              </div>
-            </div>
-          )}
-
-          {/* Filters */}
           <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[180px_minmax(180px,280px)_180px_auto] max-w-6xl">
               <div>
@@ -293,7 +350,6 @@ async function updateProduct(
             </div>
           </div>
 
-          {/* Products Table */}
           {loading ? (
             <div className="py-8 text-center text-slate-500">Loading...</div>
           ) : (
@@ -314,14 +370,14 @@ async function updateProduct(
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedProducts.length === 0 ? (
+                  {products.length === 0 ? (
                     <tr>
                       <td colSpan={isUserOperator ? 7 : 8} className="py-10 text-center text-slate-500">
                         No products found
                       </td>
                     </tr>
                   ) : (
-                    paginatedProducts.map((p) => {
+                    products.map((p) => {
                       const client = clients.find((c) => c.id === p.clientId);
                       return (
                         <tr key={p.id} className="border-b border-gray-100">
@@ -333,14 +389,16 @@ async function updateProduct(
                                 alt={p.productName}
                                 className="w-10 h-10 object-cover border border-gray-200 rounded-md"
                                 onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display =
-                                    "none";
+                                  (e.target as HTMLImageElement).src =
+                                    "https://placehold.co/40x40/e5e7eb/9ca3af?text=No+Img";
                                 }}
                               />
                             ) : (
-                              <div className="w-10 h-10 bg-gray-100 flex items-center justify-content-center text-xs text-gray-400 border border-gray-200 rounded-md">
-                                No Image
-                              </div>
+                              <img
+                                src="https://placehold.co/40x40/e5e7eb/9ca3af?text=No+Img"
+                                alt="No image"
+                                className="w-10 h-10 object-cover border border-gray-200 rounded-md"
+                              />
                             )}
                           </td>
                           <td className="px-2 py-2.5 text-sm">{p.productName}</td>
@@ -369,11 +427,10 @@ async function updateProduct(
                 </tbody>
               </table>
 
-              {/* Pagination */}
               {totalElements > 0 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
                   <div className="text-sm text-slate-500">
-                    Showing {paginatedProducts.length} of {totalElements} products
+                    Showing {products.length} of {totalElements} products
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -405,6 +462,15 @@ async function updateProduct(
                 </div>
               )}
             </div>
+          )}
+
+          {showAddModal && (
+            <AddProductModal
+              clients={clients}
+              onClose={() => setShowAddModal(false)}
+              onAdd={addProduct}
+              onUploadTsv={uploadProductTsv}
+            />
           )}
 
           {editingProduct && (

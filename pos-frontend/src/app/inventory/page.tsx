@@ -2,137 +2,139 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { apiGet, apiPost } from "@/lib/api";
-import { InventoryData, ProductData, PagedResponse, InventorySearchForm, ProductSearchForm } from "@/lib/types";
+import { InventoryData, ProductData, PagedResponse, InventorySearchForm } from "@/lib/types";
 import UpdateInventory from "@/components/UpdateInventory";
-import AddInventory from "@/components/AddInventory";
-import InventoryTsvUpload from "@/components/InventoryTsvUpload";
+import AddInventoryModal from "@/components/AddInventoryModal";
 import AuthGuard, { isOperator } from "@/components/AuthGuard";
 import toast from "react-hot-toast";
 
 export default function InventoryPage() {
-  const [allInventory, setAllInventory] = useState<InventoryData[]>([]);
+  const [inventory, setInventory] = useState<InventoryData[]>([]);
   const [products, setProducts] = useState<ProductData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUserOperator, setIsUserOperator] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Pagination state
   const [page, setPage] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const pageSize = 10;
 
-  // Filters (client-side)
+  // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBarcode, setFilterBarcode] = useState("");
 
   useEffect(() => {
     setIsUserOperator(isOperator());
-    loadAllData();
   }, []);
 
-  async function loadAllData() {
-    setLoading(true);
-    try {
-      // Load ALL products for barcode mapping
-      let allProducts: ProductData[] = [];
-      let productPage = 0;
-      const productPageSize = 100;
-      let productHasMore = true;
-
-      while (productHasMore) {
-        const form: ProductSearchForm = { page: productPage, pageSize: productPageSize };
-        try {
-          const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
-          allProducts = [...allProducts, ...data.data];
-          productHasMore = (productPage + 1) * productPageSize < data.total;
-          productPage++;
-        } catch (e) {
-          break;
-        }
-      }
-      setProducts(allProducts);
-
-      // Load ALL inventory for client-side filtering and pagination
-      let allInventoryData: InventoryData[] = [];
-      let invPage = 0;
-      const invPageSize = 100;
-      let invHasMore = true;
-
-      while (invHasMore) {
-        const invForm: InventorySearchForm = { page: invPage, pageSize: invPageSize };
-        try {
-          const data = await apiPost<PagedResponse<InventoryData>>("/inventory/list", invForm);
-          allInventoryData = [...allInventoryData, ...data.data];
-          invHasMore = (invPage + 1) * invPageSize < data.total;
-          invPage++;
-        } catch (e) {
-          break;
-        }
-      }
-      setAllInventory(allInventoryData);
-      
-      // Reset to first page when reloading
-      setPage(0);
-    } catch (error: any) {
-      console.warn("Failed to load data: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Reset page when filters change
+  // Load products once for barcode lookup
   useEffect(() => {
-    setPage(0);
-  }, [searchTerm, filterBarcode]);
+    let mounted = true;
+    async function loadProducts() {
+      try {
+        const data = await apiGet<ProductData[]>("/products");
+        if (mounted) {
+          setProducts(data);
+        }
+      } catch (error: any) {
+        if (mounted) {
+          console.warn("Failed to load products: " + error.message);
+        }
+      }
+    }
+    loadProducts();
+    return () => { mounted = false; };
+  }, []);
 
-  // Client-side filtering and pagination
-  const { filteredInventory, paginatedInventory, totalElements, barcodeMap } = useMemo(() => {
-    // Create a barcode map for quick lookup
+  // Load inventory when page or filters change
+  useEffect(() => {
+    let mounted = true;
+    async function loadInventory() {
+      setLoading(true);
+      try {
+        const form: InventorySearchForm = {
+          page,
+          pageSize,
+          productName: searchTerm || undefined,
+          barcode: filterBarcode || undefined,
+        };
+
+        const data = await apiPost<PagedResponse<InventoryData>>("/inventory/list", form);
+        if (mounted) {
+          setInventory(data.data);
+          setTotalElements(data.total);
+        }
+      } catch (error: any) {
+        if (mounted) {
+          console.warn("Failed to load inventory: " + error.message);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadInventory();
+    return () => { mounted = false; };
+  }, [page, searchTerm, filterBarcode]);
+
+  // Create barcode map for quick lookup
+  const barcodeMap = useMemo(() => {
     const map = new Map<number, string>();
     products.forEach((p) => {
       map.set(p.id, p.barcode);
     });
-
-    const filtered = allInventory.filter((i) => {
-      const matchesSearch =
-        !searchTerm ||
-        i.productName.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const barcode = map.get(i.productId) || "";
-      const matchesBarcode =
-        !filterBarcode ||
-        barcode.toLowerCase().includes(filterBarcode.toLowerCase());
-
-      return matchesSearch && matchesBarcode;
-    });
-
-    const total = filtered.length;
-    const start = page * pageSize;
-    const end = start + pageSize;
-    const paginated = filtered.slice(start, end);
-
-    return { 
-      filteredInventory: filtered, 
-      paginatedInventory: paginated, 
-      totalElements: total,
-      barcodeMap: map
-    };
-  }, [allInventory, searchTerm, filterBarcode, page, products]);
+    return map;
+  }, [products]);
 
   const totalPages = Math.ceil(totalElements / pageSize);
 
   function clearFilters() {
     setSearchTerm("");
     setFilterBarcode("");
+    setPage(0);
   }
 
-async function updateInventoryQuantity(productId: number, quantity: number) {
+  async function updateInventoryQuantity(productId: number, quantity: number) {
     await apiPost("/inventory", { productId, quantity });
-    loadAllData();
+    setLoading(true);
+    try {
+      const form: InventorySearchForm = {
+        page,
+        pageSize,
+        productName: searchTerm || undefined,
+        barcode: filterBarcode || undefined,
+      };
+      const data = await apiPost<PagedResponse<InventoryData>>("/inventory/list", form);
+      setInventory(data.data);
+      setTotalElements(data.total);
+    } catch (error: any) {
+      toast.error("Failed to reload inventory: " + error.message);
+    } finally {
+      setLoading(false);
+    }
     toast.success("Inventory updated successfully");
   }
 
   async function createInventory(productId: number, quantity: number) {
     await apiPost("/inventory", { productId, quantity });
-    loadAllData();
+    setLoading(true);
+    try {
+      const form: InventorySearchForm = {
+        page,
+        pageSize,
+        productName: searchTerm || undefined,
+        barcode: filterBarcode || undefined,
+      };
+      const data = await apiPost<PagedResponse<InventoryData>>("/inventory/list", form);
+      setInventory(data.data);
+      setTotalElements(data.total);
+    } catch (error: any) {
+      toast.error("Failed to reload inventory: " + error.message);
+    } finally {
+      setLoading(false);
+    }
     toast.success("Inventory added successfully");
   }
 
@@ -146,21 +148,33 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
     });
 
     if (res.ok) {
-      // Success - parse JSON response with uploaded data
       const data = await res.json();
       const count = data.length || 0;
+      setPage(0);
+      setLoading(true);
+      try {
+        const form: InventorySearchForm = {
+          page: 0,
+          pageSize,
+          productName: "",
+          barcode: "",
+        };
+        const data = await apiPost<PagedResponse<InventoryData>>("/inventory/list", form);
+        setInventory(data.data);
+        setTotalElements(data.total);
+      } catch (error: any) {
+        toast.error("Failed to reload inventory: " + error.message);
+      } finally {
+        setLoading(false);
+      }
       toast.success(`${count} inventory record${count !== 1 ? 's' : ''} uploaded successfully`);
-      loadAllData();
     } else if (res.status === 400) {
-      // Error - download the error TSV file
       const blob = await res.blob();
       const filename = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] || "inventory-upload-errors.tsv";
       
-      // Parse the error TSV to show structured errors
       const text = await blob.text();
       const errorLines = text.split('\n').filter(line => line.trim());
       
-      // Skip header row
       const errors = errorLines.slice(1).map(line => {
         const parts = line.split('\t');
         if (parts.length >= 3) {
@@ -172,7 +186,6 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
         return null;
       }).filter(Boolean);
 
-      // Create downloadable error file
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -182,13 +195,8 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      // Show detailed error message
       if (errors.length > 0) {
-        const errorSummary = errors.slice(0, 3).map((e: any) => 
-          `Row ${e.rowNum}: ${e.errorMsg}`
-        ).join('\n');
-        const moreText = errors.length > 3 ? `\n...and ${errors.length - 3} more errors (see downloaded file)` : '';
-        throw new Error(`${errors.length} error(s) found:\n${errorSummary}${moreText}\n\nError file downloaded.`);
+        throw new Error(`${errors.length} error(s) found. Error file downloaded.`);
       } else {
         throw new Error("Upload failed with errors. Error file downloaded.");
       }
@@ -202,21 +210,20 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
     <AuthGuard>
       <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
         <div className="max-w-[1400px] mx-auto">
-          <h1 className="mb-4 text-2xl font-bold text-slate-800">
-            Inventory
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-slate-800">
+              Inventory
+            </h1>
+            {!isUserOperator && (
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+              >
+                + Add Inventory
+              </button>
+            )}
+          </div>
 
-          {/* Hide TSV upload section for OPERATORs */}
-          {!isUserOperator && (
-            <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
-              <InventoryTsvUpload onUpload={uploadInventoryTsv} />
-              <div className="mt-3">
-                <AddInventory products={products} onAdd={createInventory} />
-              </div>
-            </div>
-          )}
-
-          {/* Filters */}
           <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] max-w-4xl">
               <div>
@@ -256,7 +263,7 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
             </div>
           </div>
 
-          {loading && !allInventory.length ? (
+          {loading && !inventory.length ? (
             <div className="py-8 text-center text-slate-500">Loading...</div>
           ) : (
             <div className="p-4 bg-white rounded-lg shadow-sm overflow-x-auto">
@@ -273,14 +280,14 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedInventory.length === 0 ? (
+                  {inventory.length === 0 ? (
                     <tr>
                       <td colSpan={isUserOperator ? 4 : 5} className="py-10 text-center text-slate-500">
                         No inventory found
                       </td>
                     </tr>
                   ) : (
-                    paginatedInventory.map((i) => (
+                    inventory.map((i) => (
                       <tr key={i.productId} className="border-b border-gray-100">
                         <td className="px-2 py-2.5 text-sm">{i.productId}</td>
                         <td className="px-2 py-2.5 text-sm">{i.productName}</td>
@@ -301,11 +308,10 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
                 </tbody>
               </table>
 
-              {/* Pagination */}
               {totalElements > 0 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
                   <div className="text-sm text-slate-500">
-                    Showing {paginatedInventory.length} of {totalElements} inventory items
+                    Showing {inventory.length} of {totalElements} inventory items
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -337,6 +343,15 @@ async function updateInventoryQuantity(productId: number, quantity: number) {
                 </div>
               )}
             </div>
+          )}
+
+          {showAddModal && (
+            <AddInventoryModal
+              products={products}
+              onClose={() => setShowAddModal(false)}
+              onAdd={createInventory}
+              onUploadTsv={uploadInventoryTsv}
+            />
           )}
         </div>
       </div>

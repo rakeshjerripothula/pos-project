@@ -65,6 +65,10 @@ public class InventoryApi {
         return inventoryDao.findForEnabledClients(pageable);
     }
 
+    public List<InventoryEntity> listAllForEnabledClients() {
+        return inventoryDao.findAllForEnabledClients();
+    }
+
     public List<InventoryEntity> bulkUpsert(List<InventoryEntity> inventoryEntities) {
         for (InventoryEntity inventory : inventoryEntities) {
             if (inventory.getQuantity() < 0) {

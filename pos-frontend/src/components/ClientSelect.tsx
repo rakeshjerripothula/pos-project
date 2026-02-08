@@ -60,6 +60,7 @@ export default function ClientSelect({
         isSearchable={isSearchable}
         className="w-full"
         classNamePrefix="react-select"
+        menuPortalTarget={document.body}
         styles={{
           control: (base) => ({
             ...base,
@@ -73,10 +74,14 @@ export default function ClientSelect({
             ...base,
             fontSize: "14px",
           }),
+          menuPortal: (base) => ({
+            ...base,
+            zIndex: 9999,
+          }),
           menu: (base) => ({
             ...base,
             borderRadius: "0.5rem",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
           }),
           option: (base, state) => ({
             ...base,

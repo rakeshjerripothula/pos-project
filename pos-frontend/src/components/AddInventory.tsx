@@ -16,7 +16,8 @@ export default function AddInventory({
   const [quantity, setQuantity] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function submit() {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     const qty = Number(quantity);
     if (!productId || !quantity) {
       toast.error("All fields required");
@@ -47,8 +48,8 @@ export default function AddInventory({
   }
 
   return (
-    <div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px_auto] items-end max-w-4xl">
+    <form onSubmit={handleSubmit}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px] items-end max-w-2xl">
         <div>
           <label className="block mb-1.5 text-xs font-medium text-gray-700">
             Product
@@ -58,7 +59,7 @@ export default function AddInventory({
             value={productId}
             onChange={setProductId}
             placeholder="Search product..."
-            isClearable={false}
+            isClearable={true}
           />
         </div>
 
@@ -69,28 +70,14 @@ export default function AddInventory({
           <input
             type="number"
             min={0}
-            placeholder="Quantity"
+            placeholder="Qty"
             value={quantity}
             onChange={(e) => handleQuantityChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-
-        <div>
-          <button
-            onClick={submit}
-            disabled={loading}
-            className={`w-full px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
-              loading 
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
-            }`}
-          >
-            {loading ? "Adding..." : "Add Inventory"}
-          </button>
-        </div>
       </div>
-    </div>
+    </form>
   );
 }
 

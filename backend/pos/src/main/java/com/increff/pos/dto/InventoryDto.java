@@ -79,6 +79,30 @@ public class InventoryDto extends AbstractDto {
         return new PagedResponse<>(data, page.getTotalElements());
     }
 
+    public List<InventoryData> getAll() {
+        List<InventoryEntity> inventories = inventoryFlow.listAllForEnabledClients();
+        
+        if (inventories.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> productIds = inventories.stream()
+                .map(InventoryEntity::getProductId)
+                .distinct()
+                .toList();
+
+        Map<Integer, ProductEntity> productMap =
+                productApi.getByIds(productIds).stream()
+                        .collect(Collectors.toMap(ProductEntity::getId, p -> p));
+
+        return inventories.stream()
+                .map(inv -> ConversionUtil.inventoryEntityToData(
+                        inv,
+                        productMap.get(inv.getProductId())
+                ))
+                .toList();
+    }
+
     public InventoryData getByProductId(Integer productId) {
         validateProductId(productId);
         InventoryEntity inventory = inventoryFlow.getByProductId(productId);
@@ -158,7 +182,6 @@ public class InventoryDto extends AbstractDto {
             }
 
             try {
-                // Validate product ID
                 Integer productId;
                 try {
                     productId = Integer.parseInt(r[0].trim());
@@ -189,7 +212,6 @@ public class InventoryDto extends AbstractDto {
                     continue;
                 }
 
-                // Validate quantity
                 Integer quantity;
                 try {
                     quantity = Integer.parseInt(r[1].trim());

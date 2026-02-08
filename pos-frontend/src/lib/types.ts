@@ -48,7 +48,7 @@ export interface ClientSearchForm {
 export interface ProductSearchForm {
   page: number;
   pageSize: number;
-  clientId?: number;
+  clientId?: number | null;
   barcode?: string;
   productName?: string;
 }
@@ -56,6 +56,8 @@ export interface ProductSearchForm {
 export interface InventorySearchForm {
   page: number;
   pageSize: number;
+  productName?: string;
+  barcode?: string;
 }
 
 export interface ProductData {
