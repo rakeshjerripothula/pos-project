@@ -5,6 +5,7 @@ import com.increff.invoice.model.form.InvoiceItemForm;
 import com.increff.invoice.model.internal.InvoiceItemModel;
 import com.increff.invoice.model.internal.InvoiceModel;
 
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 public class ConversionUtil {
@@ -16,7 +17,9 @@ public class ConversionUtil {
         model.setClientName(form.getClientName());
         model.setTotalAmount(form.getTotalAmount());
 
-        model.setItems(form.getItems().stream().map(ConversionUtil::convertInvoiceItemToModel).collect(Collectors.toList()));
+        model.setItems(form.getItems() != null ? 
+            form.getItems().stream().map(ConversionUtil::convertInvoiceItemToModel).collect(Collectors.toList()) :
+            Collections.emptyList());
         return model;
     }
 

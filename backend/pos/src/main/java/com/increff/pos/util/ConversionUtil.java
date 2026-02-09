@@ -33,11 +33,29 @@ public final class ConversionUtil {
 
     }
 
+    public static ClientEntity clientFormToEntity(ClientForm form) {
+        ClientEntity entity = new ClientEntity();
+        entity.setClientName(normalize(form.getClientName()));
+        return entity;
+    }
+
+    public static ClientData clientEntityToData(ClientEntity entity) {
+        if (Objects.isNull(entity)) {
+            return null;
+        }
+
+        ClientData data = new ClientData();
+        data.setId(entity.getId());
+        data.setClientName(entity.getClientName());
+        data.setEnabled(entity.getEnabled());
+        return data;
+    }
+
     public static OrderData orderEntityToData(OrderEntity entity) {
         if (Objects.isNull(entity)) {
             return null;
         }
-        
+
         OrderData data = new OrderData();
         data.setOrderId(entity.getId());
         data.setClientId(entity.getClientId());
@@ -47,10 +65,6 @@ public final class ConversionUtil {
     }
 
     public static OrderItemEntity orderItemFormToEntity(OrderItemForm form) {
-        if (Objects.isNull(form)) {
-            return null;
-        }
-        
         OrderItemEntity entity = new OrderItemEntity();
         entity.setProductId(form.getProductId());
         entity.setQuantity(form.getQuantity());
@@ -160,28 +174,6 @@ public final class ConversionUtil {
         return data;
     }
 
-    public static ClientEntity clientFormToEntity(ClientForm form) {
-        if (Objects.isNull(form)) {
-            return null;
-        }
-        
-        ClientEntity entity = new ClientEntity();
-        entity.setClientName(normalize(form.getClientName()));
-        return entity;
-    }
-
-    public static ClientData clientEntityToData(ClientEntity entity) {
-        if (Objects.isNull(entity)) {
-            return null;
-        }
-        
-        ClientData data = new ClientData();
-        data.setId(entity.getId());
-        data.setClientName(entity.getClientName());
-        data.setEnabled(entity.getEnabled());
-        return data;
-    }
-
     public static InvoiceItemForm orderItemEntityToInvoiceItemForm(OrderItemEntity item, Map<Integer, ProductEntity> productMap) {
         ProductEntity product = productMap.get(item.getProductId());
         if (product == null) {
@@ -201,6 +193,9 @@ public final class ConversionUtil {
     }
 
     public static InvoiceSummaryData invoiceEntityToSummaryData(InvoiceEntity invoiceEntity){
+        if (Objects.isNull(invoiceEntity)) {
+            return null;
+        }
         InvoiceSummaryData invoiceData = new InvoiceSummaryData();
         invoiceData.setOrderId(invoiceEntity.getOrderId());
         invoiceData.setCreatedAt(invoiceEntity.getCreatedAt());
@@ -254,7 +249,7 @@ public final class ConversionUtil {
         f.setClientId(Integer.parseInt(r[2].trim()));
         f.setBarcode(r[3].trim());
 
-        if (r.length > 4 && !r[4].trim().isEmpty()) {
+        if (r.length > 4) {
             f.setImageUrl(r[4].trim());
         }
 

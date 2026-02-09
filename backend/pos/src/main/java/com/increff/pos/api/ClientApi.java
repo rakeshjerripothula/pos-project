@@ -70,6 +70,10 @@ public class ClientApi {
         return clientDao.findAll(pageable);
     }
 
+    public Page<ClientEntity> searchClients(String clientName, Pageable pageable) {
+        return clientDao.searchByName(clientName, pageable);
+    }
+
     public Boolean isClientEnabled(Integer clientId) {
         return getClientOrThrow(clientId).getEnabled();
     }

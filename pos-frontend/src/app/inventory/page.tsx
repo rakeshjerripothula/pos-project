@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { apiGet, apiPost } from "@/lib/api";
 import { InventoryData, ProductData, PagedResponse, InventorySearchForm } from "@/lib/types";
 import UpdateInventory from "@/components/UpdateInventory";
@@ -23,6 +23,10 @@ export default function InventoryPage() {
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBarcode, setFilterBarcode] = useState("");
+  const [searchTriggered, setSearchTriggered] = useState(false);
+  
+  // Track if data is already loaded to prevent duplicate calls
+  const loadedRef = useRef(false);
 
   useEffect(() => {
     setIsUserOperator(isOperator());
@@ -47,9 +51,16 @@ export default function InventoryPage() {
     return () => { mounted = false; };
   }, []);
 
-  // Load inventory when page or filters change
+  // Load inventory when page or search is triggered
   useEffect(() => {
     let mounted = true;
+    
+    // Only skip if already loaded initial data and no search was triggered
+    if (loadedRef.current && !searchTriggered) {
+      setLoading(false);
+      return;
+    }
+    
     async function loadInventory() {
       setLoading(true);
       try {
@@ -64,6 +75,7 @@ export default function InventoryPage() {
         if (mounted) {
           setInventory(data.data);
           setTotalElements(data.total);
+          setSearchTriggered(false); // Reset after search
         }
       } catch (error: any) {
         if (mounted) {
@@ -77,7 +89,7 @@ export default function InventoryPage() {
     }
     loadInventory();
     return () => { mounted = false; };
-  }, [page, searchTerm, filterBarcode]);
+  }, [page, searchTriggered]);
 
   // Create barcode map for quick lookup
   const barcodeMap = useMemo(() => {
@@ -94,6 +106,7 @@ export default function InventoryPage() {
     setSearchTerm("");
     setFilterBarcode("");
     setPage(0);
+    setSearchTriggered(true);
   }
 
   async function updateInventoryQuantity(productId: number, quantity: number) {
@@ -224,8 +237,9 @@ export default function InventoryPage() {
             )}
           </div>
 
-          <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] max-w-4xl">
+          <div className="p-3 sm:p-4 mb-4 bg-white rounded-lg shadow-sm">
+            {/* Mobile-first: stacked layout, becomes grid on sm+ */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_120px] lg:grid-cols-[200px_200px_120px]">
               <div>
                 <label className="block mb-1.5 text-xs font-medium text-gray-700">
                   Search Product Name
@@ -235,7 +249,7 @@ export default function InventoryPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
@@ -248,16 +262,25 @@ export default function InventoryPage() {
                   value={filterBarcode}
                   onChange={(e) => setFilterBarcode(e.target.value)}
                   placeholder="Enter barcode..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
-              <div className="flex items-end">
+              <div className="flex items-end gap-2">
+                <button
+                  onClick={() => {
+                    setPage(0);
+                    setSearchTriggered(true);
+                  }}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
+                >
+                  Search
+                </button>
                 <button
                   onClick={clearFilters}
-                  className="px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
                 >
-                  Clear Filters
+                  Clear
                 </button>
               </div>
             </div>

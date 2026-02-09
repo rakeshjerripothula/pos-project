@@ -31,8 +31,7 @@ public class ClientDto extends AbstractDto {
     public ClientData createClient(ClientForm form) {
         checkValid(form);
         
-        ClientEntity entity = new ClientEntity();
-        entity.setClientName(normalize(form.getClientName()));
+        ClientEntity entity = ConversionUtil.clientFormToEntity(form);
         ClientEntity saved = clientApi.createClient(entity);
         return ConversionUtil.clientEntityToData(saved);
     }
@@ -40,9 +39,7 @@ public class ClientDto extends AbstractDto {
     public List<ClientData> getAll() {
         List<ClientEntity> entities = clientApi.getAll();
 
-        return entities.stream()
-                .map(ConversionUtil::clientEntityToData)
-                .toList();
+        return entities.stream().map(ConversionUtil::clientEntityToData).toList();
     }
 
     public ClientData updateClient(Integer clientId, ClientForm form) {
@@ -76,7 +73,7 @@ public class ClientDto extends AbstractDto {
                 Sort.by("clientName").ascending()
         );
 
-        Page<ClientEntity> page = clientApi.getAllClients(pageable);
+        Page<ClientEntity> page = clientApi.searchClients(form.getClientName(), pageable);
 
         List<ClientData> data = page.getContent()
                 .stream()

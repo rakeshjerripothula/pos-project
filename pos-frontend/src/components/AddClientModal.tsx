@@ -31,7 +31,7 @@ export default function AddClientModal({ onClose, onAdd }: AddClientModalProps) 
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]"
+      className="fixed inset-0 bg-black/50 flex items-start justify-center z-[1000] pt-20"
       onClick={onClose}
     >
       <div

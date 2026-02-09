@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -144,6 +145,93 @@ public class ProductDao {
 
         return new PageImpl<>(data, pageable, total);
     }
+
+    public Page<ProductEntity> searchProducts(Integer clientId, String barcode, String productName, Pageable pageable) {
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+
+        // ---------- DATA QUERY ----------
+        CriteriaQuery<ProductEntity> cq = cb.createQuery(ProductEntity.class);
+        Root<ProductEntity> productRoot = cq.from(ProductEntity.class);
+        Root<ClientEntity> clientRoot = cq.from(ClientEntity.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        // join: product.clientId = client.id
+        predicates.add(
+                cb.equal(productRoot.get("clientId"), clientRoot.get("id"))
+        );
+
+        // enabled clients only
+        predicates.add(
+                cb.isTrue(clientRoot.get("enabled"))
+        );
+
+        // clientId filter (exact)
+        if (clientId != null) {
+            predicates.add(
+                    cb.equal(productRoot.get("clientId"), clientId)
+            );
+        }
+
+        // barcode filter (exact match)
+        if (barcode != null && !barcode.trim().isEmpty()) {
+            predicates.add(
+                    cb.equal(cb.lower(productRoot.get("barcode")), barcode.toLowerCase().trim())
+            );
+        }
+
+        // productName filter (NORMAL contains search)
+        if (productName != null && !productName.trim().isEmpty()) {
+            predicates.add(
+                    cb.like(cb.lower(productRoot.get("productName")), "%" + productName.toLowerCase().trim() + "%")
+            );
+        }
+
+        cq.select(productRoot)
+                .where(predicates.toArray(new Predicate[0]))
+                .orderBy(cb.asc(productRoot.get("productName")));
+
+        List<ProductEntity> data = em.createQuery(cq)
+                .setFirstResult((int) pageable.getOffset())
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
+
+        // ---------- COUNT QUERY ----------
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<ProductEntity> countProduct = countQuery.from(ProductEntity.class);
+        Root<ClientEntity> countClient = countQuery.from(ClientEntity.class);
+
+        List<Predicate> countPredicates = new ArrayList<>();
+
+        countPredicates.add(cb.equal(countProduct.get("clientId"), countClient.get("id")));
+
+        countPredicates.add(cb.isTrue(countClient.get("enabled")));
+
+        if (clientId != null) {
+            countPredicates.add(cb.equal(countProduct.get("clientId"), clientId));
+        }
+
+        if (barcode != null && !barcode.trim().isEmpty()) {
+            countPredicates.add(cb.equal(cb.lower(countProduct.get("barcode")), barcode.toLowerCase().trim()));
+        }
+
+        if (productName != null && !productName.trim().isEmpty()) {
+            countPredicates.add(
+                    cb.like(
+                            cb.lower(countProduct.get("productName")),
+                            "%" + productName.toLowerCase().trim() + "%"
+                    )
+            );
+        }
+
+        countQuery.select(cb.count(countProduct)).where(countPredicates.toArray(new Predicate[0]));
+
+        Long total = em.createQuery(countQuery).getSingleResult();
+
+        return new PageImpl<>(data, pageable, total);
+    }
+
 
     public boolean existsByClientIdAndProductNameAndMrpAndNotId(
             Integer clientId,

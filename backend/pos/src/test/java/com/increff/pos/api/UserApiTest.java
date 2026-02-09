@@ -24,13 +24,20 @@ class UserApiTest {
     @Mock
     private UserDao userDao;
 
-    @InjectMocks
     private UserApi userApi;
 
     @BeforeEach
     void setUp() {
-        // Create a new instance with empty supervisor emails for most tests
+        // Create UserApi instance with empty supervisor emails and inject mock
         userApi = new UserApi("");
+        // Use reflection to inject the mock UserDao
+        try {
+            java.lang.reflect.Field userDaoField = UserApi.class.getDeclaredField("userDao");
+            userDaoField.setAccessible(true);
+            userDaoField.set(userApi, userDao);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to inject mock UserDao", e);
+        }
     }
 
     @Test
@@ -61,6 +68,15 @@ class UserApiTest {
     void should_signup_supervisor_when_email_in_supervisor_list() {
         // Arrange
         UserApi supervisorApi = new UserApi("supervisor@example.com,admin@example.com");
+        // Inject the mock UserDao
+        try {
+            java.lang.reflect.Field userDaoField = UserApi.class.getDeclaredField("userDao");
+            userDaoField.setAccessible(true);
+            userDaoField.set(supervisorApi, userDao);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to inject mock UserDao", e);
+        }
+        
         String email = "SUPERVISOR@example.com"; // Test case insensitivity
         String normalizedEmail = "supervisor@example.com";
 
@@ -337,6 +353,15 @@ class UserApiTest {
     void should_determine_operator_role_when_not_in_supervisor_list() {
         // Arrange
         UserApi api = new UserApi("supervisor@example.com");
+        // Inject the mock UserDao
+        try {
+            java.lang.reflect.Field userDaoField = UserApi.class.getDeclaredField("userDao");
+            userDaoField.setAccessible(true);
+            userDaoField.set(api, userDao);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to inject mock UserDao", e);
+        }
+        
         String email = "operator@example.com";
 
         when(userDao.findByEmail(email)).thenReturn(Optional.empty());
@@ -351,5 +376,102 @@ class UserApiTest {
 
         // Assert
         assertEquals(UserRole.OPERATOR, result.getRole());
+    }
+
+    @Test
+    void should_handle_null_email_in_signup() {
+        // Arrange
+        when(userDao.findByEmail(null)).thenReturn(Optional.empty());
+        doAnswer(invocation -> {
+            UserEntity user = invocation.getArgument(0);
+            user.setId(1);
+            return null;
+        }).when(userDao).insert(any(UserEntity.class));
+
+        // Act
+        UserEntity result = userApi.signup(null);
+
+        // Assert
+        assertEquals(1, result.getId());
+        assertNull(result.getEmail());
+        verify(userDao).findByEmail(null);
+        verify(userDao).insert(any(UserEntity.class));
+    }
+
+    @Test
+    void should_handle_empty_email_in_signup() {
+        // Arrange
+        String email = "";
+        String normalizedEmail = "";
+
+        when(userDao.findByEmail(normalizedEmail)).thenReturn(Optional.empty());
+        doAnswer(invocation -> {
+            UserEntity user = invocation.getArgument(0);
+            user.setId(1);
+            return null;
+        }).when(userDao).insert(any(UserEntity.class));
+
+        // Act
+        UserEntity result = userApi.signup(email);
+
+        // Assert
+        assertEquals(1, result.getId());
+        assertEquals(normalizedEmail, result.getEmail());
+        verify(userDao).findByEmail(normalizedEmail);
+        verify(userDao).insert(any(UserEntity.class));
+    }
+
+    @Test
+    void should_handle_null_email_in_login() {
+        // Arrange
+        when(userDao.findByEmail(null)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> userApi.login(null));
+        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("User not found", exception.getMessage());
+        verify(userDao).findByEmail(null);
+    }
+
+    @Test
+    void should_handle_empty_email_in_login() {
+        // Arrange
+        String email = "";
+        String normalizedEmail = "";
+
+        when(userDao.findByEmail(normalizedEmail)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> userApi.login(email));
+        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("User not found", exception.getMessage());
+        verify(userDao).findByEmail(normalizedEmail);
+    }
+
+    @Test
+    void should_handle_null_email_in_getByEmail() {
+        // Arrange
+        when(userDao.findByEmail(null)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> userApi.getByEmail(null));
+        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("User not found", exception.getMessage());
+        verify(userDao).findByEmail(null);
+    }
+
+    @Test
+    void should_handle_empty_email_in_getByEmail() {
+        // Arrange
+        String email = "";
+        String normalizedEmail = "";
+
+        when(userDao.findByEmail(normalizedEmail)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> userApi.getByEmail(email));
+        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("User not found", exception.getMessage());
+        verify(userDao).findByEmail(normalizedEmail);
     }
 }

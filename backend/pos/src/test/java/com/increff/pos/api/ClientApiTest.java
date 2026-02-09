@@ -188,6 +188,7 @@ class ClientApiTest {
         client.setEnabled(true);
 
         when(clientDao.findById(1)).thenReturn(Optional.of(client));
+        when(clientDao.save(any(ClientEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
         ClientEntity result = clientApi.toggle(1, false);
@@ -195,6 +196,7 @@ class ClientApiTest {
         // Assert
         assertFalse(result.getEnabled());
         verify(clientDao).findById(1);
+        verify(clientDao).save(any(ClientEntity.class));
     }
 
     @Test

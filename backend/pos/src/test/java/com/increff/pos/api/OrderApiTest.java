@@ -3,6 +3,7 @@ package com.increff.pos.api;
 import com.increff.pos.dao.OrderDao;
 import com.increff.pos.entity.OrderEntity;
 import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.exception.ApiException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -78,8 +79,9 @@ class OrderApiTest {
         when(orderDao.findById(1)).thenReturn(Optional.empty());
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> orderApi.getById(1));
-        assertEquals("Order not found: 1", exception.getMessage());
+        ApiException exception = assertThrows(ApiException.class, () -> orderApi.getById(1));
+        assertEquals("Order not found", exception.getMessage());
+        assertEquals("Order not found: 1", exception.getErrors().get(0).getMessage());
         verify(orderDao).findById(1);
     }
 

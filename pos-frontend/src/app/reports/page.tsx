@@ -271,7 +271,7 @@ export default function ReportsPage() {
             <>
               {/* Filters */}
               <div className="p-5 mb-6 bg-white rounded-xl shadow-sm">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_200px_auto]">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_200px_160px_140px]">
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-700">
                       Start Date
@@ -360,7 +360,7 @@ export default function ReportsPage() {
                         loadSalesReport();
                       }}
                       disabled={salesLoading}
-                      className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
+                      className={`w-full px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
                         salesLoading
                           ? "bg-blue-400 cursor-not-allowed"
                           : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
@@ -369,34 +369,11 @@ export default function ReportsPage() {
                       {salesLoading ? "Loading..." : "Generate Report"}
                     </button>
                   </div>
-                </div>
-              </div>
 
-              {/* Summary */}
-              {salesData && salesData.rows.length > 0 && (
-                <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-4 p-5 bg-white rounded-xl shadow-sm">
-                  <div>
-                    <div className="text-xs text-slate-500">Total Products</div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      {salesData.totalElements}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">Total Quantity Sold</div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      {salesTotalQuantity}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">Total Revenue</div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      ₹{salesTotalRevenue.toFixed(2)}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end">
+                  <div className="flex items-end">
                     <button
                       onClick={handleSalesExportCsv}
-                      className="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2"
+                      className="w-full px-5 py-2.5 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-2"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -414,6 +391,32 @@ export default function ReportsPage() {
                       </svg>
                       Export CSV
                     </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
+              {salesData && salesData.rows.length > 0 && (
+                <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-white rounded-xl shadow-sm">
+                  <div className="flex justify-between">
+                    <div>
+                      <div className="text-xs text-slate-500">Total Products</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-800">
+                        {salesData.totalElements}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500">Total Quantity Sold</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-800">
+                        {salesTotalQuantity}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-500">Total Revenue</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-800">
+                        ₹{salesTotalRevenue.toFixed(2)}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -502,7 +505,7 @@ export default function ReportsPage() {
             <>
               {/* Filters */}
               <div className="p-5 mb-6 bg-white rounded-xl shadow-sm">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_auto]">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_160px_140px]">
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-700">
                       Start Date
@@ -540,7 +543,7 @@ export default function ReportsPage() {
                         loadDaySalesReport();
                       }}
                       disabled={daySalesLoading}
-                      className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
+                      className={`w-full px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
                         daySalesLoading
                           ? "bg-blue-400 cursor-not-allowed"
                           : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
@@ -549,46 +552,11 @@ export default function ReportsPage() {
                       {daySalesLoading ? "Loading..." : "Generate Report"}
                     </button>
                   </div>
-                </div>
-              </div>
 
-              {/* Summary */}
-              {daySalesData && daySalesData.content.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 mb-6 md:grid-cols-6 p-5 bg-white rounded-xl shadow-sm">
-                  <div>
-                    <div className="text-xs text-slate-500">Total Days</div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      {daySalesData.totalElements}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">Total Orders</div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      {daySalesTotalOrders}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">Total Items Sold</div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      {daySalesTotalItems}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">Total Revenue</div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      ₹{daySalesTotalRevenue.toFixed(2)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500">Avg Daily Revenue</div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      ₹{daySalesAvgDailyRevenue.toFixed(2)}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end">
+                  <div className="flex items-end">
                     <button
                       onClick={handleDaySalesExportCsv}
-                      className="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2"
+                      className="w-full px-5 py-2.5 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-2"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -606,6 +574,44 @@ export default function ReportsPage() {
                       </svg>
                       Export CSV
                     </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
+              {daySalesData && daySalesData.content.length > 0 && (
+                <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-white rounded-xl shadow-sm">
+                  <div className="flex justify-between">
+                    <div>
+                      <div className="text-xs text-slate-500">Total Days</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-800">
+                        {daySalesData.totalElements}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500">Total Orders</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-800">
+                        {daySalesTotalOrders}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500">Total Items Sold</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-800">
+                        {daySalesTotalItems}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-slate-500">Total Revenue</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-800">
+                        ₹{daySalesTotalRevenue.toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-slate-500">Avg Daily Revenue</div>
+                      <div className="text-xl sm:text-2xl font-bold text-slate-800">
+                        ₹{daySalesAvgDailyRevenue.toFixed(2)}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

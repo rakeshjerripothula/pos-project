@@ -37,6 +37,9 @@ public class XmlBuilderUtil {
     }
 
     private String formatInvoiceDate(ZonedDateTime dateTime) {
+        if (dateTime == null) {
+            return "null";
+        }
         return dateTime
                 .withZoneSameInstant(ZoneId.of("Asia/Kolkata"))
                 .format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));

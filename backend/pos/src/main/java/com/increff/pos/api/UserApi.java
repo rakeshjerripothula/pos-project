@@ -24,6 +24,9 @@ public class UserApi {
     private final Set<String> supervisorEmails;
 
     public UserApi(@Value("${app.supervisor.emails:}") String supervisorEmailsStr) {
+        if (supervisorEmailsStr == null) {
+            supervisorEmailsStr = "";
+        }
         this.supervisorEmails = Arrays.stream(supervisorEmailsStr.split(","))
                 .map(String::trim)
                 .map(String::toLowerCase)

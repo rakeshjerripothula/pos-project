@@ -27,6 +27,7 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterBarcode, setFilterBarcode] = useState("");
+  const [searchTriggered, setSearchTriggered] = useState(false);
 
   // Track if data is already loaded to prevent duplicate calls
   const loadedRef = useRef({
@@ -83,12 +84,12 @@ export default function ProductsPage() {
     return () => { mounted = false; };
   }, []);
 
-  // Load products when page or filters change
+  // Load products when page or search is triggered
   useEffect(() => {
     let mounted = true;
     
-    // Skip if already loaded initial data and no filter changes
-    if (loadedRef.current.products && page === 0 && !searchTerm && !filterClientId && !filterBarcode) {
+    // Only skip if already loaded initial data and no search was triggered
+    if (loadedRef.current.products && !searchTriggered) {
       setLoading(false);
       return;
     }
@@ -108,10 +109,11 @@ export default function ProductsPage() {
         if (mounted) {
           setProducts(data.data);
           setTotalElements(data.total);
-          // Mark as loaded only for initial load (page 0, no filters)
-          if (page === 0 && !searchTerm && !filterClientId && !filterBarcode) {
+          // Mark as loaded only for initial load (page 0, no filters, no trigger)
+          if (page === 0 && !searchTerm && !filterClientId && !filterBarcode && !searchTriggered) {
             loadedRef.current.products = true;
           }
+          setSearchTriggered(false); // Reset after search
         }
       } catch (error: any) {
         if (mounted) {
@@ -125,7 +127,7 @@ export default function ProductsPage() {
     }
     loadProducts();
     return () => { mounted = false; };
-  }, [page, searchTerm, filterClientId, filterBarcode]);
+  }, [page, searchTriggered]);
 
   // Create inventory map for quick lookup
   const inventoryMap = useMemo(() => {
@@ -143,6 +145,7 @@ export default function ProductsPage() {
     setFilterClientId(null);
     setFilterBarcode("");
     setPage(0);
+    setSearchTriggered(true);
   }
 
   async function addProduct(product: {
@@ -299,8 +302,9 @@ export default function ProductsPage() {
             )}
           </div>
 
-          <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[180px_minmax(180px,280px)_180px_auto] max-w-6xl">
+          <div className="p-3 sm:p-4 mb-4 bg-white rounded-lg shadow-sm">
+            {/* Mobile-first: stacked layout, becomes grid on sm+ */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[150px_minmax(150px,250px)_150px_120px] lg:grid-cols-[180px_minmax(180px,280px)_180px_120px]">
               <div>
                 <label className="block mb-1.5 text-xs font-medium text-gray-700">
                   Search Name
@@ -310,7 +314,7 @@ export default function ProductsPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
@@ -335,16 +339,25 @@ export default function ProductsPage() {
                   value={filterBarcode}
                   onChange={(e) => setFilterBarcode(e.target.value)}
                   placeholder="Enter barcode..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
-              <div className="flex items-end">
+              <div className="flex items-end gap-2">
+                <button
+                  onClick={() => {
+                    setPage(0);
+                    setSearchTriggered(true);
+                  }}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
+                >
+                  Search
+                </button>
                 <button
                   onClick={clearFilters}
-                  className="px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
                 >
-                  Clear Filters
+                  Clear
                 </button>
               </div>
             </div>

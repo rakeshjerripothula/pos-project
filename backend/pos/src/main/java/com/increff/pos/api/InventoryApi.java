@@ -47,6 +47,10 @@ public class InventoryApi {
         return inventoryDao.findAll(pageable);
     }
 
+    public Page<InventoryEntity> searchForEnabledClients(String barcode, String productName, Pageable pageable) {
+        return inventoryDao.searchForEnabledClients(barcode, productName, pageable);
+    }
+
     public InventoryEntity getByProductId(Integer productId) {
 
         return inventoryDao.findByProductId(productId)

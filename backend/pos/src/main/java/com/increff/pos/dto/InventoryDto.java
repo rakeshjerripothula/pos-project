@@ -1,20 +1,17 @@
 package com.increff.pos.dto;
 
 import com.increff.pos.entity.InventoryEntity;
-import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.flow.InventoryFlow;
 import com.increff.pos.model.data.InventoryData;
 import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.TsvUploadError;
 import com.increff.pos.model.data.TsvUploadResult;
 import com.increff.pos.model.form.InventoryForm;
-import com.increff.pos.api.ProductApi;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.form.InventorySearchForm;
 import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -23,7 +20,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static com.increff.pos.util.Utils.parse;
 
@@ -33,16 +29,9 @@ public class InventoryDto extends AbstractDto {
     @Autowired
     private InventoryFlow inventoryFlow;
 
-    @Autowired
-    private ProductApi productApi;
-
     public InventoryData upsert(InventoryForm form) {
         checkValid(form);
-
-        InventoryEntity saved = inventoryFlow.upsert(ConversionUtil.inventoryFormToEntity(form));
-
-        ProductEntity product = productApi.getProductById(form.getProductId());
-        return ConversionUtil.inventoryEntityToData(saved, product);
+        return inventoryFlow.upsertAndGetData(ConversionUtil.inventoryFormToEntity(form));
     }
 
     public PagedResponse<InventoryData> list(InventorySearchForm form) {
@@ -53,61 +42,21 @@ public class InventoryDto extends AbstractDto {
                 Sort.by("productId").ascending()
         );
 
-        Page<InventoryEntity> page =
-                inventoryFlow.listForEnabledClients(pageable);
-
-        if (page.isEmpty()) {
-            return new PagedResponse<>(List.of(), 0L);
-        }
-
-        List<Integer> productIds = page.getContent().stream()
-                .map(InventoryEntity::getProductId)
-                .distinct()
-                .toList();
-
-        Map<Integer, ProductEntity> productMap =
-                productApi.getByIds(productIds).stream()
-                        .collect(Collectors.toMap(ProductEntity::getId, p -> p));
-
-        List<InventoryData> data = page.getContent().stream()
-                .map(inv -> ConversionUtil.inventoryEntityToData(
-                        inv,
-                        productMap.get(inv.getProductId())
-                ))
-                .toList();
-
-        return new PagedResponse<>(data, page.getTotalElements());
+        return inventoryFlow.searchForEnabledClientsWithData(
+                form.getBarcode(),
+                form.getProductName(),
+                pageable
+        );
     }
 
+
     public List<InventoryData> getAll() {
-        List<InventoryEntity> inventories = inventoryFlow.listAllForEnabledClients();
-        
-        if (inventories.isEmpty()) {
-            return List.of();
-        }
-
-        List<Integer> productIds = inventories.stream()
-                .map(InventoryEntity::getProductId)
-                .distinct()
-                .toList();
-
-        Map<Integer, ProductEntity> productMap =
-                productApi.getByIds(productIds).stream()
-                        .collect(Collectors.toMap(ProductEntity::getId, p -> p));
-
-        return inventories.stream()
-                .map(inv -> ConversionUtil.inventoryEntityToData(
-                        inv,
-                        productMap.get(inv.getProductId())
-                ))
-                .toList();
+        return inventoryFlow.listAllForEnabledClientsWithData();
     }
 
     public InventoryData getByProductId(Integer productId) {
         validateProductId(productId);
-        InventoryEntity inventory = inventoryFlow.getByProductId(productId);
-        ProductEntity product = productApi.getProductById(productId);
-        return ConversionUtil.inventoryEntityToData(inventory, product);
+        return inventoryFlow.getByProductIdWithData(productId);
     }
 
     public List<InventoryData> bulkUpsert(List<InventoryForm> forms) {
@@ -125,29 +74,11 @@ public class InventoryDto extends AbstractDto {
             }
         }
 
-        List<InventoryEntity> saved =
-                inventoryFlow.bulkUpsert(
-                        forms.stream()
-                                .map(ConversionUtil::inventoryFormToEntity)
-                                .toList()
-                );
-
-        List<Integer> productIds = saved.stream()
-                .map(InventoryEntity::getProductId)
-                .distinct()
-                .toList();
-
-        Map<Integer, ProductEntity> productMap =
-                productApi.getByIds(productIds).stream()
-                        .collect(Collectors.toMap(ProductEntity::getId, p -> p));
-
-        return saved.stream()
-                .map(inv -> ConversionUtil.inventoryEntityToData(
-                        inv,
-                        productMap.get(inv.getProductId())
-                ))
-                .toList();
-
+        return inventoryFlow.bulkUpsertAndGetData(
+                forms.stream()
+                        .map(ConversionUtil::inventoryFormToEntity)
+                        .toList()
+        );
     }
 
     public TsvUploadResult<InventoryData> uploadTsv(MultipartFile file) {

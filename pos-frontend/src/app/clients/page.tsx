@@ -27,7 +27,7 @@ export default function ClientsPage() {
     setIsUserOperator(isOperator());
   }, []);
 
-  // Load clients when page, searchTerm, or filterEnabled changes
+  // Load clients on page load
   useEffect(() => {
     let mounted = true;
     async function loadClients() {
@@ -57,19 +57,38 @@ export default function ClientsPage() {
     }
     loadClients();
     return () => { mounted = false; };
-  }, [page, searchTerm, filterEnabled]);
+  }, [page]);
+
+  // Search handler - only triggers on button click
+  async function handleSearch() {
+    setPage(0);
+    setLoading(true);
+    try {
+      const form: ClientSearchForm = {
+        page: 0,
+        pageSize,
+        clientName: searchTerm || undefined,
+        enabled: filterEnabled !== null ? filterEnabled : undefined,
+      };
+
+      const data = await apiPost<PagedResponse<ClientData>>("/clients/list", form);
+      setClients(data.data);
+      setTotalElements(data.total);
+    } catch (error: any) {
+      toast.error("Failed to search clients: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const totalPages = Math.ceil(totalElements / pageSize);
 
   async function toggleClient(id: number, enabled: boolean) {
     try {
-      const updatedClient = await apiPatch<ClientData>(`/clients/${id}/toggle`, { enabled });
-      
-      setClients(prev => 
-        prev.map(client => client.id === id ? updatedClient : client)
-      );
-      
+      await apiPatch(`/clients/${id}/toggle`, { enabled });
       toast.success(enabled ? "Client enabled" : "Client disabled");
+      // Refresh the client list
+      await handleSearch();
     } catch (error: any) {
       toast.error("Failed to toggle client: " + error.message);
     }
@@ -78,45 +97,15 @@ export default function ClientsPage() {
   async function addClient(clientName: string) {
     await apiPost("/clients", { clientName });
     setPage(0);
-    // Trigger reload
-    setLoading(true);
-    try {
-      const form: ClientSearchForm = {
-        page: 0,
-        pageSize,
-        clientName: "",
-        enabled: undefined,
-      };
-      const data = await apiPost<PagedResponse<ClientData>>("/clients/list", form);
-      setClients(data.data);
-      setTotalElements(data.total);
-    } catch (error: any) {
-      toast.error("Failed to reload clients: " + error.message);
-    } finally {
-      setLoading(false);
-    }
+    // Trigger search to reload clients
+    await handleSearch();
     toast.success("Client created successfully");
   }
 
   async function updateClient(id: number, clientName: string) {
     await apiPut(`/clients/${id}`, { clientName });
-    // Reload current page
-    setLoading(true);
-    try {
-      const form: ClientSearchForm = {
-        page,
-        pageSize,
-        clientName: searchTerm || undefined,
-        enabled: filterEnabled !== null ? filterEnabled : undefined,
-      };
-      const data = await apiPost<PagedResponse<ClientData>>("/clients/list", form);
-      setClients(data.data);
-      setTotalElements(data.total);
-    } catch (error: any) {
-      toast.error("Failed to reload clients: " + error.message);
-    } finally {
-      setLoading(false);
-    }
+    // Reload current page using handleSearch
+    await handleSearch();
     toast.success("Client updated successfully");
   }
 
@@ -124,6 +113,8 @@ export default function ClientsPage() {
     setSearchTerm("");
     setFilterEnabled(null);
     setPage(0);
+    // Trigger search after clearing filters
+    handleSearch();
   }
 
   return (
@@ -147,8 +138,9 @@ export default function ClientsPage() {
           {loading && !clients.length ? (
             <div className="py-8 text-center text-slate-500">Loading...</div>
           ) : (
-            <div className="p-4 bg-white rounded-lg shadow-sm">
-              <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-[180px_180px_auto]">
+            <div className="p-3 sm:p-4 bg-white rounded-lg shadow-sm">
+              {/* Mobile-first: stacked layout, becomes grid on sm+ */}
+              <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-[180px_180px_100px_auto]">
                 <div>
                   <label className="block mb-1.5 text-xs font-medium text-gray-700">
                     Search Client
@@ -157,8 +149,13 @@ export default function ClientsPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSearch();
+                      }
+                    }}
                     placeholder="Search by client name..."
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-[42px]"
                   />
                 </div>
 
@@ -180,7 +177,7 @@ export default function ClientsPage() {
                         value === "" ? null : value === "enabled"
                       );
                     }}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white h-[42px]"
                   >
                     <option value="">All</option>
                     <option value="enabled">Enabled</option>
@@ -190,8 +187,17 @@ export default function ClientsPage() {
 
                 <div className="flex items-end">
                   <button
+                    onClick={handleSearch}
+                    className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
+                  >
+                    Search
+                  </button>
+                </div>
+
+                <div className="flex items-end">
+                  <button
                     onClick={clearFilters}
-                    className="px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
+                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
                   >
                     Clear Filters
                   </button>

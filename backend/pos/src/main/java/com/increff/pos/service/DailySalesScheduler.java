@@ -23,12 +23,20 @@ public class DailySalesScheduler {
     public void calculateDailySales() {
 
         ZoneId ist = ZoneId.of("Asia/Kolkata");
-
-        LocalDate yesterdayIst = ZonedDateTime.now(ist).toLocalDate().minusDays(1);
+        LocalDate yesterdayIst = ZonedDateTime.now(ist)
+                .toLocalDate()
+                .minusDays(1);
 
         logger.info("Calculating day sales for IST date {}", yesterdayIst);
 
-        daySalesApi.calculateForDate(yesterdayIst);
+        try {
+            daySalesApi.calculateForDate(yesterdayIst);
+        } catch (Exception e) {
+            logger.error(
+                    "Failed to calculate day sales for IST date {}", yesterdayIst, e
+            );
+        }
     }
+
 
 }

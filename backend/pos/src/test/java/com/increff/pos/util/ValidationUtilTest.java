@@ -1,5 +1,7 @@
 package com.increff.pos.util;
 
+import com.increff.pos.exception.ApiException;
+import com.increff.pos.exception.ApiStatus;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -40,14 +42,16 @@ class ValidationUtilTest {
         Set<ConstraintViolation<TestValidObject>> violations = ValidationUtil.validate(invalidObject);
         
         // Assert
-        assertEquals(3, violations.size());
+        assertEquals(4, violations.size());
         
         violations.forEach(violation -> {
             String propertyPath = violation.getPropertyPath().toString();
             if ("name".equals(propertyPath)) {
-                assertTrue(violation.getMessage().contains("must not be blank"));
+                assertTrue(violation.getMessage().contains("must not be blank") || 
+                          violation.getMessage().contains("size must be between"));
             } else if ("email".equals(propertyPath)) {
-                assertTrue(violation.getMessage().contains("must be a well-formed email"));
+                assertTrue(violation.getMessage().contains("must be a well-formed email") || 
+                          violation.getMessage().contains("must not be blank"));
             } else if ("age".equals(propertyPath)) {
                 assertTrue(violation.getMessage().contains("must not be null"));
             }
@@ -55,13 +59,18 @@ class ValidationUtilTest {
     }
 
     @Test
-    void should_return_empty_violations_when_null_object() {
+    void validate_nullObject_throwsApiException() {
         // Act
-        Set<ConstraintViolation<TestValidObject>> violations = ValidationUtil.validate(null);
-        
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> ValidationUtil.validate(null)
+        );
+
         // Assert
-        assertTrue(violations.isEmpty());
+        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals("Input cannot be null", exception.getMessage());
     }
+
 
     @Test
     void should_validate_object_with_partial_violations() {

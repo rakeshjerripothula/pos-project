@@ -115,6 +115,11 @@ public class ProductApi {
         return productDao.findProductsForEnabledClients(pageable);
     }
 
+    public Page<ProductEntity> searchProducts(Integer clientId, String barcode, String productName, Pageable pageable) {
+        return productDao.searchProducts(clientId, barcode, productName, pageable);
+    }
+
+
     public ProductEntity getProductById(Integer id) {
         return productDao.findById(id)
                 .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "Product not found", "id", "Product not found"));

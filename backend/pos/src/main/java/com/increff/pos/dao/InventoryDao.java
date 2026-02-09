@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -133,6 +134,95 @@ public class InventoryDao {
                                 cb.isTrue(countClient.get("enabled"))
                         )
                 );
+
+        Long total = em.createQuery(countQuery).getSingleResult();
+
+        return new PageImpl<>(data, pageable, total);
+    }
+
+    public Page<InventoryEntity> searchForEnabledClients(
+            String barcode,
+            String productName,
+            Pageable pageable
+    ) {
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+
+        // ---------- DATA QUERY ----------
+        CriteriaQuery<InventoryEntity> cq = cb.createQuery(InventoryEntity.class);
+
+        Root<InventoryEntity> inventoryRoot = cq.from(InventoryEntity.class);
+        Root<ProductEntity> productRoot = cq.from(ProductEntity.class);
+        Root<ClientEntity> clientRoot = cq.from(ClientEntity.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        // joins
+        predicates.add(cb.equal(inventoryRoot.get("productId"), productRoot.get("id")));
+        predicates.add(cb.equal(productRoot.get("clientId"), clientRoot.get("id")));
+        predicates.add(cb.isTrue(clientRoot.get("enabled")));
+
+        // barcode (exact)
+        if (barcode != null && !barcode.trim().isEmpty()) {
+            predicates.add(
+                    cb.equal(
+                            cb.lower(productRoot.get("barcode")),
+                            barcode.toLowerCase().trim()
+                    )
+            );
+        }
+
+        // productName (NORMAL contains search)
+        if (productName != null && !productName.trim().isEmpty()) {
+            predicates.add(
+                    cb.like(
+                            cb.lower(productRoot.get("productName")),
+                            "%" + productName.toLowerCase().trim() + "%"
+                    )
+            );
+        }
+
+        cq.select(inventoryRoot)
+                .where(predicates.toArray(new Predicate[0]));
+
+        List<InventoryEntity> data = em.createQuery(cq)
+                .setFirstResult((int) pageable.getOffset())
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
+
+        // ---------- COUNT QUERY ----------
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+
+        Root<InventoryEntity> countInv = countQuery.from(InventoryEntity.class);
+        Root<ProductEntity> countProduct = countQuery.from(ProductEntity.class);
+        Root<ClientEntity> countClient = countQuery.from(ClientEntity.class);
+
+        List<Predicate> countPredicates = new ArrayList<>();
+
+        countPredicates.add(cb.equal(countInv.get("productId"), countProduct.get("id")));
+        countPredicates.add(cb.equal(countProduct.get("clientId"), countClient.get("id")));
+        countPredicates.add(cb.isTrue(countClient.get("enabled")));
+
+        if (barcode != null && !barcode.trim().isEmpty()) {
+            countPredicates.add(
+                    cb.equal(
+                            cb.lower(countProduct.get("barcode")),
+                            barcode.toLowerCase().trim()
+                    )
+            );
+        }
+
+        if (productName != null && !productName.trim().isEmpty()) {
+            countPredicates.add(
+                    cb.like(
+                            cb.lower(countProduct.get("productName")),
+                            "%" + productName.toLowerCase().trim() + "%"
+                    )
+            );
+        }
+
+        countQuery.select(cb.count(countInv))
+                .where(countPredicates.toArray(new Predicate[0]));
 
         Long total = em.createQuery(countQuery).getSingleResult();
 

@@ -26,6 +26,12 @@ public final class ValidationUtil {
     }
 
     public static <T> Set<ConstraintViolation<T>> validate(T obj) {
+        if (obj == null) {
+            throw new ApiException(
+                ApiStatus.BAD_DATA,
+                "Input cannot be null"
+            );
+        }
         return validator.validate(obj);
     }
 

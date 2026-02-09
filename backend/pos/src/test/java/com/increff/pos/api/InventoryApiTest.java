@@ -2,7 +2,6 @@ package com.increff.pos.api;
 
 import com.increff.pos.dao.InventoryDao;
 import com.increff.pos.entity.InventoryEntity;
-import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import org.junit.jupiter.api.Test;
@@ -26,12 +25,6 @@ class InventoryApiTest {
 
     @Mock
     private InventoryDao inventoryDao;
-
-    @Mock
-    private ProductApi productApi;
-
-    @Mock
-    private ClientApi clientApi;
 
     @InjectMocks
     private InventoryApi inventoryApi;
@@ -151,7 +144,7 @@ class InventoryApiTest {
     }
 
     @Test
-    void should_get_inventory_by_product_ids_when_enabled_clients() {
+    void should_get_inventory_by_product_ids() {
         // Arrange
         InventoryEntity inventory1 = new InventoryEntity();
         inventory1.setProductId(1);
@@ -163,17 +156,7 @@ class InventoryApiTest {
 
         List<InventoryEntity> inventories = List.of(inventory1, inventory2);
 
-        ProductEntity product1 = new ProductEntity();
-        product1.setId(1);
-        product1.setClientId(1);
-
-        ProductEntity product2 = new ProductEntity();
-        product2.setId(2);
-        product2.setClientId(1);
-
         when(inventoryDao.findByProductIds(List.of(1, 2))).thenReturn(inventories);
-        when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
 
         // Act
         List<InventoryEntity> result = inventoryApi.getByProductIds(List.of(1, 2));
@@ -181,32 +164,6 @@ class InventoryApiTest {
         // Assert
         assertEquals(2, result.size());
         verify(inventoryDao).findByProductIds(List.of(1, 2));
-        verify(productApi).getByIds(List.of(1, 2));
-        verify(clientApi, times(2)).isClientEnabled(1);
-    }
-
-    @Test
-    void should_throw_exception_when_getting_inventory_for_disabled_client() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        when(inventoryDao.findByProductIds(List.of(1))).thenReturn(List.of(inventory));
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.isClientEnabled(1)).thenReturn(false);
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryApi.getByProductIds(List.of(1)));
-        assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Client is disabled", exception.getMessage());
-        verify(inventoryDao).findByProductIds(List.of(1));
-        verify(productApi).getByIds(List.of(1));
-        verify(clientApi).isClientEnabled(1);
     }
 
     @Test
@@ -220,26 +177,6 @@ class InventoryApiTest {
         // Assert
         assertEquals(0, result.size());
         verify(inventoryDao).findByProductIds(List.of(1, 2));
-        verifyNoInteractions(productApi, clientApi);
-    }
-
-    @Test
-    void should_throw_exception_when_product_not_found_for_inventory() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        when(inventoryDao.findByProductIds(List.of(1))).thenReturn(List.of(inventory));
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of());
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryApi.getByProductIds(List.of(1)));
-        assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Client is disabled", exception.getMessage());
-        verify(inventoryDao).findByProductIds(List.of(1));
-        verify(productApi).getByIds(List.of(1));
-        verifyNoInteractions(clientApi);
     }
 
     @Test
@@ -380,40 +317,4 @@ class InventoryApiTest {
         verify(inventoryDao).saveAll(inventories);
     }
 
-    @Test
-    void should_handle_multiple_clients_in_get_by_product_ids() {
-        // Arrange
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-        inventory1.setQuantity(10);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-        inventory2.setQuantity(5);
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
-
-        ProductEntity product1 = new ProductEntity();
-        product1.setId(1);
-        product1.setClientId(1);
-
-        ProductEntity product2 = new ProductEntity();
-        product2.setId(2);
-        product2.setClientId(2);
-
-        when(inventoryDao.findByProductIds(List.of(1, 2))).thenReturn(inventories);
-        when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
-        when(clientApi.isClientEnabled(2)).thenReturn(true);
-
-        // Act
-        List<InventoryEntity> result = inventoryApi.getByProductIds(List.of(1, 2));
-
-        // Assert
-        assertEquals(2, result.size());
-        verify(inventoryDao).findByProductIds(List.of(1, 2));
-        verify(productApi).getByIds(List.of(1, 2));
-        verify(clientApi).isClientEnabled(1);
-        verify(clientApi).isClientEnabled(2);
-    }
 }

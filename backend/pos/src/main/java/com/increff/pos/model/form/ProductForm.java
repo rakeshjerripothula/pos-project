@@ -1,5 +1,6 @@
 package com.increff.pos.model.form;
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,7 +17,7 @@ public class ProductForm {
     private String productName;
 
     @NotNull(message = "MRP is required")
-    @Min(value = 0, message = "MRP cannot be negative")
+    @DecimalMin(value = "0.01", inclusive = true, message = "MRP must be greater than 0")
     private BigDecimal mrp;
 
     @NotNull(message = "Client ID is required")

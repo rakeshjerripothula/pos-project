@@ -7,6 +7,7 @@ import { utcToIst } from "@/lib/utils";
 import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
 import ConfirmModal from "@/components/ConfirmModal";
+import CreateOrderModal from "@/components/CreateOrderModal";
 import React from "react";
 import Select from "react-select";
 import toast from "react-hot-toast";
@@ -32,6 +33,9 @@ export default function OrdersPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<number | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  // Create Order Modal state
+  const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
 
   const clientsLoadedRef = useRef(false);
 
@@ -193,6 +197,15 @@ async function cancelOrder(orderId: number) {
   }
 
   function handleSearch() {
+    // Validate date range
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      if (start > end) {
+        toast.error("Start date cannot be after end date");
+        return;
+      }
+    }
     setPage(0);
     loadOrders();
   }
@@ -214,16 +227,17 @@ async function cancelOrder(orderId: number) {
             <h1 className="text-2xl font-bold text-slate-800">
               Orders
             </h1>
-            <Link
-              href="/orders/create"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors no-underline"
+            <button
+              onClick={() => setShowCreateOrderModal(true)}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors no-underline cursor-pointer"
             >
               Create Order
-            </Link>
+            </button>
           </div>
 
           {/* Filters */}
-          <div className="p-4 mb-4 bg-white rounded-lg shadow-sm">
+          <div className="p-3 sm:p-4 mb-4 bg-white rounded-lg shadow-sm">
+            {/* Mobile-first: stacked layout, becomes grid on larger screens */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               <div>
                 <label className="block mb-1.5 text-xs font-medium text-gray-700">
@@ -234,7 +248,7 @@ async function cancelOrder(orderId: number) {
                   value={orderId}
                   onChange={(e) => setOrderId(e.target.value)}
                   placeholder="Search by Order ID"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
@@ -245,7 +259,7 @@ async function cancelOrder(orderId: number) {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as OrderStatus | "")}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white h-[42px]"
                 >
                   <option value="">All</option>
                   <option value="CREATED">Created</option>
@@ -274,7 +288,7 @@ async function cancelOrder(orderId: number) {
                       borderRadius: "0.375rem",
                       border: "1px solid #d1d5db",
                       fontSize: "14px",
-                      minHeight: "36px",
+                      minHeight: "42px",
                       backgroundColor: "white",
                     }),
                     menu: (base) => ({
@@ -305,7 +319,7 @@ async function cancelOrder(orderId: number) {
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
@@ -317,20 +331,20 @@ async function cancelOrder(orderId: number) {
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
               <div className="flex gap-2 items-end">
                 <button
                   onClick={handleSearch}
-                  className="flex-1 px-4 h-[36px] text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+                  className="flex-1 px-4 h-[42px] text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
                 >
                   Search
                 </button>
                 <button
                   onClick={clearFilters}
-                  className="flex-1 px-4 h-[36px] text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
+                  className="flex-1 px-4 h-[42px] text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
                 >
                   Clear
                 </button>
@@ -521,6 +535,13 @@ async function cancelOrder(orderId: number) {
             cancelText="Keep Order"
             confirmStyle="danger"
             isLoading={cancelLoading}
+          />
+
+          {/* Create Order Modal */}
+          <CreateOrderModal
+            isOpen={showCreateOrderModal}
+            onClose={() => setShowCreateOrderModal(false)}
+            onSuccess={loadOrders}
           />
         </div>
       </div>

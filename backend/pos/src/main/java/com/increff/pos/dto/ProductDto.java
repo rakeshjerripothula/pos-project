@@ -58,12 +58,18 @@ public class ProductDto extends AbstractDto {
 
     public PagedResponse<ProductData> listProducts(ProductSearchForm form) {
 
-        Pageable pageable = PageRequest.of(form.getPage(),
+        Pageable pageable = PageRequest.of(
+                form.getPage(),
                 form.getPageSize(),
                 Sort.by("productName").ascending()
         );
 
-        Page<ProductEntity> page = productApi.listProductsForEnabledClients(pageable);
+        Page<ProductEntity> page = productApi.searchProducts(
+                form.getClientId(),
+                form.getBarcode(),
+                form.getProductName(),
+                pageable
+        );
 
         List<ProductData> data = page.getContent()
                 .stream()
@@ -72,6 +78,7 @@ public class ProductDto extends AbstractDto {
 
         return new PagedResponse<>(data, page.getTotalElements());
     }
+
 
     public ProductData getById(Integer id) {
         if (Objects.isNull(id)) {

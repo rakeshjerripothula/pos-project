@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,8 +40,7 @@ public class ClientDao {
 
         Root<ClientEntity> client = cq.from(ClientEntity.class);
 
-        cq.select(client)
-                .orderBy(cb.asc(client.get("id")));
+        cq.select(client).orderBy(cb.asc(client.get("id")));
 
         TypedQuery<ClientEntity> query = em.createQuery(cq);
         return query.getResultList();
@@ -66,6 +66,49 @@ public class ClientDao {
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<ClientEntity> countRoot = countQuery.from(ClientEntity.class);
         countQuery.select(cb.count(countRoot));
+
+        Long total = em.createQuery(countQuery).getSingleResult();
+
+        return new PageImpl<>(data, pageable, total);
+    }
+
+    public Page<ClientEntity> searchByName(String clientName, Pageable pageable) {
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+
+        // -------- DATA QUERY --------
+        CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
+        Root<ClientEntity> root = cq.from(ClientEntity.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        if (clientName != null && !clientName.trim().isEmpty()) {
+            predicates.add(
+                    cb.like(
+                            cb.lower(root.get("clientName")),
+                            clientName.toLowerCase().trim() + "%"
+                    )
+            );
+        }
+
+        cq.where(predicates.toArray(new Predicate[0]));
+        cq.orderBy(cb.asc(root.get("clientName")));
+
+        List<ClientEntity> data = em.createQuery(cq)
+                .setFirstResult((int) pageable.getOffset())
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
+
+        // -------- COUNT QUERY --------
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<ClientEntity> countRoot = countQuery.from(ClientEntity.class);
+
+        countQuery.select(cb.count(countRoot));
+        countQuery.where(predicates
+                .stream()
+                .map(p -> p) // same predicates, different root
+                .toArray(Predicate[]::new)
+        );
 
         Long total = em.createQuery(countQuery).getSingleResult();
 

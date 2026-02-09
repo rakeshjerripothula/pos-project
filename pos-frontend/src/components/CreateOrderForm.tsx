@@ -12,17 +12,21 @@ interface OrderItemRow {
 
 const ORDER_DRAFT_KEY = "pos_order_draft";
 
-export default function CreateOrderForm({
-  products,
-  onCreate,
-}: {
+interface CreateOrderFormProps {
   products: ProductData[];
   onCreate: (items: {
     productId: number;
     quantity: number;
     sellingPrice: number;
   }[]) => Promise<void>;
-}) {
+  onCancel?: () => void;
+}
+
+export default function CreateOrderForm({
+  products,
+  onCreate,
+  onCancel,
+}: CreateOrderFormProps) {
   const [items, setItems] = useState<OrderItemRow[]>([
     { barcode: "", quantity: 1, sellingPrice: 0 },
   ]);
@@ -92,7 +96,6 @@ export default function CreateOrderForm({
         localStorage.removeItem(ORDER_DRAFT_KEY);
       }
       setItems([{ barcode: "", quantity: 1, sellingPrice: 0 }]);
-      toast.success("Order created successfully");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -109,7 +112,9 @@ export default function CreateOrderForm({
               <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Barcode</th>
               <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Quantity</th>
               <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Selling Price</th>
-              <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700 w-16">Action</th>
+              {items.length > 1 && (
+                <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700 w-16">Action</th>
+              )}
             </tr>
           </thead>
           <tbody>

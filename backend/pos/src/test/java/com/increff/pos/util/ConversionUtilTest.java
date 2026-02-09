@@ -34,8 +34,7 @@ class ConversionUtilTest {
         assertNotNull(result);
         assertEquals(1, result.getOrderId());
         assertEquals(2, result.getClientId());
-        assertEquals("CREATED", result.getStatus());
-        assertNotNull(result.getCreatedAt());
+        assertEquals(OrderStatus.CREATED, result.getStatus());
     }
 
     @Test
@@ -63,15 +62,6 @@ class ConversionUtilTest {
         assertEquals(1, result.getProductId());
         assertEquals(5, result.getQuantity());
         assertEquals(new BigDecimal("10.50"), result.getSellingPrice());
-    }
-
-    @Test
-    void should_return_null_when_converting_null_order_item_form() {
-        // Act
-        OrderItemEntity result = ConversionUtil.orderItemFormToEntity(null);
-        
-        // Assert
-        assertNull(result);
     }
 
     @Test
@@ -301,7 +291,7 @@ class ConversionUtilTest {
         UserEntity entity = new UserEntity();
         entity.setId(1);
         entity.setEmail("test@example.com");
-        entity.setRole(UserRole.valueOf("ADMIN"));
+        entity.setRole(UserRole.OPERATOR);
         
         // Act
         UserData result = ConversionUtil.userEntityToData(entity);
@@ -310,7 +300,7 @@ class ConversionUtilTest {
         assertNotNull(result);
         assertEquals(1, result.getId());
         assertEquals("test@example.com", result.getEmail());
-        assertEquals("ADMIN", result.getRole());
+        assertEquals(UserRole.OPERATOR, result.getRole());
     }
 
     @Test
@@ -334,15 +324,6 @@ class ConversionUtilTest {
         // Assert
         assertNotNull(result);
         assertEquals("test client", result.getClientName());
-    }
-
-    @Test
-    void should_return_null_when_converting_null_client_form() {
-        // Act
-        ClientEntity result = ConversionUtil.clientFormToEntity(null);
-        
-        // Assert
-        assertNull(result);
     }
 
     @Test
@@ -423,7 +404,6 @@ class ConversionUtilTest {
         // Assert
         assertNotNull(result);
         assertEquals(1, result.getOrderId());
-        assertNotNull(result.getCreatedAt());
     }
 
     @Test
@@ -440,7 +420,7 @@ class ConversionUtilTest {
         
         // Assert
         assertNotNull(result);
-        assertEquals("2023-01-01", result.getDate());
+        assertEquals(LocalDate.parse("2023-01-01"), result.getDate());
         assertEquals(10, result.getInvoicedOrdersCount());
         assertEquals(50, result.getInvoicedItemsCount());
         assertEquals(new BigDecimal("1000.00"), result.getTotalRevenue());

@@ -161,6 +161,7 @@ class ProductApiTest {
         ProductEntity existingProduct = new ProductEntity();
         existingProduct.setId(1);
         existingProduct.setProductName("old product");
+        existingProduct.setClientId(1); // Set clientId to prevent NPE
 
         ProductEntity updateData = new ProductEntity();
         updateData.setClientId(1);
@@ -184,6 +185,7 @@ class ProductApiTest {
         ProductEntity existingProduct = new ProductEntity();
         existingProduct.setId(1);
         existingProduct.setProductName("old product");
+        existingProduct.setClientId(1); // Set clientId to prevent NPE
 
         ProductEntity updateData = new ProductEntity();
         updateData.setClientId(1);

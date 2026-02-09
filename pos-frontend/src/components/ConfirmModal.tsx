@@ -74,7 +74,7 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]"
+      className="fixed inset-0 bg-black/50 flex items-start justify-center z-[1000] pt-20"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isLoading) {
           onClose();

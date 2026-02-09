@@ -3,6 +3,8 @@ package com.increff.invoice.model.form;
 import lombok.Getter;
 import lombok.Setter;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -11,9 +13,18 @@ import java.util.List;
 @Setter
 public class InvoiceForm {
 
+    @NotBlank(message = "Invoice number cannot be blank")
     private String invoiceNumber;
+    
+    @NotNull(message = "Invoice date cannot be null")
     private ZonedDateTime invoiceDate;
+    
+    @NotBlank(message = "Client name cannot be blank")
     private String clientName;
+    
+    @NotNull(message = "Items list cannot be null")
     private List<InvoiceItemForm> items;
+    
+    @NotNull(message = "Total amount cannot be null")
     private BigDecimal totalAmount;
 }
