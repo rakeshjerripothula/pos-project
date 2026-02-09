@@ -52,7 +52,7 @@ export default function ClientTable({
               <table className="w-full border-collapse">
         <thead>
           <tr className="border-b-2 border-gray-200">
-            <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">ID</th>
+            <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">S. No.</th>
             <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Client Name</th>
             <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Enabled</th>
             {!isUserOperator && (
@@ -61,9 +61,9 @@ export default function ClientTable({
           </tr>
         </thead>
         <tbody>
-          {clients.map((c) => (
+          {clients.map((c, index) => (
             <tr key={c.id} className="border-b border-gray-100">
-              <td className="px-2 py-2.5 text-base">{c.id}</td>
+              <td className="px-2 py-2.5 text-base">{index + 1}</td>
               <td className="px-2 py-2.5">
                 {editingId === c.id ? (
                   <input

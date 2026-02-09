@@ -47,10 +47,10 @@ export default function OrdersPage() {
     }
   }, []);
 
-  // Initial load of orders
+  // Initial load of orders and reload when page changes
   useEffect(() => {
     loadOrders();
-  }, []); // Empty dependency array - only run once on mount
+  }, [page]);
 
   const clientOptions = clients.filter((c) => c.enabled).sort((a, b) => a.clientName.localeCompare(b.clientName))
                         .map((c) => ({value: c.id,label: c.clientName,}));

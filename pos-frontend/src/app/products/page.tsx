@@ -29,12 +29,8 @@ export default function ProductsPage() {
   const [filterBarcode, setFilterBarcode] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  // Track if data is already loaded to prevent duplicate calls
-  const loadedRef = useRef({
-    clients: false,
-    inventory: false,
-    products: false,
-  });
+  // Track if initial data is loaded
+  const initialDataLoaded = useRef(false);
 
   useEffect(() => {
     setIsUserOperator(isOperator());
@@ -42,9 +38,6 @@ export default function ProductsPage() {
 
   // Load clients once
   useEffect(() => {
-    if (loadedRef.current.clients) return;
-    loadedRef.current.clients = true;
-    
     let mounted = true;
     async function loadClients() {
       try {
@@ -64,9 +57,6 @@ export default function ProductsPage() {
 
   // Load inventory once
   useEffect(() => {
-    if (loadedRef.current.inventory) return;
-    loadedRef.current.inventory = true;
-    
     let mounted = true;
     async function loadInventory() {
       try {
@@ -88,12 +78,6 @@ export default function ProductsPage() {
   useEffect(() => {
     let mounted = true;
     
-    // Only skip if already loaded initial data and no search was triggered
-    if (loadedRef.current.products && !searchTriggered) {
-      setLoading(false);
-      return;
-    }
-    
     async function loadProducts() {
       setLoading(true);
       try {
@@ -109,10 +93,7 @@ export default function ProductsPage() {
         if (mounted) {
           setProducts(data.data);
           setTotalElements(data.total);
-          // Mark as loaded only for initial load (page 0, no filters, no trigger)
-          if (page === 0 && !searchTerm && !filterClientId && !filterBarcode && !searchTriggered) {
-            loadedRef.current.products = true;
-          }
+          initialDataLoaded.current = true;
           setSearchTriggered(false); // Reset after search
         }
       } catch (error: any) {
@@ -127,7 +108,7 @@ export default function ProductsPage() {
     }
     loadProducts();
     return () => { mounted = false; };
-  }, [page, searchTriggered]);
+  }, [page, searchTriggered, filterClientId]);
 
   // Create inventory map for quick lookup
   const inventoryMap = useMemo(() => {
@@ -157,8 +138,6 @@ export default function ProductsPage() {
   }) {
     await apiPost("/products", product);
     setPage(0);
-    loadedRef.current.products = false; // Allow reload
-    // Trigger reload
     setLoading(true);
     try {
       const form: ProductSearchForm = {
@@ -171,7 +150,7 @@ export default function ProductsPage() {
       const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
       setProducts(data.data);
       setTotalElements(data.total);
-      loadedRef.current.products = true;
+      initialDataLoaded.current = true;
     } catch (error: any) {
       toast.error("Failed to reload products: " + error.message);
     } finally {
@@ -225,7 +204,6 @@ export default function ProductsPage() {
       const data = await res.json();
       const count = data.length || 0;
       setPage(0);
-      loadedRef.current.products = false; // Allow reload
       setLoading(true);
       try {
         const form: ProductSearchForm = {
@@ -238,7 +216,7 @@ export default function ProductsPage() {
         const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
         setProducts(data.data);
         setTotalElements(data.total);
-        loadedRef.current.products = true;
+        initialDataLoaded.current = true;
       } catch (error: any) {
         toast.error("Failed to reload products: " + error.message);
       } finally {
@@ -370,7 +348,7 @@ export default function ProductsPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">ID</th>
+                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">S. No.</th>
                     <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Image</th>
                     <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Product Name</th>
                     <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Barcode</th>
@@ -390,11 +368,11 @@ export default function ProductsPage() {
                       </td>
                     </tr>
                   ) : (
-                    products.map((p) => {
+                    products.map((p, index) => {
                       const client = clients.find((c) => c.id === p.clientId);
                       return (
                         <tr key={p.id} className="border-b border-gray-100">
-                          <td className="px-2 py-2.5 text-base">{p.id}</td>
+                          <td className="px-2 py-2.5 text-base">{index + 1}</td>
                           <td className="px-2 py-2.5">
                             {p.imageUrl ? (
                               <img
