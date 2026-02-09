@@ -90,7 +90,7 @@ export default function AddProduct({
       className="space-y-3"
     >
       <div>
-        <label className="block mb-1.5 text-xs font-medium text-gray-700">
+        <label className="block mb-1.5 text-sm font-medium text-gray-700">
           Product Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -100,19 +100,19 @@ export default function AddProduct({
             setProductName(e.target.value);
             clearFieldError("productName");
           }}
-          className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+          className={`w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
             getFieldError("productName")
               ? "border-red-500 bg-red-50" 
               : "border-gray-300"
           }`}
         />
         {getFieldError("productName") && (
-          <p className="mt-1 text-xs text-red-600">{getFieldError("productName")}</p>
+          <p className="mt-1 text-sm text-red-600">{getFieldError("productName")}</p>
         )}
       </div>
 
       <div>
-        <label className="block mb-1.5 text-xs font-medium text-gray-700">
+        <label className="block mb-1.5 text-sm font-medium text-gray-700">
           Barcode <span className="text-red-500">*</span>
         </label>
         <input
@@ -122,19 +122,19 @@ export default function AddProduct({
             setBarcode(e.target.value);
             clearFieldError("barcode");
           }}
-          className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+          className={`w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
             getFieldError("barcode")
               ? "border-red-500 bg-red-50" 
               : "border-gray-300"
           }`}
         />
         {getFieldError("barcode") && (
-          <p className="mt-1 text-xs text-red-600">{getFieldError("barcode")}</p>
+          <p className="mt-1 text-sm text-red-600">{getFieldError("barcode")}</p>
         )}
       </div>
 
       <div>
-        <label className="block mb-1.5 text-xs font-medium text-gray-700">
+        <label className="block mb-1.5 text-sm font-medium text-gray-700">
           MRP <span className="text-red-500">*</span>
         </label>
         <input
@@ -145,19 +145,19 @@ export default function AddProduct({
             setMrp(e.target.value);
             clearFieldError("mrp");
           }}
-          className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+          className={`w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
             getFieldError("mrp")
               ? "border-red-500 bg-red-50" 
               : "border-gray-300"
           }`}
         />
         {getFieldError("mrp") && (
-          <p className="mt-1 text-xs text-red-600">{getFieldError("mrp")}</p>
+          <p className="mt-1 text-sm text-red-600">{getFieldError("mrp")}</p>
         )}
       </div>
 
       <div>
-        <label className="block mb-1.5 text-xs font-medium text-gray-700">
+        <label className="block mb-1.5 text-sm font-medium text-gray-700">
           Client <span className="text-red-500">*</span>
         </label>
         <ClientSelect
@@ -172,19 +172,19 @@ export default function AddProduct({
           className={getFieldError("clientId") ? "border-red-500 bg-red-50" : ""}
         />
         {getFieldError("clientId") && (
-          <p className="mt-1 text-xs text-red-600">{getFieldError("clientId")}</p>
+          <p className="mt-1 text-sm text-red-600">{getFieldError("clientId")}</p>
         )}
       </div>
 
       <div>
-        <label className="block mb-1.5 text-xs font-medium text-gray-700">
+        <label className="block mb-1.5 text-sm font-medium text-gray-700">
           Image URL
         </label>
         <input
           placeholder="Image Url"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
     </form>

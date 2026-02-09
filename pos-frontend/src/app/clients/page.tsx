@@ -122,13 +122,13 @@ export default function ClientsPage() {
       <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-slate-800">
+            <h1 className="text-3xl font-bold text-slate-800">
               Clients
             </h1>
             {!isUserOperator && (
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+                className="px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
               >
                 + Add Client
               </button>
@@ -140,9 +140,9 @@ export default function ClientsPage() {
           ) : (
             <div className="p-3 sm:p-4 bg-white rounded-lg shadow-sm">
               {/* Mobile-first: stacked layout, becomes grid on sm+ */}
-              <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-[180px_180px_100px_auto]">
+              <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-[220px_180px_100px_auto]">
                 <div>
-                  <label className="block mb-1.5 text-xs font-medium text-gray-700">
+                  <label className="block mb-1.5 text-sm font-medium text-gray-700">
                     Search Client
                   </label>
                   <input
@@ -155,12 +155,12 @@ export default function ClientsPage() {
                       }
                     }}
                     placeholder="Search by client name..."
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-[42px]"
+                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent h-[42px]"
                   />
                 </div>
 
                 <div>
-                  <label className="block mb-1.5 text-xs font-medium text-gray-700">
+                  <label className="block mb-1.5 text-sm font-medium text-gray-700">
                     Filter by Status
                   </label>
                   <select
@@ -177,7 +177,7 @@ export default function ClientsPage() {
                         value === "" ? null : value === "enabled"
                       );
                     }}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white h-[42px]"
+                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white h-[42px]"
                   >
                     <option value="">All</option>
                     <option value="enabled">Enabled</option>
@@ -188,7 +188,7 @@ export default function ClientsPage() {
                 <div className="flex items-end">
                   <button
                     onClick={handleSearch}
-                    className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
+                    className="w-full px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
                   >
                     Search
                   </button>
@@ -197,7 +197,7 @@ export default function ClientsPage() {
                 <div className="flex items-end">
                   <button
                     onClick={clearFilters}
-                    className="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
+                    className="w-full sm:w-auto px-4 py-2 text-base font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
                   >
                     Clear Filters
                   </button>
@@ -212,14 +212,14 @@ export default function ClientsPage() {
 
               {totalElements > 0 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                  <div className="text-sm text-slate-500">
+                  <div className="text-base text-slate-500">
                     Showing {clients.length} of {totalElements} clients
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPage(Math.max(0, page - 1))}
                       disabled={page === 0}
-                      className={`px-4 py-1.5 text-sm border border-gray-300 rounded-md ${
+                      className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
                         page === 0 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -227,13 +227,13 @@ export default function ClientsPage() {
                     >
                       Previous
                     </button>
-                    <span className="px-3 py-1.5 text-sm text-gray-700">
+                    <span className="px-3 py-1.5 text-base text-gray-700">
                       Page {page + 1} of {totalPages || 1}
                     </span>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= totalPages - 1}
-                      className={`px-4 py-1.5 text-sm border border-gray-300 rounded-md ${
+                      className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
                         page >= totalPages - 1 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"

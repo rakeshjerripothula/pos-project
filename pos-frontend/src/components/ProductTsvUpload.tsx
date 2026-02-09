@@ -80,12 +80,12 @@ export default function ProductTsvUpload({
             </svg>
           </div>
           <div>
-            <span className="text-sm font-medium text-blue-600 hover:text-blue-700">
+            <span className="text-base font-medium text-blue-600 hover:text-blue-700">
               Click to upload
             </span>
-            <span className="text-sm text-gray-500"> or drag and drop</span>
+            <span className="text-base text-gray-500"> or drag and drop</span>
           </div>
-          <span className="text-xs text-gray-400">TSV file only</span>
+          <span className="text-sm text-gray-400">TSV file only</span>
         </div>
       </div>
 

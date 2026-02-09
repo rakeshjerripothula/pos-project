@@ -112,10 +112,10 @@ async function handleSignup(e: React.FormEvent) {
 
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">
+            <h1 className="text-4xl font-bold text-slate-800 mb-2">
               Create account
             </h1>
-<p className="text-base text-slate-500">
+            <p className="text-lg text-slate-500">
               Sign up to get started with PoS System
             </p>
           </div>
@@ -125,7 +125,7 @@ async function handleSignup(e: React.FormEvent) {
             <div className="flex flex-col gap-2">
               <label
                 htmlFor="email"
-                className="text-sm font-medium text-gray-700"
+                className="text-base font-medium text-gray-700"
               >
                 Email
               </label>
@@ -156,20 +156,20 @@ async function handleSignup(e: React.FormEvent) {
 
           {/* Role Info */}
           <div className="mt-6 p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <p className="text-sm text-slate-600">
+            <p className="text-base text-slate-600">
               <strong>Role Assignment:</strong>
             </p>
-            <p className="text-sm text-slate-600 mt-1">
-              Supervisor: <code className="px-2 py-0.5 bg-slate-200 rounded text-xs">admin@pos.com</code>
+            <p className="text-base text-slate-600 mt-1">
+              Supervisor: <code className="px-2 py-0.5 bg-slate-200 rounded text-sm">admin@pos.com</code>
             </p>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-base text-slate-600 mt-1">
               Operator: <em>Any other email</em>
             </p>
           </div>
 
           {/* Sign in link */}
           <div className="mt-5 text-center">
-            <p className="text-sm text-slate-500">
+            <p className="text-base text-slate-500">
               Already have an account?{" "}
               <a
                 href="/login"

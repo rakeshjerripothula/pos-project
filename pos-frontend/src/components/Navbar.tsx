@@ -95,7 +95,7 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 lg:px-4 py-2 rounded-md transition-all duration-200 text-sm font-medium no-underline border-b-2 ${
+                  className={`px-3 lg:px-4 py-2 rounded-md transition-all duration-200 text-base font-medium no-underline border-b-2 ${
                     pathname === item.href
                       ? "border-blue-400 text-white bg-white/10"
                       : "border-transparent text-white hover:bg-white/10"
@@ -111,9 +111,9 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3 lg:gap-4">
             {user ? (
               <>
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-base">
                   <span className="text-slate-400 hidden lg:inline">{user.email}</span>
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  <span className={`px-2 py-0.5 text-sm rounded-full ${
                     user.role === "SUPERVISOR" 
                       ? "bg-emerald-500" 
                       : "bg-blue-500"
@@ -123,7 +123,7 @@ export default function Navbar() {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="px-3 lg:px-4 py-1.5 text-sm text-white transition-colors bg-red-500 border-none rounded-md hover:bg-red-600 cursor-pointer"
+                  className="px-3 lg:px-4 py-1.5 text-base text-white transition-colors bg-red-500 border-none rounded-md hover:bg-red-600 cursor-pointer"
                 >
                   Logout
                 </button>
@@ -131,7 +131,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="px-3 lg:px-4 py-1.5 text-sm font-medium text-white no-underline rounded-md bg-blue-500 hover:bg-blue-600 transition-colors"
+                className="px-3 lg:px-4 py-1.5 text-base font-medium text-white no-underline rounded-md bg-blue-500 hover:bg-blue-600 transition-colors"
               >
                 Sign In
               </Link>
@@ -193,8 +193,8 @@ export default function Navbar() {
               {user ? (
                 <div className="px-4 py-2 flex flex-col gap-2">
                   <div className="flex items-center gap-2 justify-end">
-                    <span className="text-slate-400 text-sm">{user.email}</span>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    <span className="text-slate-400 text-base">{user.email}</span>
+                    <span className={`px-2 py-0.5 text-sm rounded-full ${
                       user.role === "SUPERVISOR" 
                         ? "bg-emerald-500" 
                         : "bg-blue-500"
@@ -204,7 +204,7 @@ export default function Navbar() {
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-sm font-medium text-white transition-colors bg-red-500 border-none rounded-md hover:bg-red-600 cursor-pointer text-right"
+                    className="px-4 py-2 text-base font-medium text-white transition-colors bg-red-500 border-none rounded-md hover:bg-red-600 cursor-pointer text-right"
                   >
                     Logout
                   </button>
@@ -214,7 +214,7 @@ export default function Navbar() {
                   <Link
                     href="/login"
                     onClick={closeMenu}
-                    className="block px-4 py-2 text-sm font-medium text-white no-underline rounded-md bg-blue-500 hover:bg-blue-600 transition-colors text-center"
+                    className="block px-4 py-2 text-base font-medium text-white no-underline rounded-md bg-blue-500 hover:bg-blue-600 transition-colors text-center"
                   >
                     Sign In
                   </Link>

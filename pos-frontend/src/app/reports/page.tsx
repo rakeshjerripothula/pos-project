@@ -245,7 +245,7 @@ export default function ReportsPage() {
             <div className="flex bg-white rounded-lg shadow-sm p-1">
               <button
                 onClick={() => setActiveReport("sales")}
-                className={`px-5 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`px-5 py-2 text-base font-medium rounded-md transition-colors ${
                   activeReport === "sales"
                     ? "bg-blue-500 text-white"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
@@ -255,7 +255,7 @@ export default function ReportsPage() {
               </button>
               <button
                 onClick={() => setActiveReport("daySales")}
-                className={`px-5 py-2 text-sm font-medium rounded-md transition-colors ${
+                className={`px-5 py-2 text-base font-medium rounded-md transition-colors ${
                   activeReport === "daySales"
                     ? "bg-blue-500 text-white"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
@@ -283,7 +283,7 @@ export default function ReportsPage() {
                         setSalesStartDate(e.target.value);
                         setSalesPage(0);
                       }}
-                      className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3.5 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                     />
                   </div>
 
@@ -298,7 +298,7 @@ export default function ReportsPage() {
                         setSalesEndDate(e.target.value);
                         setSalesPage(0);
                       }}
-                      className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3.5 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                     />
                   </div>
 
@@ -347,7 +347,7 @@ export default function ReportsPage() {
                         }}
                       />
                     ) : (
-                      <div className="px-3.5 py-2.5 text-sm text-slate-500 bg-gray-50 border border-gray-300 rounded-lg">
+                      <div className="px-3.5 py-2.5 text-sm text-slate-500 bg-gray-50 border border-gray-300 rounded-lg h-[42px] flex items-center">
                         Loading clients...
                       </div>
                     )}
@@ -360,7 +360,7 @@ export default function ReportsPage() {
                         loadSalesReport();
                       }}
                       disabled={salesLoading}
-                      className={`w-full px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
+                      className={`w-full px-5 py-2.5 text-base font-medium text-white rounded-lg transition-colors h-[42px] ${
                         salesLoading
                           ? "bg-blue-400 cursor-not-allowed"
                           : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
@@ -373,7 +373,7 @@ export default function ReportsPage() {
                   <div className="flex items-end">
                     <button
                       onClick={handleSalesExportCsv}
-                      className="w-full px-5 py-2.5 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 text-base font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-2 h-[42px]"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -400,19 +400,19 @@ export default function ReportsPage() {
                 <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-white rounded-xl shadow-sm">
                   <div className="flex justify-between">
                     <div>
-                      <div className="text-xs text-slate-500">Total Products</div>
+                      <div className="text-sm text-slate-500">Total Products</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
                         {salesData.totalElements}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-500">Total Quantity Sold</div>
+                      <div className="text-sm text-slate-500">Total Quantity Sold</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
                         {salesTotalQuantity}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-slate-500">Total Revenue</div>
+                      <div className="text-sm text-slate-500">Total Revenue</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
                         ₹{salesTotalRevenue.toFixed(2)}
                       </div>
@@ -434,13 +434,13 @@ export default function ReportsPage() {
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="border-b-2 border-gray-200">
-                          <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">
+                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
                             Product Name
                           </th>
-                          <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">
+                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
                             Quantity Sold
                           </th>
-                          <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">
+                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
                             Revenue
                           </th>
                         </tr>
@@ -448,9 +448,9 @@ export default function ReportsPage() {
                       <tbody>
                         {salesData.rows.map((item, idx) => (
                           <tr key={idx} className="border-b border-gray-100">
-                            <td className="px-3 py-3 text-sm">{item.productName}</td>
-                            <td className="px-3 py-3 text-sm">{item.quantitySold}</td>
-                            <td className="px-3 py-3 text-sm">
+                            <td className="px-3 py-3 text-base">{item.productName}</td>
+                            <td className="px-3 py-3 text-base">{item.quantitySold}</td>
+                            <td className="px-3 py-3 text-base">
                               ₹{Number(item.revenue).toFixed(2)}
                             </td>
                           </tr>
@@ -462,14 +462,14 @@ export default function ReportsPage() {
                   {/* Pagination */}
                   {salesData.totalElements > salesPageSize && (
                     <div className="flex items-center justify-between mt-6 p-6 bg-white rounded-xl shadow-sm">
-                      <div className="text-sm text-slate-500">
+                      <div className="text-base text-slate-500">
                         Showing {salesData.rows.length} of {salesData.totalElements} products
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setSalesPage(Math.max(0, salesPage - 1))}
                           disabled={salesPage === 0}
-                          className={`px-4 py-2 text-sm border border-gray-300 rounded-lg ${
+                          className={`px-4 py-2 text-base border border-gray-300 rounded-lg ${
                             salesPage === 0
                               ? "bg-white text-gray-400 cursor-not-allowed opacity-50"
                               : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -477,14 +477,14 @@ export default function ReportsPage() {
                         >
                           Previous
                         </button>
-                        <span className="px-4 py-2 text-sm text-gray-700">
+                        <span className="px-4 py-2 text-base text-gray-700">
                           Page {salesPage + 1} of{" "}
                           {Math.ceil(salesData.totalElements / salesPageSize)}
                         </span>
                         <button
                           onClick={() => setSalesPage(salesPage + 1)}
                           disabled={(salesPage + 1) * salesPageSize >= salesData.totalElements}
-                          className={`px-4 py-2 text-sm border border-gray-300 rounded-lg ${
+                          className={`px-4 py-2 text-base border border-gray-300 rounded-lg ${
                             (salesPage + 1) * salesPageSize >= salesData.totalElements
                               ? "bg-white text-gray-400 cursor-not-allowed opacity-50"
                               : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -517,7 +517,7 @@ export default function ReportsPage() {
                         setDaySalesStartDate(e.target.value);
                         setDaySalesPage(0);
                       }}
-                      className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3.5 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                     />
                   </div>
 
@@ -532,7 +532,7 @@ export default function ReportsPage() {
                         setDaySalesEndDate(e.target.value);
                         setDaySalesPage(0);
                       }}
-                      className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3.5 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                     />
                   </div>
 
@@ -543,7 +543,7 @@ export default function ReportsPage() {
                         loadDaySalesReport();
                       }}
                       disabled={daySalesLoading}
-                      className={`w-full px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
+                      className={`w-full px-5 py-2.5 text-base font-medium text-white rounded-lg transition-colors h-[42px] ${
                         daySalesLoading
                           ? "bg-blue-400 cursor-not-allowed"
                           : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
@@ -556,7 +556,7 @@ export default function ReportsPage() {
                   <div className="flex items-end">
                     <button
                       onClick={handleDaySalesExportCsv}
-                      className="w-full px-5 py-2.5 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-2"
+                      className="w-full px-4 py-2.5 text-base font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-2 h-[42px]"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -583,31 +583,31 @@ export default function ReportsPage() {
                 <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-white rounded-xl shadow-sm">
                   <div className="flex justify-between">
                     <div>
-                      <div className="text-xs text-slate-500">Total Days</div>
+                      <div className="text-sm text-slate-500">Total Days</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
                         {daySalesData.totalElements}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-500">Total Orders</div>
+                      <div className="text-sm text-slate-500">Total Orders</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
                         {daySalesTotalOrders}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-500">Total Items Sold</div>
+                      <div className="text-sm text-slate-500">Total Items Sold</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
                         {daySalesTotalItems}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs text-slate-500">Total Revenue</div>
+                      <div className="text-sm text-slate-500">Total Revenue</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
                         ₹{daySalesTotalRevenue.toFixed(2)}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-slate-500">Avg Daily Revenue</div>
+                      <div className="text-sm text-slate-500">Avg Daily Revenue</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
                         ₹{daySalesAvgDailyRevenue.toFixed(2)}
                       </div>
@@ -629,19 +629,19 @@ export default function ReportsPage() {
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="border-b-2 border-gray-200">
-                          <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">
+                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
                             Date
                           </th>
-                          <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">
+                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
                             Orders
                           </th>
-                          <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">
+                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
                             Items Sold
                           </th>
-                          <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">
+                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
                             Revenue
                           </th>
-                          <th className="px-3 py-3 text-sm font-semibold text-left text-gray-700">
+                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
                             Avg Order Value
                           </th>
                         </tr>
@@ -654,7 +654,7 @@ export default function ReportsPage() {
                               : 0;
                           return (
                             <tr key={idx} className="border-b border-gray-100">
-                              <td className="px-3 py-3 text-sm">
+                              <td className="px-3 py-3 text-base">
                                 {daySalesMounted
                                   ? new Date(item.date).toLocaleDateString("en-IN", {
                                       year: "numeric",
@@ -663,16 +663,16 @@ export default function ReportsPage() {
                                     })
                                   : ""}
                               </td>
-                              <td className="px-3 py-3 text-sm">
+                              <td className="px-3 py-3 text-base">
                                 {item.invoicedOrdersCount}
                               </td>
-                              <td className="px-3 py-3 text-sm">
+                              <td className="px-3 py-3 text-base">
                                 {item.invoicedItemsCount}
                               </td>
-                              <td className="px-3 py-3 text-sm">
+                              <td className="px-3 py-3 text-base">
                                 ₹{Number(item.totalRevenue).toFixed(2)}
                               </td>
-                              <td className="px-3 py-3 text-sm">
+                              <td className="px-3 py-3 text-base">
                                 ₹{avgOrderValue.toFixed(2)}
                               </td>
                             </tr>
@@ -685,7 +685,7 @@ export default function ReportsPage() {
                   {/* Pagination */}
                   {daySalesData.totalElements > daySalesPageSize && (
                     <div className="flex items-center justify-between mt-6 p-6 bg-white rounded-xl shadow-sm">
-                      <div className="text-sm text-slate-500">
+                      <div className="text-base text-slate-500">
                         Showing {daySalesData.content.length} of{" "}
                         {daySalesData.totalElements} days
                       </div>
@@ -695,7 +695,7 @@ export default function ReportsPage() {
                             setDaySalesPage(Math.max(0, daySalesPage - 1))
                           }
                           disabled={daySalesPage === 0}
-                          className={`px-4 py-2 text-sm border border-gray-300 rounded-lg ${
+                          className={`px-4 py-2 text-base border border-gray-300 rounded-lg ${
                             daySalesPage === 0
                               ? "bg-white text-gray-400 cursor-not-allowed opacity-50"
                               : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -703,7 +703,7 @@ export default function ReportsPage() {
                         >
                           Previous
                         </button>
-                        <span className="px-4 py-2 text-sm text-gray-700">
+                        <span className="px-4 py-2 text-base text-gray-700">
                           Page {daySalesPage + 1} of{" "}
                           {Math.ceil(daySalesData.totalElements / daySalesPageSize)}
                         </span>
@@ -713,7 +713,7 @@ export default function ReportsPage() {
                             (daySalesPage + 1) * daySalesPageSize >=
                             daySalesData.totalElements
                           }
-                          className={`px-4 py-2 text-sm border border-gray-300 rounded-lg ${
+                          className={`px-4 py-2 text-base border border-gray-300 rounded-lg ${
                             (daySalesPage + 1) * daySalesPageSize >=
                             daySalesData.totalElements
                               ? "bg-white text-gray-400 cursor-not-allowed opacity-50"

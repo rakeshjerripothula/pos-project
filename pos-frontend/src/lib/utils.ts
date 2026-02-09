@@ -5,9 +5,7 @@
 export function utcToIst(utcString: string): string {
   const date = new Date(utcString);
   
-  // IST is UTC+5:30
-  const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
-  const istDate = new Date(date.getTime() + istOffset);
+  const istDate = new Date(date.getTime());
   
   return istDate.toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",

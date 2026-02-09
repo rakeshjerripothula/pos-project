@@ -106,14 +106,14 @@ export default function CreateOrderForm({
   return (
     <div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+<table className="w-full border-collapse">
           <thead>
             <tr className="border-b-2 border-gray-200">
-              <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Barcode</th>
-              <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Quantity</th>
-              <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Selling Price</th>
+              <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Barcode</th>
+              <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Quantity</th>
+              <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Selling Price</th>
               {items.length > 1 && (
-                <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700 w-16">Action</th>
+                <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700 w-16">Action</th>
               )}
             </tr>
           </thead>
@@ -126,7 +126,7 @@ export default function CreateOrderForm({
                     onChange={(e) =>
                       updateItem(i, "barcode", e.target.value)
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter barcode..."
                   />
                 </td>
@@ -138,7 +138,7 @@ export default function CreateOrderForm({
                     onChange={(e) =>
                       updateItem(i, "quantity", Number(e.target.value))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </td>
                 <td className="px-2 py-2.5">
@@ -149,14 +149,14 @@ export default function CreateOrderForm({
                     onChange={(e) =>
                       updateItem(i, "sellingPrice", Number(e.target.value))
                     }
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </td>
                 <td className="px-2 py-2.5">
                   {items.length > 1 && (
                     <button
                       onClick={() => removeRow(i)}
-                      className="px-3 py-1.5 text-xs text-white transition-colors bg-red-500 rounded-md hover:bg-red-600 cursor-pointer"
+                      className="px-3 py-1.5 text-sm text-white transition-colors bg-red-500 rounded-md hover:bg-red-600 cursor-pointer"
                     >
                       Remove
                     </button>
@@ -171,14 +171,14 @@ export default function CreateOrderForm({
       <div className="mt-4 flex justify-between items-center">
         <button
           onClick={addRow}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+          className="px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
         >
           + Add Item
         </button>
         <button
           onClick={submit}
           disabled={loading}
-          className={`px-4 py-2 text-sm font-medium text-white rounded-md transition-colors ${
+          className={`px-4 py-2 text-base font-medium text-white rounded-md transition-colors ${
             loading 
               ? "bg-gray-400 cursor-not-allowed opacity-60" 
               : "bg-blue-500 hover:bg-blue-600 cursor-pointer"

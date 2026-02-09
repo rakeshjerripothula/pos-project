@@ -93,7 +93,7 @@ export default function ConfirmModal({
         <div className="flex items-center justify-between p-5 border-b border-gray-200">
           <h3
             id="modal-title"
-            className="text-lg font-semibold text-slate-800"
+            className="text-xl font-semibold text-slate-800"
           >
             {title}
           </h3>
@@ -109,7 +109,7 @@ export default function ConfirmModal({
 
         {/* Body */}
         <div className="p-5">
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className="text-base text-slate-600 leading-relaxed">
             {message}
           </p>
         </div>
@@ -119,7 +119,7 @@ export default function ConfirmModal({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+            className={`px-4 py-2 text-base font-medium rounded-md transition-colors ${
               isLoading
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300 cursor-pointer"
@@ -130,7 +130,7 @@ export default function ConfirmModal({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`px-4 py-2.5 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+            className={`px-4 py-2.5 text-base font-medium text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
               isLoading
                 ? "bg-gray-400 cursor-not-allowed"
                 : `${getConfirmButtonClass()} cursor-pointer focus:ring-offset-2`

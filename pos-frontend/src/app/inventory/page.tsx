@@ -224,13 +224,13 @@ export default function InventoryPage() {
       <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-slate-800">
+            <h1 className="text-3xl font-bold text-slate-800">
               Inventory
             </h1>
             {!isUserOperator && (
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+                className="px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
               >
                 + Add Inventory
               </button>
@@ -241,7 +241,7 @@ export default function InventoryPage() {
             {/* Mobile-first: stacked layout, becomes grid on sm+ */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_120px] lg:grid-cols-[200px_200px_120px]">
               <div>
-                <label className="block mb-1.5 text-xs font-medium text-gray-700">
+                <label className="block mb-1.5 text-sm font-medium text-gray-700">
                   Search Product Name
                 </label>
                 <input
@@ -249,12 +249,12 @@ export default function InventoryPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search products..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
+                  className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
               <div>
-                <label className="block mb-1.5 text-xs font-medium text-gray-700">
+                <label className="block mb-1.5 text-sm font-medium text-gray-700">
                   Search by Barcode
                 </label>
                 <input
@@ -262,7 +262,7 @@ export default function InventoryPage() {
                   value={filterBarcode}
                   onChange={(e) => setFilterBarcode(e.target.value)}
                   placeholder="Enter barcode..."
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
+                  className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
@@ -272,13 +272,13 @@ export default function InventoryPage() {
                     setPage(0);
                     setSearchTriggered(true);
                   }}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
+                  className="flex-1 px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
                 >
                   Search
                 </button>
                 <button
                   onClick={clearFilters}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
+                  className="flex-1 px-4 py-2 text-base font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
                 >
                   Clear
                 </button>
@@ -293,12 +293,12 @@ export default function InventoryPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Product ID</th>
-                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Product Name</th>
-                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Barcode</th>
-                    <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Available Quantity</th>
+                    <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Product ID</th>
+                    <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Product Name</th>
+                    <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Barcode</th>
+                    <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Available Quantity</th>
                     {!isUserOperator && (
-                      <th className="px-2 py-2.5 text-xs font-semibold text-left text-gray-700">Actions</th>
+                      <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -312,10 +312,10 @@ export default function InventoryPage() {
                   ) : (
                     inventory.map((i) => (
                       <tr key={i.productId} className="border-b border-gray-100">
-                        <td className="px-2 py-2.5 text-sm">{i.productId}</td>
-                        <td className="px-2 py-2.5 text-sm">{i.productName}</td>
-                        <td className="px-2 py-2.5 text-sm">{barcodeMap.get(i.productId) || '-'}</td>
-                        <td className="px-2 py-2.5 text-sm">{i.quantity}</td>
+                        <td className="px-2 py-2.5 text-base">{i.productId}</td>
+                        <td className="px-2 py-2.5 text-base">{i.productName}</td>
+                        <td className="px-2 py-2.5 text-base">{barcodeMap.get(i.productId) || '-'}</td>
+                        <td className="px-2 py-2.5 text-base">{i.quantity}</td>
                         {!isUserOperator && (
                           <td className="px-2 py-2.5">
                             <UpdateInventory
@@ -333,14 +333,14 @@ export default function InventoryPage() {
 
               {totalElements > 0 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                  <div className="text-sm text-slate-500">
+                  <div className="text-base text-slate-500">
                     Showing {inventory.length} of {totalElements} inventory items
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPage(Math.max(0, page - 1))}
                       disabled={page === 0}
-                      className={`px-4 py-1.5 text-sm border border-gray-300 rounded-md ${
+                      className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
                         page === 0 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -348,13 +348,13 @@ export default function InventoryPage() {
                     >
                       Previous
                     </button>
-                    <span className="px-3 py-1.5 text-sm text-gray-700">
+                    <span className="px-3 py-1.5 text-base text-gray-700">
                       Page {page + 1} of {totalPages || 1}
                     </span>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= totalPages - 1}
-                      className={`px-4 py-1.5 text-sm border border-gray-300 rounded-md ${
+                      className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
                         page >= totalPages - 1 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"

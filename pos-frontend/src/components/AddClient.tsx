@@ -40,12 +40,12 @@ export default function AddClient({
             submit();
           }
         }}
-        className="flex-1 px-4 py-2 text-sm transition-all border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="flex-1 px-4 py-2 text-base transition-all border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       <button
         onClick={submit}
         disabled={loading}
-        className={`px-5 py-2 text-sm font-medium text-white rounded-md transition-all whitespace-nowrap ${
+        className={`px-5 py-2 text-base font-medium text-white rounded-md transition-all whitespace-nowrap ${
           loading 
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-blue-500 hover:bg-blue-600 cursor-pointer"

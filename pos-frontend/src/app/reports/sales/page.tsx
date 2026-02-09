@@ -217,6 +217,10 @@ export default function SalesReportPage() {
                         minHeight: "42px",
                         backgroundColor: "white",
                       }),
+                      placeholder: (base) => ({
+                        ...base,
+                        fontSize: "16px",
+                      }),
                       menuPortal: (base: any) => ({ ...base, zIndex: 9999 }),
                       menu: (base) => ({
                         ...base,

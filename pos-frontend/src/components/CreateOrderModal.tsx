@@ -67,7 +67,7 @@ export default function CreateOrderModal({ isOpen, onClose, onSuccess }: CreateO
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-800">Create Order</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Create Order</h2>
           <button
             onClick={onClose}
             className="text-2xl bg-transparent border-none cursor-pointer hover:text-gray-600 text-gray-500"

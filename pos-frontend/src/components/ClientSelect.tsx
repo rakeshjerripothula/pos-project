@@ -72,7 +72,7 @@ export default function ClientSelect({
           }),
           placeholder: (base) => ({
             ...base,
-            fontSize: "14px",
+            fontSize: "16px",
           }),
           menuPortal: (base) => ({
             ...base,

@@ -102,7 +102,7 @@ export default function EditProductModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">Edit Product</h2>
+          <h2 className="text-2xl font-bold">Edit Product</h2>
           <button
             onClick={onClose}
             className="text-2xl bg-transparent border-none cursor-pointer hover:text-gray-600"
@@ -113,7 +113,7 @@ export default function EditProductModal({
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block mb-1 text-sm font-medium text-gray-700">
+            <label className="block mb-1 text-base font-medium text-gray-700">
               Product Name *
             </label>
             <input
@@ -125,7 +125,7 @@ export default function EditProductModal({
               }}
               required
               disabled={loading}
-              className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 getFieldError("productName") 
                   ? "border-red-500 bg-red-50" 
                   : "border-gray-300"
@@ -137,7 +137,7 @@ export default function EditProductModal({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-sm font-medium text-gray-700">
+            <label className="block mb-1 text-base font-medium text-gray-700">
               Barcode *
             </label>
             <input
@@ -149,7 +149,7 @@ export default function EditProductModal({
               }}
               required
               disabled={loading}
-              className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 getFieldError("barcode") 
                   ? "border-red-500 bg-red-50" 
                   : "border-gray-300"
@@ -161,7 +161,7 @@ export default function EditProductModal({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-sm font-medium text-gray-700">
+            <label className="block mb-1 text-base font-medium text-gray-700">
               MRP *
             </label>
             <input
@@ -175,7 +175,7 @@ export default function EditProductModal({
               }}
               required
               disabled={loading}
-              className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 getFieldError("mrp") 
                   ? "border-red-500 bg-red-50" 
                   : "border-gray-300"
@@ -187,7 +187,7 @@ export default function EditProductModal({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-sm font-medium text-gray-700">
+            <label className="block mb-1 text-base font-medium text-gray-700">
               Client *
             </label>
             <select
@@ -198,7 +198,7 @@ export default function EditProductModal({
               }}
               required
               disabled={loading}
-              className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${
+              className={`w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white ${
                 getFieldError("clientId") 
                   ? "border-red-500 bg-red-50" 
                   : "border-gray-300"
@@ -218,7 +218,7 @@ export default function EditProductModal({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-sm font-medium text-gray-700">
+            <label className="block mb-1 text-base font-medium text-gray-700">
               Image URL
             </label>
             <input
@@ -227,7 +227,7 @@ export default function EditProductModal({
               onChange={(e) => setImageUrl(e.target.value)}
               disabled={loading}
               placeholder="https://example.com/image.jpg"
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {imageUrl && (
               <img
@@ -243,7 +243,7 @@ export default function EditProductModal({
 
           {onUpdateInventory && (
             <div className="mb-4">
-              <label className="block mb-1 text-sm font-medium text-gray-700">
+              <label className="block mb-1 text-base font-medium text-gray-700">
                 Inventory Quantity *
               </label>
               <input
@@ -253,7 +253,7 @@ export default function EditProductModal({
                 onChange={(e) => setInventoryQty(e.target.value)}
                 required
                 disabled={loading}
-                className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   getFieldError("quantity") 
                     ? "border-red-500 bg-red-50" 
                     : "border-gray-300"
@@ -270,7 +270,7 @@ export default function EditProductModal({
               type="button"
               onClick={onClose}
               disabled={loading}
-              className={`px-4 py-2 text-sm text-white rounded-md transition-colors ${
+              className={`px-4 py-2 text-base text-white rounded-md transition-colors ${
                 loading 
                   ? "bg-gray-400 cursor-not-allowed" 
                   : "bg-gray-500 hover:bg-gray-600 cursor-pointer"
@@ -281,7 +281,7 @@ export default function EditProductModal({
             <button
               type="submit"
               disabled={loading}
-              className={`px-4 py-2 text-sm text-white rounded-md transition-colors ${
+              className={`px-4 py-2 text-base text-white rounded-md transition-colors ${
                 loading 
                   ? "bg-gray-400 cursor-not-allowed" 
                   : "bg-blue-500 hover:bg-blue-600 cursor-pointer"

@@ -51,7 +51,7 @@ export default function AddInventory({
     <form onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_140px] items-end max-w-2xl">
         <div>
-          <label className="block mb-1.5 text-xs font-medium text-gray-700">
+          <label className="block mb-1.5 text-sm font-medium text-gray-700">
             Product
           </label>
           <ProductSelect
@@ -64,7 +64,7 @@ export default function AddInventory({
         </div>
 
         <div>
-          <label className="block mb-1.5 text-xs font-medium text-gray-700">
+          <label className="block mb-1.5 text-sm font-medium text-gray-700">
             Quantity
           </label>
           <input
@@ -73,7 +73,7 @@ export default function AddInventory({
             placeholder="Qty"
             value={quantity}
             onChange={(e) => handleQuantityChange(e.target.value)}
-            className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2.5 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
       </div>

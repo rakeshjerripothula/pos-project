@@ -70,7 +70,7 @@ export default function AddProductModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">Add Product</h2>
+          <h2 className="text-2xl font-bold">Add Product</h2>
           <button
             onClick={onClose}
             className="text-2xl bg-transparent border-none cursor-pointer hover:text-gray-600"
@@ -83,7 +83,7 @@ export default function AddProductModal({
         <div className="flex border-b border-gray-200 mb-6">
           <button
             onClick={() => setActiveTab("form")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-base font-medium border-b-2 transition-colors cursor-pointer ${
               activeTab === "form"
                 ? "border-blue-500 text-blue-600"
                 : "border-transparent text-gray-500 hover:text-gray-700"
@@ -93,7 +93,7 @@ export default function AddProductModal({
           </button>
           <button
             onClick={() => setActiveTab("tsv")}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-base font-medium border-b-2 transition-colors cursor-pointer ${
               activeTab === "tsv"
                 ? "border-blue-500 text-blue-600"
                 : "border-transparent text-gray-500 hover:text-gray-700"
@@ -117,7 +117,7 @@ export default function AddProductModal({
         <div className="flex gap-2 justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
+            className="px-4 py-2 text-base text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -130,7 +130,7 @@ export default function AddProductModal({
                   form.dispatchEvent(submitEvent);
                 }
               }}
-              className="px-4 py-2 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+              className="px-4 py-2 text-base text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
             >
               Add Product
             </button>
@@ -138,7 +138,7 @@ export default function AddProductModal({
           {activeTab === "tsv" && (
             <button
               onClick={handleTsvUpload}
-              className="px-4 py-2 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+              className="px-4 py-2 text-base text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
             >
               Add
             </button>
