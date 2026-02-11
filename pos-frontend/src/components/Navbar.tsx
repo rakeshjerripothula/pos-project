@@ -91,13 +91,11 @@ export default function Navbar() {
           <div className="flex items-center gap-6 md:gap-10">
             <Link
               href="/orders"
-              className="no-underline flex items-center gap-3"
+              className="no-underline flex items-center"
             >
-              <img 
-                src="/logo3.png" 
-                alt="PoS System Logo" 
-                className="h-10 md:h-14 w-auto"
-              />
+              <span className="text-xl md:text-2xl font-bold text-white tracking-wide">
+                PoS System
+              </span>
             </Link>
             
             {/* Desktop Navigation Links - Hidden on mobile */}

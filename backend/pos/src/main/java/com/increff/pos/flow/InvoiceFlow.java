@@ -30,7 +30,7 @@ import static com.increff.pos.util.ConversionUtil.orderItemEntityToInvoiceItemFo
 public class InvoiceFlow {
 
     @Autowired
-    private OrderApi orderApi;
+    private OrderFlow orderFlow;
 
     @Autowired
     private OrderItemApi orderItemApi;
@@ -49,7 +49,7 @@ public class InvoiceFlow {
             throw new ApiException(ApiStatus.ORDER_ALREADY_INVOICED, "Invoice already generated for order " + orderId);
         }
 
-        OrderEntity order = orderApi.getById(orderId);
+        OrderEntity order = orderFlow.getById(orderId);
 
         List<OrderItemEntity> orderItems = orderItemApi.getByOrderId(orderId);
 
@@ -66,7 +66,7 @@ public class InvoiceFlow {
         InvoiceEntity invoiceEntity = invoiceApi.create(invoice);
 
         order.setStatus(OrderStatus.INVOICED);
-        orderApi.update(order);
+        orderFlow.update(order);
 
         return invoiceEntity;
     }

@@ -89,7 +89,7 @@ class OrderFlowTest {
         when(clientApi.isClientEnabled(1)).thenReturn(true);
         when(orderApi.create(any(OrderEntity.class))).thenReturn(order);
         
-        when(inventoryFlow.validateAndGetInventories(any())).thenReturn(List.of(inventory1, inventory2));
+        when(inventoryFlow.getInventoriesByProductIds(any())).thenReturn(List.of(inventory1, inventory2));
 
         // Act
         OrderEntity result = orderFlow.createOrder(items);
@@ -100,7 +100,7 @@ class OrderFlowTest {
         assertEquals(OrderStatus.CREATED, result.getStatus());
         verify(productApi, times(3)).getByIds(List.of(1, 2));
         verify(clientApi).isClientEnabled(1);
-        verify(inventoryFlow).validateAndGetInventories(any());
+        verify(inventoryFlow).getInventoriesByProductIds(any());
         verify(inventoryApi).bulkUpsert(anyList());
         verify(orderApi).create(any(OrderEntity.class));
         verify(orderItemApi).createAll(anyList());
@@ -252,7 +252,7 @@ class OrderFlowTest {
         order.setId(1);
         when(orderApi.create(any(OrderEntity.class))).thenReturn(order);
         
-        when(inventoryFlow.validateAndGetInventories(any())).thenReturn(List.of(inventory));
+        when(inventoryFlow.getInventoriesByProductIds(any())).thenReturn(List.of(inventory));
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderFlow.createOrder(List.of(item)));
@@ -362,7 +362,7 @@ class OrderFlowTest {
         when(orderItemApi.getByOrderId(1)).thenReturn(List.of(item));
         when(orderApi.update(order)).thenReturn(order);
         
-        when(inventoryFlow.validateAndGetInventories(any())).thenReturn(List.of(inventory));
+        when(inventoryFlow.getInventoriesByProductIds(any())).thenReturn(List.of(inventory));
 
         // Act
         OrderEntity result = orderFlow.cancelOrder(1);
@@ -419,7 +419,7 @@ class OrderFlowTest {
         when(orderApi.getById(1)).thenReturn(order);
         when(orderItemApi.getByOrderId(1)).thenReturn(List.of(item));
         
-        when(inventoryFlow.validateAndGetInventories(any())).thenThrow(
+        when(inventoryFlow.getInventoriesByProductIds(any())).thenThrow(
             new ApiException(ApiStatus.NOT_FOUND, "Inventory not found for product: Product 1", "productId", "Inventory not found for product: Product 1")
         );
 
@@ -474,7 +474,7 @@ class OrderFlowTest {
         when(clientApi.isClientEnabled(1)).thenReturn(true);
         when(orderApi.create(any(OrderEntity.class))).thenReturn(order);
         
-        when(inventoryFlow.validateAndGetInventories(any())).thenReturn(List.of(inventory1, inventory2));
+        when(inventoryFlow.getInventoriesByProductIds(any())).thenReturn(List.of(inventory1, inventory2));
 
         // Act
         OrderEntity result = orderFlow.createOrder(items);
@@ -522,7 +522,7 @@ class OrderFlowTest {
         when(clientApi.isClientEnabled(1)).thenReturn(true);
         when(orderApi.create(any(OrderEntity.class))).thenReturn(order);
         
-        when(inventoryFlow.validateAndGetInventories(any())).thenReturn(List.of(inventory));
+        when(inventoryFlow.getInventoriesByProductIds(any())).thenReturn(List.of(inventory));
 
         // Act
         OrderEntity result = orderFlow.createOrder(items);
@@ -532,7 +532,7 @@ class OrderFlowTest {
         assertEquals(7, inventory.getQuantity()); // 10 - (2 + 1)
         verify(productApi, times(3)).getByIds(List.of(1)); // Should be called with distinct product IDs
         verify(clientApi).isClientEnabled(1);
-        verify(inventoryFlow).validateAndGetInventories(any());
+        verify(inventoryFlow).getInventoriesByProductIds(any());
         verify(inventoryApi).bulkUpsert(anyList());
         verify(orderApi).create(any(OrderEntity.class));
         verify(orderItemApi).createAll(anyList());

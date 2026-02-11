@@ -89,42 +89,6 @@ class OrderDtoTest {
     }
 
     @Test
-    void getById_validId_success() {
-        // Arrange
-        Integer orderId = 1;
-        com.increff.pos.entity.OrderEntity order = createOrderEntity(orderId, OrderStatus.CREATED);
-        com.increff.pos.entity.OrderItemEntity orderItem = createOrderItemEntity(1, 1, 2, new BigDecimal("10.99"));
-        com.increff.pos.entity.ProductEntity product = createProductEntity(1, "Test Product", new BigDecimal("15.99"));
-        
-        when(orderFlow.getById(orderId)).thenReturn(order);
-        when(orderItemApi.getByOrderId(orderId)).thenReturn(Arrays.asList(orderItem));
-        when(productApi.getByIds(Arrays.asList(1))).thenReturn(Arrays.asList(product));
-
-        // Act
-        OrderData result = orderDto.getById(orderId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(orderId, result.getOrderId());
-        assertEquals(OrderStatus.CREATED, result.getStatus());
-        assertNotNull(result.getItems());
-        assertEquals(1, result.getItems().size());
-        assertEquals("Test Product", result.getItems().get(0).getProductName());
-        verify(orderFlow, times(1)).getById(orderId);
-        verify(orderItemApi, times(1)).getByOrderId(orderId);
-        verify(productApi, times(1)).getByIds(Arrays.asList(1));
-    }
-
-    @Test
-    void getById_invalidId_throwsException() {
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> orderDto.getById(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
-        assertTrue(exception.getMessage().contains("Order ID is required"));
-        verify(orderFlow, never()).getById(any());
-    }
-
-    @Test
     void cancel_validId_success() {
         // Arrange
         Integer orderId = 1;

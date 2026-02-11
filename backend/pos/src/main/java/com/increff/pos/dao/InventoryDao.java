@@ -6,9 +6,11 @@ import com.increff.pos.entity.ProductEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -21,6 +23,9 @@ public class InventoryDao {
 
     @PersistenceContext
     private EntityManager em;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     public List<InventoryEntity> findAllForEnabledClients() {
         CriteriaBuilder cb = em.getCriteriaBuilder();

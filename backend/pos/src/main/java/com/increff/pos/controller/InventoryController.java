@@ -64,7 +64,7 @@ public class InventoryController {
 
             return ResponseEntity.ok(result.getData());
         } catch (ApiException e) {
-            // Convert ApiException to TSV error file
+
             List<TsvUploadError> errors = Collections.singletonList(
                     new TsvUploadError(null, null, e.getMessage())
             );

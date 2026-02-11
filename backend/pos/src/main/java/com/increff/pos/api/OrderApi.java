@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import java.time.ZonedDateTime;
 
 @Service
-@Transactional
 public class OrderApi {
 
     @Autowired
@@ -35,13 +34,9 @@ public class OrderApi {
 
     public OrderEntity getById(Integer orderId) {
         return orderDao.findById(orderId)
-                .orElseThrow(() ->
-                        new ApiException(
-                                ApiStatus.NOT_FOUND,
-                                "Order not found",
-                                "orderId",
-                                "Order not found: " + orderId
-                        ));
+                .orElseThrow(() -> new ApiException(
+                                    ApiStatus.NOT_FOUND, "Order not found", "orderId", "Order not found: " + orderId
+                                ));
     }
 
     public OrderEntity update(OrderEntity order) {

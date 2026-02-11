@@ -7,18 +7,14 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Repository
-@Transactional
 public class OrderItemDao {
 
     @PersistenceContext
     private EntityManager em;
-
-    // ---------- Save All ----------
 
     public void saveAll(List<OrderItemEntity> items) {
         for (OrderItemEntity item : items) {
@@ -26,19 +22,14 @@ public class OrderItemDao {
         }
     }
 
-    // ---------- Find by Order ID ----------
-
     public List<OrderItemEntity> findByOrderId(Integer orderId) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<OrderItemEntity> cq =
-                cb.createQuery(OrderItemEntity.class);
+        CriteriaQuery<OrderItemEntity> cq = cb.createQuery(OrderItemEntity.class);
 
-        Root<OrderItemEntity> root =
-                cq.from(OrderItemEntity.class);
+        Root<OrderItemEntity> root = cq.from(OrderItemEntity.class);
 
-        cq.select(root)
-                .where(cb.equal(root.get("orderId"), orderId));
+        cq.select(root).where(cb.equal(root.get("orderId"), orderId));
 
         return em.createQuery(cq).getResultList();
     }

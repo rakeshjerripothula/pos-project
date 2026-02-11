@@ -34,11 +34,6 @@ public class ProductController {
         return productDto.getAll();
     }
 
-    @GetMapping("/{id}")
-    public ProductData getById(@PathVariable Integer id) {
-        return productDto.getById(id);
-    }
-
     @PostMapping
     public ProductData add(@RequestBody @Valid ProductForm productForm) {
         return productDto.createProduct(productForm);
@@ -50,52 +45,12 @@ public class ProductController {
     }
 
     @PostMapping("/upload/tsv")
-    public ResponseEntity<byte[]> uploadProductTsv(@RequestParam("file") MultipartFile file) throws IOException {
-
-        try {
-            TsvUploadResult<ProductData> result = productDto.uploadProductsTsv(file);
-
-            if (!result.isSuccess()) {
-                byte[] errorData = TsvErrorExportUtil.exportErrorsToTsv(result.getErrors(), "products");
-                String filename = TsvErrorExportUtil.generateErrorFilename("products");
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-                headers.setContentDispositionFormData("attachment", filename);
-                headers.setContentLength(errorData.length);
-
-                return new ResponseEntity<>(errorData, headers, HttpStatus.BAD_REQUEST);
-            }
-
-            return ResponseEntity.ok().build();
-        } catch (ApiException e) {
-            // Convert ApiException to TSV error file
-            List<TsvUploadError> errors = Collections.singletonList(
-                    new TsvUploadError(null, null, e.getMessage())
-            );
-            byte[] errorData = TsvErrorExportUtil.exportErrorsToTsv(errors, "products");
-            String filename = TsvErrorExportUtil.generateErrorFilename("products");
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment", filename);
-            headers.setContentLength(errorData.length);
-
-            HttpStatus httpStatus = switch (e.getStatus()) {
-                case CONFLICT -> HttpStatus.CONFLICT;
-                case FORBIDDEN -> HttpStatus.FORBIDDEN;
-                case NOT_FOUND -> HttpStatus.NOT_FOUND;
-                case BAD_DATA, BAD_REQUEST -> HttpStatus.BAD_REQUEST;
-                default -> HttpStatus.BAD_REQUEST;
-            };
-
-            return new ResponseEntity<>(errorData, headers, httpStatus);
-        }
+    public void uploadProductTsv(@RequestParam("file") MultipartFile file) {
+        productDto.uploadProductsTsv(file);
     }
 
     @PutMapping("/{id}")
     public ProductData update(@PathVariable Integer id, @Valid @RequestBody ProductForm productForm) {
-
         return productDto.updateProduct(id, productForm);
     }
 

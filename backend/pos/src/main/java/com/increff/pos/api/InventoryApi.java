@@ -48,32 +48,22 @@ public class InventoryApi {
         for (InventoryEntity input : inputs) {
             if (input.getQuantity() < 0) {
                 throw new ApiException(
-                        ApiStatus.BAD_DATA,
-                        "Quantity cannot be negative",
-                        "quantity",
-                        "Quantity cannot be negative"
+                        ApiStatus.BAD_DATA, "Quantity cannot be negative",
+                        "quantity", "Quantity cannot be negative"
                 );
             }
         }
 
-        List<Integer> productIds = inputs.stream()
-                .map(InventoryEntity::getProductId)
-                .toList();
+        List<Integer> productIds = inputs.stream().map(InventoryEntity::getProductId).toList();
 
-        Map<Integer, InventoryEntity> existingMap =
-                inventoryDao.findByProductIds(productIds)
-                        .stream()
-                        .collect(Collectors.toMap(
-                                InventoryEntity::getProductId,
-                                i -> i
-                        ));
+        Map<Integer, InventoryEntity> existingMap = inventoryDao.findByProductIds(productIds).stream()
+                .collect(Collectors.toMap(InventoryEntity::getProductId, i -> i));
 
         List<InventoryEntity> toSave = new ArrayList<>();
 
         for (InventoryEntity input : inputs) {
 
-            InventoryEntity existing =
-                    existingMap.get(input.getProductId());
+            InventoryEntity existing = existingMap.get(input.getProductId());
 
             if (existing != null) {
                 existing.setQuantity(input.getQuantity());

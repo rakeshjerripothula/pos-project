@@ -25,11 +25,6 @@ public class OrderController {
         return orderDto.getOrders(form);
     }
 
-    @GetMapping("/{id}")
-    public OrderData getById(@PathVariable Integer id) {
-        return orderDto.getById(id);
-    }
-
     @GetMapping("/{id}/items")
     public List<OrderItemData> getOrderItems(@PathVariable Integer id) {
         return orderDto.getOrderItems(id);

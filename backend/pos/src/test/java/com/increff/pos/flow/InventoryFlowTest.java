@@ -285,7 +285,7 @@ class InventoryFlowTest {
         when(clientApi.isClientEnabled(1)).thenReturn(true);
 
         // Act
-        List<InventoryEntity> result = inventoryFlow.validateAndGetInventories(items);
+        List<InventoryEntity> result = inventoryFlow.getInventoriesByProductIds(items);
 
         // Assert
         assertEquals(2, result.size());
@@ -304,7 +304,7 @@ class InventoryFlowTest {
         List<OrderItemEntity> items = Collections.emptyList();
 
         // Act & Assert - The current implementation throws NoSuchElementException, not ApiException
-        assertThrows(NoSuchElementException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        assertThrows(NoSuchElementException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
         verify(inventoryApi, times(1)).getByProductIds(Collections.emptyList());
         verify(productApi, times(1)).getByIds(Collections.emptyList()); // Still gets called with empty list
         verify(clientApi, never()).isClientEnabled(any());
@@ -316,7 +316,7 @@ class InventoryFlowTest {
         List<OrderItemEntity> items = null;
 
         // Act & Assert - The current implementation throws NullPointerException, not ApiException
-        assertThrows(NullPointerException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        assertThrows(NullPointerException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
         verify(inventoryApi, never()).getByProductIds(any());
         verify(productApi, never()).getByIds(any());
         verify(clientApi, never()).isClientEnabled(any());
@@ -332,7 +332,7 @@ class InventoryFlowTest {
         when(inventoryApi.getByProductIds(Arrays.asList(1))).thenReturn(Collections.emptyList());
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertTrue(exception.getMessage().contains("Inventory not found for one or more products"));
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
@@ -355,7 +355,7 @@ class InventoryFlowTest {
         when(productApi.getByIds(Arrays.asList(1))).thenReturn(Collections.emptyList());
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("One or more products not found", exception.getMessage());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
@@ -385,7 +385,7 @@ class InventoryFlowTest {
         when(productApi.getByIds(Arrays.asList(1, 2))).thenReturn(products);
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
         assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
         assertTrue(exception.getMessage().contains("All products in an order must belong to the same client"));
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1, 2));
@@ -413,7 +413,7 @@ class InventoryFlowTest {
         when(clientApi.isClientEnabled(1)).thenReturn(false);
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
         assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Client is disabled", exception.getMessage());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));

@@ -1,10 +1,7 @@
 package com.increff.pos.dto;
 
-import com.increff.pos.api.OrderItemApi;
-import com.increff.pos.api.ProductApi;
 import com.increff.pos.entity.OrderEntity;
 import com.increff.pos.entity.OrderItemEntity;
-import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.flow.OrderFlow;
 import com.increff.pos.model.data.OrderData;
 import com.increff.pos.model.data.OrderItemData;
@@ -30,12 +27,6 @@ public class OrderDto extends AbstractDto {
 
     @Autowired
     private OrderFlow orderFlow;
-
-    @Autowired
-    private OrderItemApi orderItemApi;
-
-    @Autowired
-    private ProductApi productApi;
 
     public OrderPageData getOrders(OrderPageForm form) {
 
@@ -76,52 +67,18 @@ public class OrderDto extends AbstractDto {
         return response;
     }
 
-    public OrderData getById(Integer orderId) {
+    public List<OrderItemData> getOrderItems(Integer orderId) {
         validateOrderId(orderId);
-
-        OrderEntity order = orderFlow.getById(orderId);
-        OrderData data = ConversionUtil.orderEntityToData(order);
-
-        List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
-
-        List<Integer> productIds = items.stream().map(OrderItemEntity::getProductId).distinct().toList();
-
-        List<ProductEntity> products = productApi.getByIds(productIds);
-
-        Map<Integer, ProductEntity> productMap = products.stream()
-                .collect(Collectors.toMap(ProductEntity::getId, product -> product));
-
-        List<OrderItemData> itemDataList = ConversionUtil.orderItemEntitiesToData(items, productMap);
-        data.setItems(itemDataList);
-
-        return data;
+        return orderFlow.getOrderItems(orderId);
     }
 
     public OrderData create(OrderForm form) {
         checkValid(form);
 
-        List<OrderItemEntity> items = form.getItems()
-                .stream()
-                .map(ConversionUtil::orderItemFormToEntity)
+        List<OrderItemEntity> items = form.getItems().stream().map(ConversionUtil::orderItemFormToEntity)
                 .collect(Collectors.toList());
 
         return ConversionUtil.orderEntityToData(orderFlow.createOrder(items));
-    }
-
-    public List<OrderItemData> getOrderItems(Integer orderId) {
-        validateOrderId(orderId);
-        List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
-        
-        // Get product details
-        List<Integer> productIds = items.stream()
-                .map(OrderItemEntity::getProductId)
-                .distinct()
-                .toList();
-        List<ProductEntity> products = productApi.getByIds(productIds);
-        Map<Integer, ProductEntity> productMap = products.stream()
-                .collect(Collectors.toMap(ProductEntity::getId, product -> product));
-        
-        return ConversionUtil.orderItemEntitiesToData(items, productMap);
     }
 
     public OrderData cancel(Integer orderId) {

@@ -22,7 +22,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Repository
-@Transactional
 public class OrderDao {
 
     @PersistenceContext

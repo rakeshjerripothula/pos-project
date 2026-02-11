@@ -15,10 +15,6 @@ public class OrderItemApi {
     @Autowired
     private OrderItemDao orderItemDao;
 
-    public OrderItemApi(OrderItemDao orderItemDao) {
-        this.orderItemDao = orderItemDao;
-    }
-
     public void createAll(List<OrderItemEntity> items) {
         orderItemDao.saveAll(items);
     }

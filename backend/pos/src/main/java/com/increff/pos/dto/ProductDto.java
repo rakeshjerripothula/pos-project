@@ -42,14 +42,6 @@ public class ProductDto extends AbstractDto {
         return entities.stream().map(ConversionUtil::productEntityToData).toList();
     }
 
-    public ProductData getById(Integer id) {
-        if (Objects.isNull(id)) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Product ID is required", "id", "Product ID is required");
-        }
-
-        return ConversionUtil.productEntityToData(productApi.getProductById(id));
-    }
-
     public ProductData createProduct(ProductForm form) {
         checkValid(form);
         ProductEntity product = ConversionUtil.productFormToEntity(form);

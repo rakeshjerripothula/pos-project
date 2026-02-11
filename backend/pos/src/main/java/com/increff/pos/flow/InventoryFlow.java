@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -113,7 +112,7 @@ public class InventoryFlow {
         return inventoryApi.bulkUpsert(inventories);
     }
 
-    public List<InventoryEntity> validateAndGetInventories(List<OrderItemEntity> items) {
+    public List<InventoryEntity> getInventoriesByProductIds(List<OrderItemEntity> items) {
 
         List<Integer> productIds = items.stream().map(OrderItemEntity::getProductId).distinct().toList();
 
@@ -121,33 +120,9 @@ public class InventoryFlow {
 
         if (inventories.size() != productIds.size()) {
             throw new ApiException(
-                    ApiStatus.NOT_FOUND,
-                    "Inventory not found for one or more products",
-                    "productId",
-                    "Inventory not found for one or more products"
+                    ApiStatus.NOT_FOUND, "Inventory not found for one or more products",
+                    "productId", "Inventory not found for one or more products"
             );
-        }
-
-        List<ProductEntity> products = productApi.getByIds(productIds);
-
-        if (products.size() != productIds.size()) {
-            throw new ApiException(
-                    ApiStatus.NOT_FOUND, "One or more products not found", "productId", "One or more products not found"
-            );
-        }
-
-        Integer clientId = products.getFirst().getClientId();
-        for (ProductEntity product : products) {
-            if (!clientId.equals(product.getClientId())) {
-                throw new ApiException(
-                        ApiStatus.BAD_DATA, "All products in an order must belong to the same client",
-                        "clientId", "All products in an order must belong to the same client"
-                );
-            }
-        }
-
-        if (!clientApi.isClientEnabled(clientId)) {
-            throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
         }
 
         return inventories;
