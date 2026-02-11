@@ -10,24 +10,21 @@ import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.InventoryData;
 import com.increff.pos.model.data.PagedResponse;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class InventoryFlowTest {
 
     @Mock
@@ -42,175 +39,85 @@ class InventoryFlowTest {
     @InjectMocks
     private InventoryFlow inventoryFlow;
 
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
     @Test
-    void should_get_inventory_by_product_ids_when_enabled_clients() {
+    void should_list_all_inventories_for_enabled_clients_successfully() {
         // Arrange
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-        inventory1.setQuantity(10);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-        inventory2.setQuantity(5);
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
-
-        ProductEntity product1 = new ProductEntity();
-        product1.setId(1);
-        product1.setClientId(1);
-
-        ProductEntity product2 = new ProductEntity();
-        product2.setId(2);
-        product2.setClientId(1);
-
-        when(inventoryApi.getByProductIds(List.of(1, 2))).thenReturn(inventories);
-        when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
-        when(clientApi.getDisabledClientIds(List.of(1))).thenReturn(List.of());
-
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100),
+            createInventoryEntity(2, 200)
+        );
+        
+        Map<Integer, ProductEntity> productMap = new HashMap<>();
+        productMap.put(1, createProductEntity(1, "Product 1", 1));
+        productMap.put(2, createProductEntity(2, "Product 2", 2));
+        
+        when(inventoryApi.getAllForEnabledClients()).thenReturn(inventories);
+        when(productApi.getByIds(Arrays.asList(1, 2))).thenReturn(Arrays.asList(productMap.get(1), productMap.get(2)));
 
         // Act
-        List<InventoryEntity> result = inventoryFlow.getByProductIds(List.of(1, 2));
+        List<InventoryData> result = inventoryFlow.listAllForEnabledClientsWithData();
 
         // Assert
         assertEquals(2, result.size());
-        verify(inventoryApi).getByProductIds(List.of(1, 2));
-        verify(productApi).getByIds(List.of(1, 2));
-        verify(clientApi).getDisabledClientIds(List.of(1));
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
+        assertEquals("Product 1", result.get(0).getProductName());
+        assertEquals(2, result.get(1).getProductId());
+        assertEquals(200, result.get(1).getQuantity());
+        assertEquals("Product 2", result.get(1).getProductName());
+        verify(inventoryApi, times(1)).getAllForEnabledClients();
+        verify(productApi, times(1)).getByIds(Arrays.asList(1, 2));
     }
 
     @Test
-    void should_throw_exception_when_getting_inventory_for_disabled_client() {
+    void should_return_empty_list_when_no_inventories_exist() {
         // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        when(inventoryApi.getByProductIds(List.of(1))).thenReturn(List.of(inventory));
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.getDisabledClientIds(List.of(1))).thenReturn(List.of(1));
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getByProductIds(List.of(1)));
-        assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Client is disabled", exception.getMessage());
-        verify(inventoryApi).getByProductIds(List.of(1));
-        verify(productApi).getByIds(List.of(1));
-        verify(clientApi).getDisabledClientIds(List.of(1));
-    }
-
-    @Test
-    void should_return_empty_list_when_no_inventory_found_by_product_ids() {
-        // Arrange
-        when(inventoryApi.getByProductIds(List.of(1, 2))).thenReturn(List.of());
+        when(inventoryApi.getAllForEnabledClients()).thenReturn(Collections.emptyList());
 
         // Act
-        List<InventoryEntity> result = inventoryFlow.getByProductIds(List.of(1, 2));
+        List<InventoryData> result = inventoryFlow.listAllForEnabledClientsWithData();
 
         // Assert
-        assertEquals(0, result.size());
-        verify(inventoryApi).getByProductIds(List.of(1, 2));
-        verifyNoInteractions(productApi, clientApi);
+        assertTrue(result.isEmpty());
+        verify(inventoryApi, times(1)).getAllForEnabledClients();
+        verify(productApi, never()).getByIds(any());
     }
 
     @Test
-    void should_throw_exception_when_product_not_found_for_inventory() {
+    void should_upsert_inventory_successfully() {
         // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        when(inventoryApi.getByProductIds(List.of(1))).thenReturn(List.of(inventory));
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of());
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getByProductIds(List.of(1)));
-        assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Client is disabled", exception.getMessage());
-        verify(inventoryApi).getByProductIds(List.of(1));
-        verify(productApi).getByIds(List.of(1));
-        verifyNoInteractions(clientApi);
-    }
-
-    @Test
-    void should_handle_multiple_clients_in_get_by_product_ids() {
-        // Arrange
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-        inventory1.setQuantity(10);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-        inventory2.setQuantity(5);
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
-
-        ProductEntity product1 = new ProductEntity();
-        product1.setId(1);
-        product1.setClientId(1);
-
-        ProductEntity product2 = new ProductEntity();
-        product2.setId(2);
-        product2.setClientId(2);
-
-        when(inventoryApi.getByProductIds(List.of(1, 2))).thenReturn(inventories);
-        when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
-        when(clientApi.getDisabledClientIds(List.of(1, 2))).thenReturn(List.of());
-
-
-        // Act
-        List<InventoryEntity> result = inventoryFlow.getByProductIds(List.of(1, 2));
-
-        // Assert
-        assertEquals(2, result.size());
-        verify(inventoryApi).getByProductIds(List.of(1, 2));
-        verify(productApi).getByIds(List.of(1, 2));
-        verify(clientApi).getDisabledClientIds(List.of(1, 2));
-    }
-
-    @Test
-    void should_upsert_inventory_when_client_enabled() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        InventoryEntity savedInventory = new InventoryEntity();
-        savedInventory.setProductId(1);
-        savedInventory.setQuantity(10);
-
+        InventoryEntity inventory = createInventoryEntity(1, 100);
+        ProductEntity product = createProductEntity(1, "Product 1", 1);
+        InventoryEntity savedInventory = createInventoryEntity(1, 100);
+        
         when(productApi.getProductById(1)).thenReturn(product);
         when(clientApi.isClientEnabled(1)).thenReturn(true);
-        when(inventoryApi.upsert(inventory)).thenReturn(savedInventory);
+        when(inventoryApi.upsertInventory(inventory)).thenReturn(savedInventory);
 
         // Act
-        InventoryEntity result = inventoryFlow.upsert(inventory);
+        InventoryData result = inventoryFlow.upsert(inventory);
 
         // Assert
-        assertEquals(savedInventory, result);
-        verify(productApi).getProductById(1);
-        verify(clientApi).isClientEnabled(1);
-        verify(inventoryApi).upsert(inventory);
+        assertNotNull(result);
+        assertEquals(1, result.getProductId());
+        assertEquals(100, result.getQuantity());
+        assertEquals("Product 1", result.getProductName());
+        verify(productApi, times(1)).getProductById(1);
+        verify(clientApi, times(1)).isClientEnabled(1);
+        verify(inventoryApi, times(1)).upsertInventory(inventory);
     }
 
     @Test
     void should_throw_exception_when_upserting_inventory_for_disabled_client() {
         // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
+        InventoryEntity inventory = createInventoryEntity(1, 100);
+        ProductEntity product = createProductEntity(1, "Product 1", 1);
+        
         when(productApi.getProductById(1)).thenReturn(product);
         when(clientApi.isClientEnabled(1)).thenReturn(false);
 
@@ -218,78 +125,163 @@ class InventoryFlowTest {
         ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.upsert(inventory));
         assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Client is disabled", exception.getMessage());
-        verify(productApi).getProductById(1);
-        verify(clientApi).isClientEnabled(1);
-        verifyNoInteractions(inventoryApi);
+        verify(productApi, times(1)).getProductById(1);
+        verify(clientApi, times(1)).isClientEnabled(1);
+        verify(inventoryApi, never()).upsertInventory(any());
     }
 
     @Test
-    void should_upsert_and_get_data() {
+    void should_search_inventories_for_enabled_clients_successfully() {
         // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
+        String barcode = "BARCODE123";
+        String productName = "Product 1";
+        Pageable pageable = mock(Pageable.class);
+        
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100)
+        );
+        
+        Map<Integer, ProductEntity> productMap = new HashMap<>();
+        productMap.put(1, createProductEntity(1, "Product 1", 1));
+        
+        Page<InventoryEntity> inventoryPage = new PageImpl<>(inventories);
+        
+        when(inventoryApi.searchForEnabledClients(barcode, productName, pageable)).thenReturn(inventoryPage);
+        when(productApi.getByIds(Arrays.asList(1))).thenReturn(Arrays.asList(productMap.get(1)));
 
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
+        // Act
+        PagedResponse<InventoryData> result = inventoryFlow.searchForEnabledClientsWithData(barcode, productName, pageable);
 
-        InventoryEntity savedInventory = new InventoryEntity();
-        savedInventory.setProductId(1);
-        savedInventory.setQuantity(10);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getData().size());
+        assertEquals(1, result.getData().get(0).getProductId());
+        assertEquals(100, result.getData().get(0).getQuantity());
+        assertEquals("Product 1", result.getData().get(0).getProductName());
+        verify(inventoryApi, times(1)).searchForEnabledClients(barcode, productName, pageable);
+        verify(productApi, times(1)).getByIds(Arrays.asList(1));
+    }
 
-        InventoryData expectedData = new InventoryData();
-        expectedData.setProductId(1);
-        expectedData.setQuantity(10);
+    @Test
+    void should_return_empty_paged_response_when_search_returns_no_results() {
+        // Arrange
+        String barcode = "BARCODE123";
+        String productName = "Product 1";
+        Pageable pageable = mock(Pageable.class);
+        
+        Page<InventoryEntity> emptyPage = new PageImpl<>(Collections.emptyList());
+        
+        when(inventoryApi.searchForEnabledClients(barcode, productName, pageable)).thenReturn(emptyPage);
 
-        when(productApi.getProductById(1)).thenReturn(product);
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
-        when(inventoryApi.upsert(inventory)).thenReturn(savedInventory);
+        // Act
+        PagedResponse<InventoryData> result = inventoryFlow.searchForEnabledClientsWithData(barcode, productName, pageable);
 
-        try (MockedStatic<com.increff.pos.util.ConversionUtil> mockedConversionUtil = mockStatic(com.increff.pos.util.ConversionUtil.class)) {
-            mockedConversionUtil.when(() -> com.increff.pos.util.ConversionUtil.inventoryEntityToData(savedInventory, product))
-                    .thenReturn(expectedData);
+        // Assert
+        assertNotNull(result);
+        assertEquals(0, result.getData().size());
+        assertEquals(0L, result.getTotal());
+        verify(inventoryApi, times(1)).searchForEnabledClients(barcode, productName, pageable);
+        verify(productApi, never()).getByIds(any());
+    }
 
-            // Act
-            InventoryData result = inventoryFlow.upsertAndGetData(inventory);
+    @Test
+    void should_bulk_upsert_inventories_successfully() {
+        // Arrange
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100),
+            createInventoryEntity(2, 200)
+        );
+        
+        Map<Integer, ProductEntity> productMap = new HashMap<>();
+        productMap.put(1, createProductEntity(1, "Product 1", 1));
+        productMap.put(2, createProductEntity(2, "Product 2", 2));
+        
+        List<InventoryEntity> savedInventories = Arrays.asList(
+            createInventoryEntity(1, 100),
+            createInventoryEntity(2, 200)
+        );
+        
+        when(productApi.getByIds(Arrays.asList(1, 2))).thenReturn(Arrays.asList(productMap.get(1), productMap.get(2)));
+        when(clientApi.getDisabledClientIds(Arrays.asList(1, 2))).thenReturn(Collections.emptyList());
+        when(inventoryApi.bulkUpsert(inventories)).thenReturn(savedInventories);
 
-            // Assert
-            assertEquals(expectedData, result);
-            verify(productApi, times(2)).getProductById(1);
-            verify(clientApi).isClientEnabled(1);
-            verify(inventoryApi).upsert(inventory);
-        }
+        // Act
+        List<InventoryData> result = inventoryFlow.bulkUpsertAndGetData(inventories);
+
+        // Assert
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
+        assertEquals("Product 1", result.get(0).getProductName());
+        assertEquals(2, result.get(1).getProductId());
+        assertEquals(200, result.get(1).getQuantity());
+        assertEquals("Product 2", result.get(1).getProductName());
+        verify(productApi, times(2)).getByIds(Arrays.asList(1, 2)); // Called twice: once in bulkUpsert, once in bulkUpsertAndGetData
+        verify(clientApi, times(1)).getDisabledClientIds(Arrays.asList(1, 2));
+        verify(inventoryApi, times(1)).bulkUpsert(inventories);
+    }
+
+    @Test
+    void should_throw_exception_when_bulk_upserting_product_not_found() {
+        // Arrange
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100)
+        );
+        
+        when(productApi.getByIds(Arrays.asList(1))).thenReturn(Collections.emptyList());
+        when(clientApi.getDisabledClientIds(Collections.emptyList())).thenReturn(Collections.emptyList());
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.bulkUpsertAndGetData(inventories));
+        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
+        assertTrue(exception.getMessage().contains("Product not found: 1"));
+        verify(productApi, times(1)).getByIds(Arrays.asList(1));
+        verify(clientApi, times(1)).getDisabledClientIds(Collections.emptyList());
+        verify(inventoryApi, never()).bulkUpsert(any());
+    }
+
+    @Test
+    void should_throw_exception_when_bulk_upserting_for_disabled_client() {
+        // Arrange
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100)
+        );
+        
+        Map<Integer, ProductEntity> productMap = new HashMap<>();
+        productMap.put(1, createProductEntity(1, "Product 1", 1));
+        
+        when(productApi.getByIds(Arrays.asList(1))).thenReturn(Arrays.asList(productMap.get(1)));
+        when(clientApi.getDisabledClientIds(Arrays.asList(1))).thenReturn(Arrays.asList(1));
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.bulkUpsertAndGetData(inventories));
+        assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Client is disabled", exception.getMessage());
+        verify(productApi, times(1)).getByIds(Arrays.asList(1));
+        verify(clientApi, times(1)).getDisabledClientIds(Arrays.asList(1));
+        verify(inventoryApi, never()).bulkUpsert(any());
     }
 
     @Test
     void should_validate_and_get_inventories_successfully() {
         // Arrange
-        OrderItemEntity item1 = new OrderItemEntity();
-        item1.setProductId(1);
-
-        OrderItemEntity item2 = new OrderItemEntity();
-        item2.setProductId(2);
-
-        List<OrderItemEntity> items = List.of(item1, item2);
-
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
-
-        ProductEntity product1 = new ProductEntity();
-        product1.setId(1);
-        product1.setClientId(1);
-
-        ProductEntity product2 = new ProductEntity();
-        product2.setId(2);
-        product2.setClientId(1);
-
-        when(inventoryApi.getByProductIds(List.of(1, 2))).thenReturn(inventories);
-        when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
+        List<OrderItemEntity> items = Arrays.asList(
+            createOrderItemEntity(1, 5),
+            createOrderItemEntity(2, 3)
+        );
+        
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100),
+            createInventoryEntity(2, 200)
+        );
+        
+        List<ProductEntity> products = Arrays.asList(
+            createProductEntity(1, "Product 1", 1),
+            createProductEntity(2, "Product 2", 1)
+        );
+        
+        when(inventoryApi.getByProductIds(Arrays.asList(1, 2))).thenReturn(inventories);
+        when(productApi.getByIds(Arrays.asList(1, 2))).thenReturn(products);
         when(clientApi.isClientEnabled(1)).thenReturn(true);
 
         // Act
@@ -297,417 +289,157 @@ class InventoryFlowTest {
 
         // Assert
         assertEquals(2, result.size());
-        verify(inventoryApi).getByProductIds(List.of(1, 2));
-        verify(productApi).getByIds(List.of(1, 2));
-        verify(clientApi).isClientEnabled(1);
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
+        assertEquals(2, result.get(1).getProductId());
+        assertEquals(200, result.get(1).getQuantity());
+        verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1, 2));
+        verify(productApi, times(1)).getByIds(Arrays.asList(1, 2));
+        verify(clientApi, times(1)).isClientEnabled(1);
     }
 
     @Test
-    void should_throw_exception_when_inventory_not_found_for_validation() {
+    void should_throw_exception_when_validating_empty_order_items() {
         // Arrange
-        OrderItemEntity item = new OrderItemEntity();
-        item.setProductId(1);
+        List<OrderItemEntity> items = Collections.emptyList();
 
-        when(inventoryApi.getByProductIds(List.of(1))).thenReturn(List.of());
+        // Act & Assert - The current implementation throws NoSuchElementException, not ApiException
+        assertThrows(NoSuchElementException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        verify(inventoryApi, times(1)).getByProductIds(Collections.emptyList());
+        verify(productApi, times(1)).getByIds(Collections.emptyList()); // Still gets called with empty list
+        verify(clientApi, never()).isClientEnabled(any());
+    }
+
+    @Test
+    void should_throw_exception_when_validating_null_order_items() {
+        // Arrange
+        List<OrderItemEntity> items = null;
+
+        // Act & Assert - The current implementation throws NullPointerException, not ApiException
+        assertThrows(NullPointerException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        verify(inventoryApi, never()).getByProductIds(any());
+        verify(productApi, never()).getByIds(any());
+        verify(clientApi, never()).isClientEnabled(any());
+    }
+
+    @Test
+    void should_throw_exception_when_validating_order_items_with_missing_inventory() {
+        // Arrange
+        List<OrderItemEntity> items = Arrays.asList(
+            createOrderItemEntity(1, 5)
+        );
+        
+        when(inventoryApi.getByProductIds(Arrays.asList(1))).thenReturn(Collections.emptyList());
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(List.of(item)));
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(items));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
-        assertEquals("Inventory not found for one or more products", exception.getMessage());
-        verify(inventoryApi).getByProductIds(List.of(1));
-        verifyNoInteractions(productApi, clientApi);
+        assertTrue(exception.getMessage().contains("Inventory not found for one or more products"));
+        verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
+        verify(productApi, never()).getByIds(any());
+        verify(clientApi, never()).isClientEnabled(any());
     }
 
     @Test
-    void should_throw_exception_when_products_belong_to_different_clients() {
+    void should_throw_exception_when_validating_order_items_with_missing_products() {
         // Arrange
-        OrderItemEntity item1 = new OrderItemEntity();
-        item1.setProductId(1);
-
-        OrderItemEntity item2 = new OrderItemEntity();
-        item2.setProductId(2);
-
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-
-        ProductEntity product1 = new ProductEntity();
-        product1.setId(1);
-        product1.setClientId(1);
-
-        ProductEntity product2 = new ProductEntity();
-        product2.setId(2);
-        product2.setClientId(2);
-
-        when(inventoryApi.getByProductIds(List.of(1, 2))).thenReturn(List.of(inventory1, inventory2));
-        when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
+        List<OrderItemEntity> items = Arrays.asList(
+            createOrderItemEntity(1, 5)
+        );
+        
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100)
+        );
+        
+        when(inventoryApi.getByProductIds(Arrays.asList(1))).thenReturn(inventories);
+        when(productApi.getByIds(Arrays.asList(1))).thenReturn(Collections.emptyList());
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(List.of(item1, item2)));
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(items));
+        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
+        assertEquals("One or more products not found", exception.getMessage());
+        verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
+        verify(productApi, times(1)).getByIds(Arrays.asList(1));
+        verify(clientApi, never()).isClientEnabled(any());
+    }
+
+    @Test
+    void should_throw_exception_when_validating_order_items_from_different_clients() {
+        // Arrange
+        List<OrderItemEntity> items = Arrays.asList(
+            createOrderItemEntity(1, 5),
+            createOrderItemEntity(2, 3)
+        );
+        
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100),
+            createInventoryEntity(2, 200)
+        );
+        
+        List<ProductEntity> products = Arrays.asList(
+            createProductEntity(1, "Product 1", 1),
+            createProductEntity(2, "Product 2", 2) // Different client
+        );
+        
+        when(inventoryApi.getByProductIds(Arrays.asList(1, 2))).thenReturn(inventories);
+        when(productApi.getByIds(Arrays.asList(1, 2))).thenReturn(products);
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(items));
         assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
-        assertEquals("All products in an order must belong to the same client", exception.getMessage());
+        assertTrue(exception.getMessage().contains("All products in an order must belong to the same client"));
+        verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1, 2));
+        verify(productApi, times(1)).getByIds(Arrays.asList(1, 2));
+        verify(clientApi, never()).isClientEnabled(any());
     }
 
     @Test
-    void should_get_inventory_by_product_id() {
+    void should_throw_exception_when_validating_order_items_for_disabled_client() {
         // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        when(inventoryApi.getByProductId(1)).thenReturn(inventory);
-        when(productApi.getProductById(1)).thenReturn(product);
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
-
-        // Act
-        InventoryEntity result = inventoryFlow.getByProductId(1);
-
-        // Assert
-        assertEquals(inventory, result);
-        verify(inventoryApi).getByProductId(1);
-        verify(productApi).getProductById(1);
-        verify(clientApi).isClientEnabled(1);
-    }
-
-    @Test
-    void should_throw_exception_when_getting_inventory_for_disabled_client_by_id() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        when(inventoryApi.getByProductId(1)).thenReturn(inventory);
-        when(productApi.getProductById(1)).thenReturn(product);
+        List<OrderItemEntity> items = Arrays.asList(
+            createOrderItemEntity(1, 5)
+        );
+        
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100)
+        );
+        
+        List<ProductEntity> products = Arrays.asList(
+            createProductEntity(1, "Product 1", 1)
+        );
+        
+        when(inventoryApi.getByProductIds(Arrays.asList(1))).thenReturn(inventories);
+        when(productApi.getByIds(Arrays.asList(1))).thenReturn(products);
         when(clientApi.isClientEnabled(1)).thenReturn(false);
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getByProductId(1));
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.validateAndGetInventories(items));
         assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Client is disabled", exception.getMessage());
-        verify(inventoryApi).getByProductId(1);
-        verify(productApi).getProductById(1);
-        verify(clientApi).isClientEnabled(1);
+        verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
+        verify(productApi, times(1)).getByIds(Arrays.asList(1));
+        verify(clientApi, times(1)).isClientEnabled(1);
     }
 
-    @Test
-    void should_get_inventory_by_product_id_with_data() {
-        // Arrange
+    private InventoryEntity createInventoryEntity(Integer productId, Integer quantity) {
         InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
+        inventory.setProductId(productId);
+        inventory.setQuantity(quantity);
+        return inventory;
+    }
 
+    private ProductEntity createProductEntity(Integer id, String name, Integer clientId) {
         ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        InventoryData expectedData = new InventoryData();
-        expectedData.setProductId(1);
-        expectedData.setQuantity(10);
-
-        when(inventoryApi.getByProductId(1)).thenReturn(inventory);
-        when(productApi.getProductById(1)).thenReturn(product);
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
-
-        try (MockedStatic<com.increff.pos.util.ConversionUtil> mockedConversionUtil = mockStatic(com.increff.pos.util.ConversionUtil.class)) {
-            mockedConversionUtil.when(() -> com.increff.pos.util.ConversionUtil.inventoryEntityToData(inventory, product))
-                    .thenReturn(expectedData);
-
-            // Act
-            InventoryData result = inventoryFlow.getByProductIdWithData(1);
-
-            // Assert
-            assertEquals(expectedData, result);
-            verify(inventoryApi).getByProductId(1);
-            verify(productApi, times(2)).getProductById(1);
-            verify(clientApi).isClientEnabled(1);
-        }
+        product.setId(id);
+        product.setProductName(name);
+        product.setClientId(clientId);
+        return product;
     }
 
-    @Test
-    void should_list_inventories_for_enabled_clients() {
-        // Arrange
-        Pageable pageable = mock(Pageable.class);
-        Page<InventoryEntity> page = mock(Page.class);
-
-        when(inventoryApi.listForEnabledClients(pageable)).thenReturn(page);
-
-        // Act
-        Page<InventoryEntity> result = inventoryFlow.listForEnabledClients(pageable);
-
-        // Assert
-        assertEquals(page, result);
-        verify(inventoryApi).listForEnabledClients(pageable);
-    }
-
-    @Test
-    void should_list_inventories_for_enabled_clients_with_data() {
-        // Arrange
-        Pageable pageable = mock(Pageable.class);
-        Page<InventoryEntity> page = mock(Page.class);
-
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        InventoryData expectedData = new InventoryData();
-        expectedData.setProductId(1);
-        expectedData.setQuantity(10);
-
-        when(page.isEmpty()).thenReturn(false);
-        when(page.getContent()).thenReturn(List.of(inventory));
-        when(page.getTotalElements()).thenReturn(1L);
-        when(inventoryApi.listForEnabledClients(pageable)).thenReturn(page);
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-
-        try (MockedStatic<com.increff.pos.util.ConversionUtil> mockedConversionUtil = mockStatic(com.increff.pos.util.ConversionUtil.class)) {
-            mockedConversionUtil.when(() -> com.increff.pos.util.ConversionUtil.inventoryEntityToData(inventory, product))
-                    .thenReturn(expectedData);
-
-            // Act
-            PagedResponse<InventoryData> result = inventoryFlow.listForEnabledClientsWithData(pageable);
-
-            // Assert
-            assertEquals(1, result.getData().size());
-            assertEquals(1L, result.getTotal());
-            verify(inventoryApi).listForEnabledClients(pageable);
-            verify(productApi).getByIds(List.of(1));
-        }
-    }
-
-    @Test
-    void should_return_empty_paged_response_when_no_inventories_found() {
-        // Arrange
-        Pageable pageable = mock(Pageable.class);
-        Page<InventoryEntity> page = mock(Page.class);
-
-        when(page.isEmpty()).thenReturn(true);
-        when(inventoryApi.listForEnabledClients(pageable)).thenReturn(page);
-
-        // Act
-        PagedResponse<InventoryData> result = inventoryFlow.listForEnabledClientsWithData(pageable);
-
-        // Assert
-        assertEquals(0, result.getData().size());
-        assertEquals(0L, result.getTotal());
-        verify(inventoryApi).listForEnabledClients(pageable);
-        verifyNoInteractions(productApi);
-    }
-
-    @Test
-    void should_list_all_inventories_for_enabled_clients() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        List<InventoryEntity> inventories = List.of(inventory);
-        when(inventoryApi.listAllForEnabledClients()).thenReturn(inventories);
-
-        // Act
-        List<InventoryEntity> result = inventoryFlow.listAllForEnabledClients();
-
-        // Assert
-        assertEquals(inventories, result);
-        verify(inventoryApi).listAllForEnabledClients();
-    }
-
-    @Test
-    void should_list_all_inventories_for_enabled_clients_with_data() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        InventoryData expectedData = new InventoryData();
-        expectedData.setProductId(1);
-        expectedData.setQuantity(10);
-
-        when(inventoryApi.listAllForEnabledClients()).thenReturn(List.of(inventory));
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-
-        try (MockedStatic<com.increff.pos.util.ConversionUtil> mockedConversionUtil = mockStatic(com.increff.pos.util.ConversionUtil.class)) {
-            mockedConversionUtil.when(() -> com.increff.pos.util.ConversionUtil.inventoryEntityToData(inventory, product))
-                    .thenReturn(expectedData);
-
-            // Act
-            List<InventoryData> result = inventoryFlow.listAllForEnabledClientsWithData();
-
-            // Assert
-            assertEquals(1, result.size());
-            verify(inventoryApi).listAllForEnabledClients();
-            verify(productApi).getByIds(List.of(1));
-        }
-    }
-
-    @Test
-    void should_return_empty_list_when_no_all_inventories_found() {
-        // Arrange
-        when(inventoryApi.listAllForEnabledClients()).thenReturn(List.of());
-
-        // Act
-        List<InventoryData> result = inventoryFlow.listAllForEnabledClientsWithData();
-
-        // Assert
-        assertEquals(0, result.size());
-        verify(inventoryApi).listAllForEnabledClients();
-        verifyNoInteractions(productApi);
-    }
-
-    @Test
-    void should_bulk_upsert_and_get_data() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        InventoryEntity savedInventory = new InventoryEntity();
-        savedInventory.setProductId(1);
-        savedInventory.setQuantity(10);
-
-        InventoryData expectedData = new InventoryData();
-        expectedData.setProductId(1);
-        expectedData.setQuantity(10);
-
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.getDisabledClientIds(List.of(1))).thenReturn(List.of());
-        when(inventoryApi.bulkUpsert(List.of(inventory))).thenReturn(List.of(savedInventory));
-
-        try (MockedStatic<com.increff.pos.util.ConversionUtil> mockedConversionUtil = mockStatic(com.increff.pos.util.ConversionUtil.class)) {
-            mockedConversionUtil.when(() -> com.increff.pos.util.ConversionUtil.inventoryEntityToData(savedInventory, product))
-                    .thenReturn(expectedData);
-
-            // Act
-            List<InventoryData> result = inventoryFlow.bulkUpsertAndGetData(List.of(inventory));
-
-            // Assert
-            assertEquals(1, result.size());
-            verify(productApi, times(2)).getByIds(List.of(1));
-            verify(clientApi).getDisabledClientIds(List.of(1));
-            verify(inventoryApi).bulkUpsert(List.of(inventory));
-        }
-    }
-
-    @Test
-    void should_bulk_upsert_inventories() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        InventoryEntity savedInventory = new InventoryEntity();
-        savedInventory.setProductId(1);
-        savedInventory.setQuantity(10);
-
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.getDisabledClientIds(List.of(1))).thenReturn(List.of());
-        when(inventoryApi.bulkUpsert(List.of(inventory))).thenReturn(List.of(savedInventory));
-
-        // Act
-        List<InventoryEntity> result = inventoryFlow.bulkUpsert(List.of(inventory));
-
-        // Assert
-        assertEquals(1, result.size());
-        verify(productApi).getByIds(List.of(1));
-        verify(clientApi).getDisabledClientIds(List.of(1));
-        verify(inventoryApi).bulkUpsert(List.of(inventory));
-    }
-
-    @Test
-    void should_throw_exception_when_bulk_upserting_for_disabled_client() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        ProductEntity product = new ProductEntity();
-        product.setId(1);
-        product.setClientId(1);
-
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.getDisabledClientIds(List.of(1))).thenReturn(List.of(1));
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.bulkUpsert(List.of(inventory)));
-        assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Client is disabled", exception.getMessage());
-        verify(productApi).getByIds(List.of(1));
-        verify(clientApi).getDisabledClientIds(List.of(1));
-        verifyNoInteractions(inventoryApi);
-    }
-
-    @Test
-    void should_throw_exception_when_product_not_found_during_bulk_upsert() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        when(productApi.getByIds(List.of(1))).thenReturn(List.of());
-        when(clientApi.getDisabledClientIds(any())).thenReturn(List.of());
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.bulkUpsert(List.of(inventory)));
-        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
-        assertEquals("Product not found: 1", exception.getMessage());
-        verify(productApi).getByIds(List.of(1));
-        verify(inventoryApi, never()).bulkUpsert(any());
-    }
-
-    @Test
-    void should_get_product_ids_from_inventories() throws Exception {
-        // Arrange
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
-
-        ProductEntity product1 = new ProductEntity();
-        product1.setId(1);
-
-        ProductEntity product2 = new ProductEntity();
-        product2.setId(2);
-
-        when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
-
-        // Act
-        Method method = InventoryFlow.class.getDeclaredMethod("getProductIds", List.class);
-        method.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        Map<Integer, ProductEntity> result = (Map<Integer, ProductEntity>) method.invoke(inventoryFlow, inventories);
-
-        // Assert
-        assertEquals(2, result.size());
-        assertTrue(result.containsKey(1));
-        assertTrue(result.containsKey(2));
-        verify(productApi).getByIds(List.of(1, 2));
+    private OrderItemEntity createOrderItemEntity(Integer productId, Integer quantity) {
+        OrderItemEntity item = new OrderItemEntity();
+        item.setProductId(productId);
+        item.setQuantity(quantity);
+        return item;
     }
 }

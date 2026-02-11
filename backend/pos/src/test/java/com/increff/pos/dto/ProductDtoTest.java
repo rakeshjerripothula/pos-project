@@ -1,5 +1,6 @@
 package com.increff.pos.dto;
 
+import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.model.data.ProductData;
 import com.increff.pos.model.data.TsvUploadError;
@@ -27,6 +28,9 @@ class ProductDtoTest {
     @Mock
     private com.increff.pos.api.ProductApi productApi;
 
+    @Mock
+    private com.increff.pos.api.ClientApi clientApi;
+
     @InjectMocks
     private ProductDto productDto;
 
@@ -36,10 +40,16 @@ class ProductDtoTest {
     }
 
     @Test
-    void testParseProductTsv_WithValidData() throws IOException {
-        String tsvContent = "productName\tmrp\tclientId\tbarcode\n" +
-                "Test Product 1\t10.99\t1\tBAR001\n" +
-                "Test Product 2\t20.50\t2\tBAR002\n";
+    void testParseProductTsv_WithValidData() {
+        // Mock client existence checks
+        when(clientApi.getById(1)).thenReturn(new ClientEntity());
+        when(clientApi.getById(2)).thenReturn(new ClientEntity());
+        
+        String tsvContent = """
+                productName\tmrp\tclientId\tbarcode
+                Test Product 1\t10.99\t1\tBAR001
+                Test Product 2\t20.50\t2\tBAR002
+                """;
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -48,8 +58,15 @@ class ProductDtoTest {
             tsvContent.getBytes()
         );
 
-        ProductDto productDto = new ProductDto();
         TsvUploadResult<ProductForm> result = productDto.parseProductTsv(file);
+
+        System.out.println("Result success: " + result.isSuccess());
+        if (!result.isSuccess()) {
+            System.out.println("Errors: " + result.getErrors());
+            for (TsvUploadError error : result.getErrors()) {
+                System.out.println("Error: " + error.getErrorMessage());
+            }
+        }
 
         assertTrue(result.isSuccess());
         assertNotNull(result.getData());
@@ -58,11 +75,13 @@ class ProductDtoTest {
     }
 
     @Test
-    void testParseProductTsv_WithInvalidData() throws IOException {
-        String tsvContent = "productName\tmrp\tclientId\tbarcode\n" +
-                "Test Product 1\tinvalid_mrp\t1\tBAR001\n" +
-                "\t20.50\t2\tBAR002\n" +
-                "Test Product 3\t-5.00\t3\tBAR003\n";
+    void testParseProductTsv_WithInvalidData(){
+        String tsvContent = """
+                productName\tmrp\tclientId\tbarcode
+                Test Product 1\tinvalid_mrp\t1\tBAR001
+                \t20.50\t2\tBAR002
+                Test Product 3\t-5.00\t3\tBAR003
+                """;
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -116,7 +135,7 @@ class ProductDtoTest {
         assertNotNull(result.getErrors());
         assertEquals(1, result.getErrors().size());
         
-        TsvUploadError error = result.getErrors().get(0);
+        TsvUploadError error = result.getErrors().getFirst();
         assertEquals(2, error.getRowNumber());
         assertTrue(error.getErrorMessage().contains("Expected at least 4 columns"));
     }
@@ -239,15 +258,15 @@ class ProductDtoTest {
     @Test
     void bulkCreateProducts_invalidForm_throwsException() {
         // Arrange
-        List<ProductForm> forms = Arrays.asList(
-            createProductForm("", new BigDecimal("10.99"), 1, "BAR001") // Invalid: empty name
+        List<ProductForm> forms = List.of(
+                createProductForm("", new BigDecimal("10.99"), 1, "BAR001") // Invalid: empty name
         );
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> productDto.bulkCreateProducts(forms));
         assertEquals("BAD_DATA", exception.getStatus().name());
         assertTrue(exception.hasErrors());
-        assertTrue(exception.getErrors().get(0).getMessage().contains("Product name is required"));
+        assertTrue(exception.getErrors().getFirst().getMessage().contains("Product name is required"));
         verify(productApi, never()).bulkCreateProducts(any());
     }
 

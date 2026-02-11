@@ -4,15 +4,17 @@ import com.increff.pos.dao.InventoryDao;
 import com.increff.pos.entity.InventoryEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class InventoryApiTest {
 
     @Mock
@@ -29,292 +30,213 @@ class InventoryApiTest {
     @InjectMocks
     private InventoryApi inventoryApi;
 
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void should_get_all_inventories_for_enabled_clients() {
+        // Arrange
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100),
+            createInventoryEntity(2, 200)
+        );
+        
+        when(inventoryDao.findAllForEnabledClients()).thenReturn(inventories);
+
+        // Act
+        List<InventoryEntity> result = inventoryApi.getAllForEnabledClients();
+
+        // Assert
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
+        assertEquals(2, result.get(1).getProductId());
+        assertEquals(200, result.get(1).getQuantity());
+        verify(inventoryDao, times(1)).findAllForEnabledClients();
+    }
+
+    @Test
+    void should_return_empty_list_when_no_inventories_exist() {
+        // Arrange
+        when(inventoryDao.findAllForEnabledClients()).thenReturn(Collections.emptyList());
+
+        // Act
+        List<InventoryEntity> result = inventoryApi.getAllForEnabledClients();
+
+        // Assert
+        assertTrue(result.isEmpty());
+        verify(inventoryDao, times(1)).findAllForEnabledClients();
+    }
+
     @Test
     void should_upsert_inventory_when_new_product() {
         // Arrange
         InventoryEntity inventory = new InventoryEntity();
         inventory.setProductId(1);
         inventory.setQuantity(10);
-
+        
+        InventoryEntity savedInventory = createInventoryEntity(1, 10);
+        
         when(inventoryDao.findByProductId(1)).thenReturn(Optional.empty());
-        when(inventoryDao.save(any(InventoryEntity.class))).thenAnswer(invocation -> {
-            InventoryEntity saved = invocation.getArgument(0);
-            saved.setId(1);
-            return saved;
-        });
+        when(inventoryDao.save(any(InventoryEntity.class))).thenReturn(savedInventory);
 
         // Act
-        InventoryEntity result = inventoryApi.upsert(inventory);
+        InventoryEntity result = inventoryApi.upsertInventory(inventory);
 
         // Assert
-        assertEquals(1, result.getId());
+        assertNotNull(result);
         assertEquals(1, result.getProductId());
         assertEquals(10, result.getQuantity());
-        verify(inventoryDao).findByProductId(1);
-        verify(inventoryDao).save(any(InventoryEntity.class));
+        verify(inventoryDao, times(1)).findByProductId(1);
+        verify(inventoryDao, times(1)).save(any(InventoryEntity.class));
     }
 
     @Test
     void should_upsert_inventory_when_existing_product() {
         // Arrange
-        InventoryEntity existingInventory = new InventoryEntity();
-        existingInventory.setId(1);
-        existingInventory.setProductId(1);
-        existingInventory.setQuantity(5);
-
-        InventoryEntity updateInventory = new InventoryEntity();
-        updateInventory.setProductId(1);
-        updateInventory.setQuantity(15);
-
+        InventoryEntity inventory = new InventoryEntity();
+        inventory.setProductId(1);
+        inventory.setQuantity(15);
+        
+        InventoryEntity existingInventory = createInventoryEntity(1, 10);
+        InventoryEntity savedInventory = createInventoryEntity(1, 15);
+        
         when(inventoryDao.findByProductId(1)).thenReturn(Optional.of(existingInventory));
-        when(inventoryDao.save(any(InventoryEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(inventoryDao.save(existingInventory)).thenReturn(savedInventory);
 
         // Act
-        InventoryEntity result = inventoryApi.upsert(updateInventory);
+        InventoryEntity result = inventoryApi.upsertInventory(inventory);
 
         // Assert
-        assertEquals(1, result.getId());
+        assertNotNull(result);
         assertEquals(1, result.getProductId());
         assertEquals(15, result.getQuantity());
-        verify(inventoryDao).findByProductId(1);
-        verify(inventoryDao).save(existingInventory);
+        verify(inventoryDao, times(1)).findByProductId(1);
+        verify(inventoryDao, times(1)).save(existingInventory);
     }
 
     @Test
-    void should_throw_exception_when_upserting_inventory_with_negative_quantity() {
+    void should_search_inventories_for_enabled_clients() {
         // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(-5);
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryApi.upsert(inventory));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
-        assertEquals("Quantity cannot be negative", exception.getMessage());
-        verifyNoInteractions(inventoryDao);
-    }
-
-    @Test
-    void should_list_all_inventory() {
-        // Arrange
+        String barcode = "BARCODE123";
+        String productName = "Test Product";
         Pageable pageable = mock(Pageable.class);
-        List<InventoryEntity> inventories = List.of(new InventoryEntity(), new InventoryEntity());
-        Page<InventoryEntity> inventoryPage = new PageImpl<>(inventories);
-
-        when(inventoryDao.findAll(pageable)).thenReturn(inventoryPage);
-
-        // Act
-        Page<InventoryEntity> result = inventoryApi.listAll(pageable);
-
-        // Assert
-        assertEquals(2, result.getContent().size());
-        verify(inventoryDao).findAll(pageable);
-    }
-
-    @Test
-    void should_get_inventory_by_product_id_when_exists() {
-        // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setId(1);
-        inventory.setProductId(1);
-        inventory.setQuantity(10);
-
-        when(inventoryDao.findByProductId(1)).thenReturn(Optional.of(inventory));
+        
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100)
+        );
+        
+        Page<InventoryEntity> expectedPage = new PageImpl<>(inventories);
+        
+        when(inventoryDao.searchForEnabledClients(barcode, productName, pageable)).thenReturn(expectedPage);
 
         // Act
-        InventoryEntity result = inventoryApi.getByProductId(1);
+        Page<InventoryEntity> result = inventoryApi.searchForEnabledClients(barcode, productName, pageable);
 
         // Assert
-        assertEquals(1, result.getId());
-        assertEquals(1, result.getProductId());
-        assertEquals(10, result.getQuantity());
-        verify(inventoryDao).findByProductId(1);
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        assertEquals(1, result.getContent().get(0).getProductId());
+        assertEquals(100, result.getContent().get(0).getQuantity());
+        verify(inventoryDao, times(1)).searchForEnabledClients(barcode, productName, pageable);
     }
 
     @Test
-    void should_throw_exception_when_getting_inventory_by_product_id_not_found() {
+    void should_bulk_upsert_inventories_successfully() {
         // Arrange
-        when(inventoryDao.findByProductId(1)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryApi.getByProductId(1));
-        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
-        assertEquals("Inventory not found for productId: 1", exception.getMessage());
-        verify(inventoryDao).findByProductId(1);
-    }
-
-    @Test
-    void should_get_inventory_by_product_ids() {
-        // Arrange
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-        inventory1.setQuantity(10);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-        inventory2.setQuantity(5);
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
-
-        when(inventoryDao.findByProductIds(List.of(1, 2))).thenReturn(inventories);
-
-        // Act
-        List<InventoryEntity> result = inventoryApi.getByProductIds(List.of(1, 2));
-
-        // Assert
-        assertEquals(2, result.size());
-        verify(inventoryDao).findByProductIds(List.of(1, 2));
-    }
-
-    @Test
-    void should_return_empty_list_when_no_inventory_found_by_product_ids() {
-        // Arrange
-        when(inventoryDao.findByProductIds(List.of(1, 2))).thenReturn(List.of());
-
-        // Act
-        List<InventoryEntity> result = inventoryApi.getByProductIds(List.of(1, 2));
-
-        // Assert
-        assertEquals(0, result.size());
-        verify(inventoryDao).findByProductIds(List.of(1, 2));
-    }
-
-    @Test
-    void should_list_inventory_for_enabled_clients() {
-        // Arrange
-        Pageable pageable = mock(Pageable.class);
-        List<InventoryEntity> inventories = List.of(new InventoryEntity(), new InventoryEntity());
-        Page<InventoryEntity> inventoryPage = new PageImpl<>(inventories);
-
-        when(inventoryDao.findForEnabledClients(pageable)).thenReturn(inventoryPage);
-
-        // Act
-        Page<InventoryEntity> result = inventoryApi.listForEnabledClients(pageable);
-
-        // Assert
-        assertEquals(2, result.getContent().size());
-        verify(inventoryDao).findForEnabledClients(pageable);
-    }
-
-    @Test
-    void should_bulk_upsert_inventory_when_valid_input() {
-        // Arrange
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-        inventory1.setQuantity(10);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-        inventory2.setQuantity(5);
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
-
-        when(inventoryDao.saveAll(inventories)).thenAnswer(invocation -> {
-            List<InventoryEntity> saved = invocation.getArgument(0);
-            saved.get(0).setId(1);
-            saved.get(1).setId(2);
-            return saved;
-        });
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100),
+            createInventoryEntity(2, 200)
+        );
+        
+        List<InventoryEntity> existingInventories = Arrays.asList(
+            createInventoryEntity(1, 50)
+        );
+        
+        when(inventoryDao.findByProductIds(Arrays.asList(1, 2))).thenReturn(existingInventories);
+        when(inventoryDao.saveAll(any(List.class))).thenReturn(inventories);
 
         // Act
         List<InventoryEntity> result = inventoryApi.bulkUpsert(inventories);
 
         // Assert
+        assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals(1, result.get(0).getId());
-        assertEquals(2, result.get(1).getId());
-        verify(inventoryDao).saveAll(inventories);
+        verify(inventoryDao, times(1)).findByProductIds(Arrays.asList(1, 2));
+        verify(inventoryDao, times(1)).saveAll(any(List.class));
     }
 
     @Test
-    void should_throw_exception_when_bulk_upserting_inventory_with_negative_quantity() {
+    void should_throw_exception_when_bulk_upserting_with_negative_quantity() {
         // Arrange
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-        inventory1.setQuantity(10);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(2);
-        inventory2.setQuantity(-5); // Negative quantity
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, -10)
+        );
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryApi.bulkUpsert(inventories));
         assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
         assertEquals("Quantity cannot be negative", exception.getMessage());
-        verifyNoInteractions(inventoryDao);
+        verify(inventoryDao, never()).findByProductIds(any());
+        verify(inventoryDao, never()).saveAll(any());
     }
 
     @Test
-    void should_handle_duplicate_product_ids_in_bulk_upsert() {
+    void should_get_inventories_by_product_ids() {
         // Arrange
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(1);
-        inventory1.setQuantity(10);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(1); // Same product ID
-        inventory2.setQuantity(15);
-
-        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
-
-        when(inventoryDao.saveAll(inventories)).thenReturn(inventories);
+        List<Integer> productIds = Arrays.asList(1, 2);
+        List<InventoryEntity> inventories = Arrays.asList(
+            createInventoryEntity(1, 100),
+            createInventoryEntity(2, 200)
+        );
+        
+        when(inventoryDao.findByProductIds(productIds)).thenReturn(inventories);
 
         // Act
-        List<InventoryEntity> result = inventoryApi.bulkUpsert(inventories);
+        List<InventoryEntity> result = inventoryApi.getByProductIds(productIds);
 
         // Assert
+        assertNotNull(result);
         assertEquals(2, result.size());
-        verify(inventoryDao).saveAll(inventories);
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
+        assertEquals(2, result.get(1).getProductId());
+        assertEquals(200, result.get(1).getQuantity());
+        verify(inventoryDao, times(1)).findByProductIds(productIds);
     }
 
     @Test
-    void should_handle_zero_quantity_in_upsert() {
+    void should_return_empty_list_when_getting_by_empty_product_ids() {
         // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(0);
-
-        when(inventoryDao.findByProductId(1)).thenReturn(Optional.empty());
-        when(inventoryDao.save(any(InventoryEntity.class))).thenAnswer(invocation -> {
-            InventoryEntity saved = invocation.getArgument(0);
-            saved.setId(1);
-            return saved;
-        });
+        List<Integer> productIds = Collections.emptyList();
 
         // Act
-        InventoryEntity result = inventoryApi.upsert(inventory);
+        List<InventoryEntity> result = inventoryApi.getByProductIds(productIds);
 
         // Assert
-        assertEquals(1, result.getId());
-        assertEquals(0, result.getQuantity());
-        verify(inventoryDao).findByProductId(1);
-        verify(inventoryDao).save(any(InventoryEntity.class));
+        assertTrue(result.isEmpty());
+        verify(inventoryDao, times(1)).findByProductIds(productIds);
     }
 
     @Test
-    void should_handle_zero_quantity_in_bulk_upsert() {
+    void should_return_empty_list_when_getting_by_null_product_ids() {
         // Arrange
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(1);
-        inventory.setQuantity(0);
-
-        List<InventoryEntity> inventories = List.of(inventory);
-
-        when(inventoryDao.saveAll(inventories)).thenAnswer(invocation -> {
-            List<InventoryEntity> saved = invocation.getArgument(0);
-            saved.get(0).setId(1);
-            return saved;
-        });
+        List<Integer> productIds = null;
 
         // Act
-        List<InventoryEntity> result = inventoryApi.bulkUpsert(inventories);
+        List<InventoryEntity> result = inventoryApi.getByProductIds(productIds);
 
         // Assert
-        assertEquals(1, result.size());
-        assertEquals(0, result.get(0).getQuantity());
-        verify(inventoryDao).saveAll(inventories);
+        assertTrue(result.isEmpty());
+        verify(inventoryDao, times(1)).findByProductIds(productIds);
     }
 
+    private InventoryEntity createInventoryEntity(Integer productId, Integer quantity) {
+        InventoryEntity inventory = new InventoryEntity();
+        inventory.setProductId(productId);
+        inventory.setQuantity(quantity);
+        return inventory;
+    }
 }

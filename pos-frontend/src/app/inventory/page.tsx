@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { apiGet, apiPost } from "@/lib/api";
 import { InventoryData, ProductData, PagedResponse, InventorySearchForm } from "@/lib/types";
-import UpdateInventory from "@/components/UpdateInventory";
 import AddInventoryModal from "@/components/AddInventoryModal";
 import AuthGuard, { isOperator } from "@/components/AuthGuard";
 import toast from "react-hot-toast";
@@ -14,6 +13,26 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [isUserOperator, setIsUserOperator] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Edit state
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editQuantity, setEditQuantity] = useState(0);
+
+  function startEdit(item: InventoryData) {
+    setEditingId(item.productId);
+    setEditQuantity(item.quantity);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditQuantity(0);
+  }
+
+  async function saveEdit(productId: number) {
+    await updateInventoryQuantity(productId, editQuantity);
+    setEditingId(null);
+    setEditQuantity(0);
+  }
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -161,8 +180,6 @@ export default function InventoryPage() {
     });
 
     if (res.ok) {
-      const data = await res.json();
-      const count = data.length || 0;
       setPage(0);
       setLoading(true);
       try {
@@ -180,8 +197,9 @@ export default function InventoryPage() {
       } finally {
         setLoading(false);
       }
-      toast.success(`${count} inventory record${count !== 1 ? 's' : ''} uploaded successfully`);
-    } else if (res.status === 400) {
+      toast.success("Inventory uploaded successfully");
+    } else if (res.status === 400 || res.status === 403 || res.status === 409 || res.status === 404) {
+      // Download error file for any validation/business logic error
       const blob = await res.blob();
       const filename = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] || "inventory-upload-errors.tsv";
       
@@ -209,9 +227,9 @@ export default function InventoryPage() {
       document.body.removeChild(a);
 
       if (errors.length > 0) {
-        throw new Error(`${errors.length} error(s) found. Error file downloaded.`);
+        toast.error(`${errors.length} error(s) found. Error file downloaded.`);
       } else {
-        throw new Error("Upload failed with errors. Error file downloaded.");
+        toast.error("Upload failed with errors. Error file downloaded.");
       }
     } else {
       const text = await res.text();
@@ -221,10 +239,10 @@ export default function InventoryPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-3 sm:p-4">
         <div className="max-w-[1400px] mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-slate-800">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
               Inventory
             </h1>
             {!isUserOperator && (
@@ -290,39 +308,87 @@ export default function InventoryPage() {
             <div className="py-8 text-center text-slate-500">Loading...</div>
           ) : (
             <div className="p-4 bg-white rounded-lg shadow-sm overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse min-w-[500px]">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Product ID</th>
-                    <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Product Name</th>
-                    <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Barcode</th>
-                    <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Available Quantity</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Product ID</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Product Name</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Barcode</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Available Quantity</th>
                     {!isUserOperator && (
-                      <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Actions</th>
+                      <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Actions</th>
                     )}
                   </tr>
                 </thead>
                 <tbody>
                   {inventory.length === 0 ? (
                     <tr>
-                      <td colSpan={isUserOperator ? 4 : 5} className="py-10 text-center text-slate-500">
+                      <td colSpan={isUserOperator ? 4 : 5} className="py-8 sm:py-10 text-center text-slate-500">
                         No inventory found
                       </td>
                     </tr>
                   ) : (
                     inventory.map((i) => (
                       <tr key={i.productId} className="border-b border-gray-100">
-                        <td className="px-2 py-2.5 text-base">{i.productId}</td>
-                        <td className="px-2 py-2.5 text-base">{i.productName}</td>
-                        <td className="px-2 py-2.5 text-base">{barcodeMap.get(i.productId) || '-'}</td>
-                        <td className="px-2 py-2.5 text-base">{i.quantity}</td>
-                        {!isUserOperator && (
-                          <td className="px-2 py-2.5">
-                            <UpdateInventory
-                              productId={i.productId}
-                              initialQuantity={i.quantity}
-                              onUpdate={updateInventoryQuantity}
+                        <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{i.productId}</td>
+                        <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-medium">{i.productName}</td>
+                        <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{barcodeMap.get(i.productId) || '-'}</td>
+                        <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
+                          {editingId === i.productId ? (
+                            <input
+                              type="number"
+                              min={0}
+                              value={editQuantity}
+                              onChange={(e) => setEditQuantity(Number(e.target.value))}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  saveEdit(i.productId);
+                                } else if (e.key === "Escape") {
+                                  cancelEdit();
+                                }
+                              }}
+                              className="w-16 sm:w-20 px-2 py-1 text-xs sm:text-sm border border-blue-500 rounded focus:outline-none"
+                              autoFocus
                             />
+                          ) : (
+                            <span
+                              onClick={() => startEdit(i)}
+                              className="inline-block w-16 sm:w-20 px-2 py-1 text-xs sm:text-sm text-center transition-colors rounded cursor-pointer hover:bg-gray-100"
+                            >
+                              {i.quantity}
+                            </span>
+                          )}
+                        </td>
+                        {!isUserOperator && (
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
+                            {editingId === i.productId ? (
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => saveEdit(i.productId)}
+                                  disabled={editQuantity < 0}
+                                  className={`px-2 py-0.5 text-xs sm:text-sm text-white rounded ${
+                                    editQuantity < 0
+                                      ? "bg-gray-400 cursor-not-allowed"
+                                      : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
+                                  }`}
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  onClick={cancelEdit}
+                                  className="px-2 py-0.5 text-xs sm:text-sm text-white bg-gray-500 rounded hover:bg-gray-600 cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => startEdit(i)}
+                                className="px-2.5 py-1 text-xs sm:text-sm text-white transition-colors bg-blue-500 rounded hover:bg-blue-600 cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                            )}
                           </td>
                         )}
                       </tr>
@@ -332,15 +398,15 @@ export default function InventoryPage() {
               </table>
 
               {totalElements > 0 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                  <div className="text-base text-slate-500">
-                    Showing {inventory.length} of {totalElements} inventory items
+                <div className="flex flex-wrap items-center justify-between mt-4 pt-4 border-t border-gray-200 gap-y-3">
+                  <div className="text-xs sm:text-sm md:text-base text-slate-500 order-2 sm:order-1">
+                    Showing {inventory.length} of {totalElements} items
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 order-1 sm:order-2">
                     <button
                       onClick={() => setPage(Math.max(0, page - 1))}
                       disabled={page === 0}
-                      className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
+                      className={`px-2.5 py-1.5 text-xs sm:text-sm md:text-base border border-gray-300 rounded-md ${
                         page === 0 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -348,13 +414,13 @@ export default function InventoryPage() {
                     >
                       Previous
                     </button>
-                    <span className="px-3 py-1.5 text-base text-gray-700">
-                      Page {page + 1} of {totalPages || 1}
+                    <span className="px-2 py-1.5 text-xs sm:text-sm md:text-base text-gray-700">
+                      {page + 1} / {totalPages || 1}
                     </span>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= totalPages - 1}
-                      className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
+                      className={`px-2.5 py-1.5 text-xs sm:text-sm md:text-base border border-gray-300 rounded-md ${
                         page >= totalPages - 1 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"

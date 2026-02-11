@@ -36,9 +36,11 @@ class InventoryDtoTest {
 
     @Test
     void testParseInventoryTsv_WithValidData() throws IOException {
-        String tsvContent = "productId\tquantity\n" +
-                "1\t100\n" +
-                "2\t200\n";
+        String tsvContent = """
+                productId\tquantity
+                1\t100
+                2\t200
+                """;
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -58,10 +60,12 @@ class InventoryDtoTest {
 
     @Test
     void testParseInventoryTsv_WithInvalidData() throws IOException {
-        String tsvContent = "productId\tquantity\n" +
-                "invalid_id\t100\n" +
-                "2\t-50\n" +
-                "1\t200\n"; // Duplicate product ID
+        String tsvContent = """
+                productId\tquantity
+                invalid_id\t100
+                2\t-50
+                1\t200
+                """;
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -93,10 +97,12 @@ class InventoryDtoTest {
 
     @Test
     void testParseInventoryTsv_WithDuplicateProductIds() throws IOException {
-        String tsvContent = "productId\tquantity\n" +
-                "1\t100\n" +
-                "2\t200\n" +
-                "1\t300\n"; // Duplicate product ID
+        String tsvContent = """
+                productId\tquantity
+                1\t100
+                2\t200
+                1\t300
+                """;
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -119,8 +125,10 @@ class InventoryDtoTest {
 
     @Test
     void testParseInventoryTsv_WithInsufficientColumns() throws IOException {
-        String tsvContent = "productId\tquantity\n" +
-                "1\n"; // Missing quantity
+        String tsvContent = """
+                productId\tquantity
+                1
+                """;
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -143,8 +151,10 @@ class InventoryDtoTest {
 
     @Test
     void testParseInventoryTsv_WithZeroProductId() throws IOException {
-        String tsvContent = "productId\tquantity\n" +
-                "0\t100\n";
+        String tsvContent = """
+                productId\tquantity
+                0\t100
+                """;
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -177,7 +187,7 @@ class InventoryDtoTest {
         expectedData.setQuantity(100);
         expectedData.setProductName("Test Product");
         
-        when(inventoryFlow.upsertAndGetData(any())).thenReturn(expectedData);
+        when(inventoryFlow.upsert(any())).thenReturn(expectedData);
 
         // Act
         InventoryData result = inventoryDto.upsert(form);
@@ -187,7 +197,7 @@ class InventoryDtoTest {
         assertEquals(1, result.getProductId());
         assertEquals(100, result.getQuantity());
         assertEquals("Test Product", result.getProductName());
-        verify(inventoryFlow, times(1)).upsertAndGetData(any());
+        verify(inventoryFlow, times(1)).upsert(any());
     }
 
     @Test
@@ -202,14 +212,14 @@ class InventoryDtoTest {
         assertEquals("BAD_DATA", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().get(0).getMessage().contains("Product ID is required"));
-        verify(inventoryFlow, never()).upsertAndGetData(any());
+        verify(inventoryFlow, never()).upsert(any());
     }
 
     @Test
     void upsert_nullForm_throwsException() {
         // Act & Assert
         assertThrows(ApiException.class, () -> inventoryDto.upsert(null));
-        verify(inventoryFlow, never()).upsertAndGetData(any());
+        verify(inventoryFlow, never()).upsert(any());
     }
 
     @Test
@@ -252,35 +262,6 @@ class InventoryDtoTest {
         assertEquals("BAD_DATA", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Duplicate productId"));
         verify(inventoryFlow, never()).bulkUpsertAndGetData(any());
-    }
-
-    @Test
-    void getByProductId_validId_success() {
-        // Arrange
-        Integer productId = 1;
-        com.increff.pos.model.data.InventoryData expectedData = createInventoryData(productId, 100, "Test Product");
-        
-        when(inventoryFlow.getByProductIdWithData(productId)).thenReturn(expectedData);
-
-        // Act
-        InventoryData result = inventoryDto.getByProductId(productId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(productId, result.getProductId());
-        assertEquals(100, result.getQuantity());
-        assertEquals("Test Product", result.getProductName());
-        verify(inventoryFlow, times(1)).getByProductIdWithData(productId);
-    }
-
-    @Test
-    void getByProductId_invalidId_throwsException() {
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.getByProductId(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
-        assertTrue(exception.hasErrors());
-        assertTrue(exception.getErrors().get(0).getMessage().contains("Product ID is required"));
-        verify(inventoryFlow, never()).getByProductIdWithData(any());
     }
 
     private com.increff.pos.entity.InventoryEntity createInventoryEntity(Integer productId, Integer quantity) {

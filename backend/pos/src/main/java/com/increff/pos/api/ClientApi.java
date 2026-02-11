@@ -19,6 +19,24 @@ public class ClientApi {
     @Autowired
     private ClientDao clientDao;
 
+    @Transactional(readOnly = true)
+    public List<ClientEntity> getAll() {
+        return clientDao.selectAll();
+    }
+
+    @Transactional(readOnly = true)
+    public ClientEntity getById(Integer clientId){
+        return clientDao.findById(clientId).orElseThrow(() -> new ApiException(
+                ApiStatus.NOT_FOUND,
+                "Client not found: " + clientId, "clientId", "Client not found: " + clientId)
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ClientEntity> getClientsList(String clientName, Boolean enabled, Pageable pageable) {
+        return clientDao.searchClients(clientName, enabled, pageable);
+    }
+
     public ClientEntity createClient(ClientEntity client) {
 
         if (clientDao.existsByClientName(client.getClientName())) {
@@ -28,18 +46,6 @@ public class ClientApi {
         client.setEnabled(true);
         return clientDao.save(client);
 
-    }
-
-    @Transactional(readOnly = true)
-    public List<ClientEntity> getAll() {
-        return clientDao.selectAll();
-    }
-
-    public ClientEntity getById(Integer clientId){
-        return clientDao.findById(clientId).orElseThrow(() -> new ApiException(
-                        ApiStatus.NOT_FOUND,
-                        "Client not found: " + clientId, "clientId", "Client not found: " + clientId)
-                        );
     }
 
     public ClientEntity updateClient(Integer clientId, ClientEntity client) {
@@ -66,20 +72,16 @@ public class ClientApi {
         return client;
     }
 
-    public Page<ClientEntity> getAllClients(Pageable pageable) {
-        return clientDao.findAll(pageable);
-    }
-
-    public Page<ClientEntity> searchClients(String clientName, Pageable pageable) {
-        return clientDao.searchByName(clientName, pageable);
-    }
-
     public Boolean isClientEnabled(Integer clientId) {
         return getClientOrThrow(clientId).getEnabled();
     }
 
     public List<Integer> getDisabledClientIds(List<Integer> clientIds){
         return clientDao.findDisabledClientIds(clientIds);
+    }
+
+    public List<Integer> getNonExistentClientIds(List<Integer> clientIds) {
+        return clientDao.findNonExistentClientIds(clientIds);
     }
 
     private ClientEntity getClientOrThrow(Integer clientId) {

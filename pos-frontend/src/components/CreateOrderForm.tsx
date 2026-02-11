@@ -58,7 +58,18 @@ export default function CreateOrderForm({
 
   function updateItem(index: number, field: string, value: any) {
     const copy = [...items];
-    (copy[index] as any)[field] = value;
+    let processedValue = value;
+    
+    // Validate quantity: must be at least 1
+    if (field === "quantity") {
+      processedValue = Math.max(1, Number(value) || 1);
+    }
+    // Validate selling price: must be at least 0
+    else if (field === "sellingPrice") {
+      processedValue = Math.max(0, Number(value) || 0);
+    }
+    
+    (copy[index] as any)[field] = processedValue;
     setItems(copy);
   }
 
@@ -106,7 +117,7 @@ export default function CreateOrderForm({
   return (
     <div>
       <div className="overflow-x-auto">
-<table className="w-full border-collapse">
+        <table className="w-full border-collapse">
           <thead>
             <tr className="border-b-2 border-gray-200">
               <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Barcode</th>
@@ -138,6 +149,11 @@ export default function CreateOrderForm({
                     onChange={(e) =>
                       updateItem(i, "quantity", Number(e.target.value))
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e") {
+                        e.preventDefault();
+                      }
+                    }}
                     className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </td>
@@ -145,10 +161,16 @@ export default function CreateOrderForm({
                   <input
                     type="number"
                     min={0}
+                    step="0.01"
                     value={item.sellingPrice}
                     onChange={(e) =>
                       updateItem(i, "sellingPrice", Number(e.target.value))
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "-" || e.key === "e") {
+                        e.preventDefault();
+                      }
+                    }}
                     className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </td>

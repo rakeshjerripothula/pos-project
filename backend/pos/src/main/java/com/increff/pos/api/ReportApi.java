@@ -27,11 +27,7 @@ public class ReportApi {
         return reportDao.getSalesReport(startDate, endDate, clientId, pageable);
     }
 
-    public List<SalesReportRow> getAllSalesReport(
-            ZonedDateTime startDate,
-            ZonedDateTime endDate,
-            Integer clientId
-    ) {
+    public List<SalesReportRow> getAllSalesReport(ZonedDateTime startDate, ZonedDateTime endDate, Integer clientId) {
         return reportDao.getAllSalesReport(startDate, endDate, clientId);
     }
 }

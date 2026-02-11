@@ -22,10 +22,26 @@ public class ProductApi {
     @Autowired
     private ClientApi clientApi;
 
+    public List<ProductEntity> getAll() {
+        return productDao.selectAll();
+    }
+
+    public ProductEntity getProductById(Integer id) {
+        return productDao.findById(id)
+                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "Product not found", "id", "Product not found"));
+    }
+
     public ProductEntity createProduct(ProductEntity product) {
 
-        if (!clientApi.isClientEnabled(product.getClientId())) {
-            throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
+        try {
+            if (!clientApi.isClientEnabled(product.getClientId())) {
+                throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
+            }
+        } catch (ApiException e) {
+            if (e.getStatus() == ApiStatus.NOT_FOUND) {
+                throw e; // Re-throw the NOT_FOUND error for non-existent client
+            }
+            throw e; // Re-throw other errors
         }
 
         if (productDao.existsByBarcode(product.getBarcode())) {
@@ -68,8 +84,15 @@ public class ProductApi {
 
         Integer clientId = existing.getClientId();
 
-        if (!clientApi.isClientEnabled(clientId)) {
-            throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
+        try {
+            if (!clientApi.isClientEnabled(clientId)) {
+                throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
+            }
+        } catch (ApiException e) {
+            if (e.getStatus() == ApiStatus.NOT_FOUND) {
+                throw e;
+            }
+            throw e; // Re-throw other errors
         }
 
         String newName = product.getProductName();
@@ -107,43 +130,29 @@ public class ProductApi {
         return productDao.save(existing);
     }
 
-    public List<ProductEntity> getAll() {
-        return productDao.selectAll();
-    }
-
-    public Page<ProductEntity> listProductsForEnabledClients(Pageable pageable) {
-        return productDao.findProductsForEnabledClients(pageable);
-    }
-
     public Page<ProductEntity> searchProducts(Integer clientId, String barcode, String productName, Pageable pageable) {
         return productDao.searchProducts(clientId, barcode, productName, pageable);
     }
 
-
-    public ProductEntity getProductById(Integer id) {
-        return productDao.findById(id)
-                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "Product not found", "id", "Product not found"));
-    }
-
     public List<ProductEntity> bulkCreateProducts(List<ProductEntity> products) {
 
-        List<String> barcodes = products.stream()
-                .map(ProductEntity::getBarcode)
-                .toList();
+        List<String> barcodes = products.stream().map(ProductEntity::getBarcode).toList();
 
-        List<Integer> clientIds = products.stream()
-                .map(ProductEntity::getClientId)
-                .distinct()
-                .toList();
+        List<Integer> clientIds = products.stream().map(ProductEntity::getClientId).distinct().toList();
 
         List<String> existingBarcodes = productDao.findExistingBarcodes(barcodes);
 
         if (!existingBarcodes.isEmpty()) {
             throw new ApiException(
-                    ApiStatus.CONFLICT,
-                    "Duplicate barcodes: " + existingBarcodes,
-                    "barcode",
-                    "Duplicate barcodes found"
+                    ApiStatus.CONFLICT, "Duplicate barcodes: " + existingBarcodes, "barcode", "Duplicate barcodes found"
+            );
+        }
+
+        List<Integer> nonExistentClients = clientApi.getNonExistentClientIds(clientIds);
+
+        if (!nonExistentClients.isEmpty()) {
+            throw new ApiException(
+                    ApiStatus.NOT_FOUND, "Clients not found: " + nonExistentClients, "clientId", "Some clients do not exist"
             );
         }
 
@@ -151,10 +160,7 @@ public class ProductApi {
 
         if (!disabledClients.isEmpty()) {
             throw new ApiException(
-                    ApiStatus.FORBIDDEN,
-                    "Disabled clients: " + disabledClients,
-                    "clientId",
-                    "Some clients are disabled"
+                    ApiStatus.FORBIDDEN, "Disabled clients: " + disabledClients, "clientId", "Some clients are disabled"
             );
         }
 

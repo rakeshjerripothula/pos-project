@@ -82,22 +82,4 @@ class ClientDaoIntegrationTest {
         assertFalse(notExists);
     }
 
-    @Test
-    void testFindAllPageable() {
-        ClientEntity client1 = new ClientEntity();
-        client1.setClientName("Client 1");
-        client1.setEnabled(true);
-        clientDao.save(client1);
-
-        ClientEntity client2 = new ClientEntity();
-        client2.setClientName("Client 2");
-        client2.setEnabled(true);
-        clientDao.save(client2);
-
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<ClientEntity> page = clientDao.findAll(pageable);
-
-        assertEquals(2, page.getTotalElements());
-        assertEquals(2, page.getContent().size());
-    }
 }

@@ -15,16 +15,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/orders")
-@CrossOrigin(origins = "http://localhost:3000")
 public class OrderController {
 
     @Autowired
     private OrderDto orderDto;
-
-    @PostMapping
-    public OrderData create(@RequestBody @Valid OrderForm form) {
-        return orderDto.create(form);
-    }
 
     @GetMapping
     public OrderPageData getOrders(OrderPageForm form) {
@@ -36,15 +30,20 @@ public class OrderController {
         return orderDto.getById(id);
     }
 
+    @GetMapping("/{id}/items")
+    public List<OrderItemData> getOrderItems(@PathVariable Integer id) {
+        return orderDto.getOrderItems(id);
+    }
+
+    @PostMapping
+    public OrderData create(@RequestBody @Valid OrderForm form) {
+        return orderDto.create(form);
+    }
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<OrderData> cancel(@PathVariable Integer id) {
         OrderData orderData = orderDto.cancel(id);
         return ResponseEntity.ok(orderData);
-    }
-
-    @GetMapping("/{id}/items")
-    public List<OrderItemData> getOrderItems(@PathVariable Integer id) {
-        return orderDto.getOrderItems(id);
     }
 
 }

@@ -6,9 +6,6 @@ import com.increff.pos.entity.ProductEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,28 +77,6 @@ class InventoryDaoIntegrationTest {
     }
 
     @Test
-    void testSelectAll() {
-        ProductEntity product1 = createTestProduct();
-        ProductEntity product2 = createTestProduct();
-        
-        InventoryEntity inventory1 = new InventoryEntity();
-        inventory1.setProductId(product1.getId());
-        inventory1.setQuantity(10);
-        inventoryDao.save(inventory1);
-
-        InventoryEntity inventory2 = new InventoryEntity();
-        inventory2.setProductId(product2.getId());
-        inventory2.setQuantity(20);
-        inventoryDao.save(inventory2);
-
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<InventoryEntity> page = inventoryDao.findAll(pageable);
-
-        assertEquals(2, page.getTotalElements());
-        assertEquals(2, page.getContent().size());
-    }
-
-    @Test
     void testSelectByProductIds() {
         ProductEntity product1 = createTestProduct();
         ProductEntity product2 = createTestProduct();
@@ -122,7 +97,7 @@ class InventoryDaoIntegrationTest {
     }
 
     @Test
-    void testFindForEnabledClients() {
+    void testFindAllForEnabledClients() {
         ClientEntity enabledClient = new ClientEntity();
         enabledClient.setClientName("Enabled Client " + System.currentTimeMillis());
         enabledClient.setEnabled(true);
@@ -157,35 +132,30 @@ class InventoryDaoIntegrationTest {
         disabledInventory.setQuantity(200);
         inventoryDao.save(disabledInventory);
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<InventoryEntity> page = inventoryDao.findForEnabledClients(pageable);
-
-        assertEquals(1, page.getTotalElements());
-        assertEquals(enabledProduct.getId(), page.getContent().get(0).getProductId());
-    }
-
-    @Test
-    void testFindAllForEnabledClients() {
-        ClientEntity enabledClient = new ClientEntity();
-        enabledClient.setClientName("Enabled Client " + System.currentTimeMillis());
-        enabledClient.setEnabled(true);
-        enabledClient = clientDao.save(enabledClient);
-
-        ProductEntity enabledProduct = new ProductEntity();
-        enabledProduct.setProductName("Enabled Product");
-        enabledProduct.setMrp(new BigDecimal("10.00"));
-        enabledProduct.setClientId(enabledClient.getId());
-        enabledProduct.setBarcode("ENABLED2" + (barcodeCounter++));
-        enabledProduct = productDao.save(enabledProduct);
-
-        InventoryEntity inventory = new InventoryEntity();
-        inventory.setProductId(enabledProduct.getId());
-        inventory.setQuantity(100);
-        inventoryDao.save(inventory);
-
         List<InventoryEntity> found = inventoryDao.findAllForEnabledClients();
 
         assertEquals(1, found.size());
         assertEquals(enabledProduct.getId(), found.get(0).getProductId());
+    }
+
+    @Test
+    void testSaveAll() {
+        ProductEntity product1 = createTestProduct();
+        ProductEntity product2 = createTestProduct();
+        
+        InventoryEntity inventory1 = new InventoryEntity();
+        inventory1.setProductId(product1.getId());
+        inventory1.setQuantity(10);
+
+        InventoryEntity inventory2 = new InventoryEntity();
+        inventory2.setProductId(product2.getId());
+        inventory2.setQuantity(20);
+
+        List<InventoryEntity> inventories = List.of(inventory1, inventory2);
+        List<InventoryEntity> saved = inventoryDao.saveAll(inventories);
+
+        assertEquals(2, saved.size());
+        assertNotNull(saved.get(0).getId());
+        assertNotNull(saved.get(1).getId());
     }
 }

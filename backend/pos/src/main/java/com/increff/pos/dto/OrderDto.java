@@ -37,6 +37,66 @@ public class OrderDto extends AbstractDto {
     @Autowired
     private ProductApi productApi;
 
+    public OrderPageData getOrders(OrderPageForm form) {
+
+        ZonedDateTime start = null;
+        ZonedDateTime end = null;
+
+        try {
+            if (!Objects.isNull(form.getStartDate())) {
+                start = ZonedDateTime.parse(form.getStartDate());
+            }
+
+            if (!Objects.isNull(form.getEndDate())) {
+                end = ZonedDateTime.parse(form.getEndDate());
+            }
+        } catch (Exception e) {
+            throw new ApiException(
+                    ApiStatus.BAD_DATA, "Invalid date format. Please use ISO date format (e.g., 2023-01-01T00:00:00Z)",
+                    "dates", "Invalid date format"
+            );
+        }
+
+        ValidationUtil.validateOptionalDateRange(start, end);
+
+        int page = !Objects.isNull(form.getPage()) ? form.getPage() : 0;
+        int pageSize = !Objects.isNull(form.getPageSize()) ? form.getPageSize() : 10;
+
+        Page<OrderEntity> pageResult =
+                orderFlow.searchOrders(form.getStatus(), form.getClientId(), start, end, page, pageSize);
+
+        List<OrderData> orders = pageResult.getContent().stream().map(ConversionUtil::orderEntityToData).toList();
+
+        OrderPageData response = new OrderPageData();
+        response.setContent(orders);
+        response.setPage(page);
+        response.setPageSize(pageSize);
+        response.setTotalElements(pageResult.getTotalElements());
+
+        return response;
+    }
+
+    public OrderData getById(Integer orderId) {
+        validateOrderId(orderId);
+
+        OrderEntity order = orderFlow.getById(orderId);
+        OrderData data = ConversionUtil.orderEntityToData(order);
+
+        List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
+
+        List<Integer> productIds = items.stream().map(OrderItemEntity::getProductId).distinct().toList();
+
+        List<ProductEntity> products = productApi.getByIds(productIds);
+
+        Map<Integer, ProductEntity> productMap = products.stream()
+                .collect(Collectors.toMap(ProductEntity::getId, product -> product));
+
+        List<OrderItemData> itemDataList = ConversionUtil.orderItemEntitiesToData(items, productMap);
+        data.setItems(itemDataList);
+
+        return data;
+    }
+
     public OrderData create(OrderForm form) {
         checkValid(form);
 
@@ -46,30 +106,6 @@ public class OrderDto extends AbstractDto {
                 .collect(Collectors.toList());
 
         return ConversionUtil.orderEntityToData(orderFlow.createOrder(items));
-    }
-
-    public OrderData getById(Integer orderId) {
-        validateOrderId(orderId);
-
-        OrderEntity order = orderFlow.getById(orderId);
-        OrderData data = ConversionUtil.orderEntityToData(order);
-        
-        // Load order items with product details
-        List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
-        
-        // Get product details
-        List<Integer> productIds = items.stream()
-                .map(OrderItemEntity::getProductId)
-                .distinct()
-                .toList();
-        List<ProductEntity> products = productApi.getByIds(productIds);
-        Map<Integer, ProductEntity> productMap = products.stream()
-                .collect(Collectors.toMap(ProductEntity::getId, product -> product));
-        
-        List<OrderItemData> itemDataList = ConversionUtil.orderItemEntitiesToData(items, productMap);
-        data.setItems(itemDataList);
-        
-        return data;
     }
 
     public List<OrderItemData> getOrderItems(Integer orderId) {
@@ -93,49 +129,6 @@ public class OrderDto extends AbstractDto {
             throw new ApiException(ApiStatus.BAD_DATA, "Order ID is required", "orderId", "Order ID is required");
         }
         return ConversionUtil.orderEntityToData(orderFlow.cancelOrder(orderId));
-    }
-
-    public OrderPageData getOrders(OrderPageForm form) {
-
-        ZonedDateTime start = null;
-        ZonedDateTime end = null;
-
-        try {
-            if (!Objects.isNull(form.getStartDate())) {
-                start = ZonedDateTime.parse(form.getStartDate());
-            }
-
-            if (!Objects.isNull(form.getEndDate())) {
-                end = ZonedDateTime.parse(form.getEndDate());
-            }
-        } catch (Exception e) {
-            throw new ApiException(
-                ApiStatus.BAD_DATA,
-                "Invalid date format. Please use ISO date format (e.g., 2023-01-01T00:00:00Z)",
-                "dates",
-                "Invalid date format"
-            );
-        }
-
-        ValidationUtil.validateOptionalDateRange(start, end);
-
-        int page = !Objects.isNull(form.getPage()) ? form.getPage() : 0;
-        int pageSize = !Objects.isNull(form.getPageSize()) ? form.getPageSize() : 10;
-
-        Page<OrderEntity> pageResult =
-                orderFlow.searchOrders(form.getStatus(), form.getClientId(), start, end, page, pageSize);
-
-        List<OrderData> orders = pageResult.getContent().stream()
-                .map(ConversionUtil::orderEntityToData)
-                .toList();
-
-        OrderPageData response = new OrderPageData();
-        response.setContent(orders);
-        response.setPage(page);
-        response.setPageSize(pageSize);
-        response.setTotalElements(pageResult.getTotalElements());
-
-        return response;
     }
 
     private void validateOrderId(Integer orderId) {

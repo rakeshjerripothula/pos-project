@@ -28,6 +28,12 @@ public class ClientDto extends AbstractDto {
     @Autowired
     private ClientApi clientApi;
 
+    public List<ClientData> getAll() {
+        List<ClientEntity> entities = clientApi.getAll();
+
+        return entities.stream().map(ConversionUtil::clientEntityToData).toList();
+    }
+
     public ClientData createClient(ClientForm form) {
         checkValid(form);
         
@@ -36,10 +42,23 @@ public class ClientDto extends AbstractDto {
         return ConversionUtil.clientEntityToData(saved);
     }
 
-    public List<ClientData> getAll() {
-        List<ClientEntity> entities = clientApi.getAll();
+    public PagedResponse<ClientData> listClients(ClientSearchForm form) {
+        checkValid(form);
 
-        return entities.stream().map(ConversionUtil::clientEntityToData).toList();
+        Pageable pageable = PageRequest.of(
+                form.getPage(),
+                form.getPageSize(),
+                Sort.by("clientName").ascending()
+        );
+
+        Page<ClientEntity> page = clientApi.getClientsList(form.getClientName(), form.getEnabled(), pageable);
+
+        List<ClientData> data = page.getContent()
+                .stream()
+                .map(ConversionUtil::clientEntityToData)
+                .toList();
+
+        return new PagedResponse<>(data, page.getTotalElements());
     }
 
     public ClientData updateClient(Integer clientId, ClientForm form) {
@@ -49,8 +68,7 @@ public class ClientDto extends AbstractDto {
         
         checkValid(form);
         
-        ClientEntity entity = new ClientEntity();
-        entity.setClientName(normalize(form.getClientName()));
+        ClientEntity entity = ConversionUtil.clientFormToEntity(form);
         return ConversionUtil.clientEntityToData(clientApi.updateClient(clientId, entity));
     }
 
@@ -62,25 +80,6 @@ public class ClientDto extends AbstractDto {
         checkValid(form);
         
         return ConversionUtil.clientEntityToData(clientApi.toggle(id, form.getEnabled()));
-    }
-
-    public PagedResponse<ClientData> getAllClients(ClientSearchForm form) {
-        checkValid(form);
-
-        Pageable pageable = PageRequest.of(
-                form.getPage(),
-                form.getPageSize(),
-                Sort.by("clientName").ascending()
-        );
-
-        Page<ClientEntity> page = clientApi.searchClients(form.getClientName(), pageable);
-
-        List<ClientData> data = page.getContent()
-                .stream()
-                .map(ConversionUtil::clientEntityToData)
-                .toList();
-
-        return new PagedResponse<>(data, page.getTotalElements());
     }
 
 }

@@ -87,7 +87,7 @@ public class InvoiceFlow {
         form.setInvoiceNumber("INV-" + order.getId());
         form.setInvoiceDate(order.getCreatedAt());
 
-        String clientName = getClientName(order.getClientId());
+        String clientName = clientApi.getById(order.getClientId()).getClientName();;
         form.setClientName(clientName);
 
         List<InvoiceItemForm> invoiceItems = items.stream()
@@ -102,14 +102,6 @@ public class InvoiceFlow {
         form.setTotalAmount(total);
 
         return form;
-    }
-
-    private String getClientName(Integer clientId) {
-        try {
-            return clientApi.getById(clientId).getClientName();
-        } catch (Exception e) {
-            throw new ApiException(ApiStatus.INTERNAL_ERROR, "Failed to get client name for client ID: " + clientId);
-        }
     }
 
     private String savePdf(Integer orderId, String base64Pdf) {

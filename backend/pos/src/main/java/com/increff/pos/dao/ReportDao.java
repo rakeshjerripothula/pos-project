@@ -97,11 +97,7 @@ public class ReportDao {
         return new PageImpl<>(rows, pageable, total);
     }
 
-    public List<SalesReportRow> getAllSalesReport(
-            ZonedDateTime startDate,
-            ZonedDateTime endDate,
-            Integer clientId
-    ) {
+    public List<SalesReportRow> getAllSalesReport(ZonedDateTime startDate, ZonedDateTime endDate, Integer clientId) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
 

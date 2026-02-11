@@ -26,16 +26,4 @@ public class ApiException extends RuntimeException {
         this.errors = errors == null ? Collections.emptyList() : errors;
     }
 
-    public ApiException(ApiStatus status, String message, String field, String errorMessage) {
-        super(message);
-        this.status = status;
-
-        FieldErrorData error = new FieldErrorData(field, errorMessage, "");
-
-        this.errors = List.of(error);
-    }
-
-    public boolean hasErrors() {
-        return !errors.isEmpty();
-    }
 }

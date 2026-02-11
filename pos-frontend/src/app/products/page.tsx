@@ -201,8 +201,6 @@ export default function ProductsPage() {
     });
 
     if (res.ok) {
-      const data = await res.json();
-      const count = data.length || 0;
       setPage(0);
       setLoading(true);
       try {
@@ -222,8 +220,9 @@ export default function ProductsPage() {
       } finally {
         setLoading(false);
       }
-      toast.success(`${count} product${count !== 1 ? 's' : ''} uploaded successfully`);
-    } else if (res.status === 400) {
+      toast.success("Products uploaded successfully");
+    } else if (res.status === 400 || res.status === 403 || res.status === 409 || res.status === 404) {
+      // Download error file for any validation/business logic error
       const blob = await res.blob();
       const filename = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] || "products-upload-errors.tsv";
       
@@ -254,7 +253,6 @@ export default function ProductsPage() {
         toast.error(`${errors.length} error(s) found. Error file downloaded.`);
       } else {
         toast.error("Upload failed with errors. Error file downloaded.");
-        return;
       }
     } else {
       const text = await res.text();
@@ -264,10 +262,10 @@ export default function ProductsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-3 sm:p-4">
         <div className="max-w-[1400px] mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-slate-800">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
               Products
             </h1>
             {!isUserOperator && (
@@ -345,25 +343,25 @@ export default function ProductsPage() {
             <div className="py-8 text-center text-slate-500">Loading...</div>
           ) : (
             <div className="p-4 bg-white rounded-lg shadow-sm overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse min-w-[600px]">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">S. No.</th>
-                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Image</th>
-                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Product Name</th>
-                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Barcode</th>
-                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">MRP</th>
-                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Client</th>
-                    <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Inventory</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">S. No.</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Image</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Product Name</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Barcode</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">MRP</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Client</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Inventory</th>
                     {!isUserOperator && (
-                      <th className="px-2 py-2.5 text-sm font-semibold text-left text-gray-700">Actions</th>
+                      <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Actions</th>
                     )}
                   </tr>
                 </thead>
                 <tbody>
                   {products.length === 0 ? (
                     <tr>
-                      <td colSpan={isUserOperator ? 7 : 8} className="py-10 text-center text-slate-500">
+                      <td colSpan={isUserOperator ? 7 : 8} className="py-8 sm:py-10 text-center text-slate-500">
                         No products found
                       </td>
                     </tr>
@@ -372,13 +370,13 @@ export default function ProductsPage() {
                       const client = clients.find((c) => c.id === p.clientId);
                       return (
                         <tr key={p.id} className="border-b border-gray-100">
-                          <td className="px-2 py-2.5 text-base">{index + 1}</td>
-                          <td className="px-2 py-2.5">
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{index + 1}</td>
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
                             {p.imageUrl ? (
                               <img
                                 src={p.imageUrl}
                                 alt={p.productName}
-                                className="w-15 h-15 object-cover border border-gray-200 rounded-md"
+                                className="w-10 h-10 sm:w-12 sm:h-12 object-cover border border-gray-200 rounded-md"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src =
                                     "https://placehold.co/50x50/e5e7eb/9ca3af?text=No+Img";
@@ -388,24 +386,24 @@ export default function ProductsPage() {
                               <img
                                 src="https://placehold.co/50x50/e5e7eb/9ca3af?text=No+Img"
                                 alt="No image"
-                                className="w-15 h-15 object-cover border border-gray-200 rounded-md"
+                                className="w-10 h-10 sm:w-12 sm:h-12 object-cover border border-gray-200 rounded-md"
                               />
                             )}
                           </td>
-                          <td className="px-2 py-2.5 text-base">{p.productName}</td>
-                          <td className="px-2 py-2.5 text-base">{p.barcode}</td>
-                          <td className="px-2 py-2.5 text-base">₹{Number(p.mrp).toFixed(2)}</td>
-                          <td className="px-2 py-2.5 text-base">
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-medium">{p.productName}</td>
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{p.barcode}</td>
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">₹{Number(p.mrp).toFixed(2)}</td>
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">
                             {client?.clientName || `Client ${p.clientId}`}
                           </td>
-                          <td className="px-2 py-2.5 text-base">
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">
                             {inventoryMap.get(p.id) ?? 0}
                           </td>
                           {!isUserOperator && (
-                            <td className="px-2 py-2.5">
+                            <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
                               <button
                                 onClick={() => setEditingProduct(p)}
-                                className="px-3 py-1.5 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
+                                className="px-2.5 py-1 text-xs sm:text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
                               >
                                 Edit
                               </button>
@@ -419,15 +417,15 @@ export default function ProductsPage() {
               </table>
 
               {totalElements > 0 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-                  <div className="text-base text-slate-500">
+                <div className="flex flex-wrap items-center justify-between mt-4 pt-4 border-t border-gray-200 gap-y-3">
+                  <div className="text-xs sm:text-sm md:text-base text-slate-500 order-2 sm:order-1">
                     Showing {products.length} of {totalElements} products
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 order-1 sm:order-2">
                     <button
                       onClick={() => setPage(Math.max(0, page - 1))}
                       disabled={page === 0}
-                      className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
+                      className={`px-2.5 py-1.5 text-xs sm:text-sm md:text-base border border-gray-300 rounded-md ${
                         page === 0 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -435,13 +433,13 @@ export default function ProductsPage() {
                     >
                       Previous
                     </button>
-                    <span className="px-3 py-1.5 text-base text-gray-700">
-                      Page {page + 1} of {totalPages || 1}
+                    <span className="px-2 py-1.5 text-xs sm:text-sm md:text-base text-gray-700">
+                      {page + 1} / {totalPages || 1}
                     </span>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={page >= totalPages - 1}
-                      className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
+                      className={`px-2.5 py-1.5 text-xs sm:text-sm md:text-base border border-gray-300 rounded-md ${
                         page >= totalPages - 1 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"

@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { apiGet, apiPost } from "@/lib/api";
 import { OrderPageData, OrderItemData, OrderStatus, ClientData } from "@/lib/types";
 import { utcToIst } from "@/lib/utils";
-import Link from "next/link";
 import AuthGuard from "@/components/AuthGuard";
 import ConfirmModal from "@/components/ConfirmModal";
 import CreateOrderModal from "@/components/CreateOrderModal";
@@ -17,7 +16,6 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
   const [orderItemsCache, setOrderItemsCache] = useState<  Map<number, OrderItemData[]>>(new Map());
-  const [clientsLoaded, setClientsLoaded] = useState(false);
 
   // Filters
   const [status, setStatus] = useState<OrderStatus | "">("");
@@ -52,7 +50,7 @@ export default function OrdersPage() {
     loadOrders();
   }, [page]);
 
-  const clientOptions = clients.filter((c) => c.enabled).sort((a, b) => a.clientName.localeCompare(b.clientName))
+  const clientOptions = clients.filter((c) => c.enabled)
                         .map((c) => ({value: c.id,label: c.clientName,}));
 
   const selectedClient = clientOptions.find((o) => o.value === Number(clientId)) || null;
@@ -221,10 +219,10 @@ async function cancelOrder(orderId: number) {
 
   return (
     <AuthGuard>
-      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-4">
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-3 sm:p-4">
         <div className="max-w-[1400px] mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-slate-800">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
               Orders
             </h1>
             <button
@@ -362,36 +360,36 @@ async function cancelOrder(orderId: number) {
           ) : data && data.content.length > 0 ? (
             <>
               <div className="p-4 bg-white rounded-lg shadow-sm overflow-x-auto">
-              <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="border-b-2 border-gray-200">
-                      <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Order ID</th>
-                      <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Client Name</th>
-                      <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Status</th>
-                      <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Created At (IST)</th>
-                      <th className="px-2 py-2.5 text-base font-semibold text-left text-gray-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.content.map((order) => {
+              <table className="w-full border-collapse min-w-[700px]">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Order ID</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Client Name</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Status</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Created At (IST)</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.content.map((order) => {
                       const orderIdValue = order.id || order.orderId || 0;
                       return (
                         <React.Fragment key={orderIdValue}>
                           <tr className="border-b border-gray-100">
-                            <td className="px-2 py-2.5">
+                            <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
                               <button
                                 onClick={() => toggleOrder(orderIdValue)}
-                                className="bg-transparent border-none cursor-pointer text-gray-700 text-base font-medium hover:text-blue-500"
+                                className="bg-transparent border-none cursor-pointer text-gray-700 text-xs sm:text-sm font-medium hover:text-blue-500"
                               >
                                 {expandedOrders.has(orderIdValue) ? "▼" : "▶"}{" "}
                                 {orderIdValue}
                               </button>
                             </td>
-                            <td className="px-2 py-2.5 text-base">
+                            <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">
                               {clients.find((c) => c.id === order.clientId)?.clientName || order.clientId}
                             </td>
-                            <td className="px-2 py-2.5">
-                              <span className={`px-2.5 py-1 text-sm font-medium rounded-full ${
+                            <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
+                              <span className={`px-2 py-0.5 text-xs sm:text-sm font-medium rounded-full ${
                                 order.status === "INVOICED"
                                   ? "bg-blue-100 text-blue-800"
                                   : order.status === "CANCELLED"
@@ -401,55 +399,57 @@ async function cancelOrder(orderId: number) {
                                 {order.status}
                               </span>
                             </td>
-                            <td className="px-2 py-2.5 text-base">{utcToIst(order.createdAt)}</td>
-                            <td className="px-2 py-2.5">
-{order.status === "CREATED" && (
-                                <>
+                            <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{utcToIst(order.createdAt)}</td>
+                            <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
+                              <div className="flex flex-wrap gap-1">
+                                {order.status === "CREATED" && (
+                                  <>
+                                    <button
+                                      onClick={() => generateInvoice(orderIdValue)}
+                                      className="px-2 py-0.5 text-xs sm:text-sm text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors cursor-pointer"
+                                    >
+                                      Generate Invoice
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancelClick(orderIdValue)}
+                                      className="px-2 py-0.5 text-xs sm:text-sm text-white bg-red-500 rounded hover:bg-red-600 transition-colors cursor-pointer"
+                                    >
+                                      Cancel Order
+                                    </button>
+                                  </>
+                                )}
+                                {order.status === "INVOICED" && (
                                   <button
-                                    onClick={() => generateInvoice(orderIdValue)}
-                                    className="px-3 py-1.5 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer mr-1.5"
+                                    onClick={() => downloadInvoice(orderIdValue)}
+                                    className="px-2 py-0.5 text-xs sm:text-sm text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors cursor-pointer"
                                   >
-                                    Generate Invoice
+                                    Download Invoice
                                   </button>
-                                  <button
-                                    onClick={() => handleCancelClick(orderIdValue)}
-                                    className="px-3 py-1.5 text-sm text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors cursor-pointer"
-                                  >
-                                    Cancel Order
-                                  </button>
-                                </>
-                              )}
-                              {order.status === "INVOICED" && (
-                                <button
-                                  onClick={() => downloadInvoice(orderIdValue)}
-                                  className="px-3 py-1.5 text-sm text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer"
-                                >
-                                  Download Invoice
-                                </button>
-                              )}
-                              {order.status === "CANCELLED" && (
-                                <span className="text-sm text-gray-500">
-                                  No actions available
-                                </span>
-                              )}
+                                )}
+                                {order.status === "CANCELLED" && (
+                                  <span className="text-xs sm:text-sm text-gray-500">
+                                    -
+                                  </span>
+                                )}
+                              </div>
                             </td>
                           </tr>
                           {expandedOrders.has(orderIdValue) && (
                             <tr>
-                              <td colSpan={5} className="p-4">
+                              <td colSpan={5} className="p-3 sm:p-4">
                                 <div>
-                                  <h4 className="mb-2 text-base font-semibold text-slate-800">
+                                  <h4 className="mb-2 text-xs sm:text-sm font-semibold text-slate-800">
                                     Order Items
                                   </h4>
                                   {orderItemsCache.has(orderIdValue) ? (
                                     <table className="w-full border-collapse">
                                       <thead>
                                         <tr className="bg-gray-50 border-b border-gray-200">
-                                          <th className="px-2 py-2 text-sm font-semibold text-left text-slate-500">Product ID</th>
-                                          <th className="px-2 py-2 text-sm font-semibold text-left text-slate-500">Product Name</th>
-                                          <th className="px-2 py-2 text-sm font-semibold text-left text-slate-500">Quantity</th>
-                                          <th className="px-2 py-2 text-sm font-semibold text-left text-slate-500">Selling Price</th>
-                                          <th className="px-2 py-2 text-sm font-semibold text-left text-slate-500">Total</th>
+                                          <th className="px-2 py-1.5 text-xs font-semibold text-left text-slate-500">Product ID</th>
+                                          <th className="px-2 py-1.5 text-xs font-semibold text-left text-slate-500">Product Name</th>
+                                          <th className="px-2 py-1.5 text-xs font-semibold text-left text-slate-500">Quantity</th>
+                                          <th className="px-2 py-1.5 text-xs font-semibold text-left text-slate-500">Selling Price</th>
+                                          <th className="px-2 py-1.5 text-xs font-semibold text-left text-slate-500">Total</th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -457,17 +457,17 @@ async function cancelOrder(orderId: number) {
                                           .get(orderIdValue)!
                                           .map((item, idx) => (
                                             <tr key={idx} className="border-b border-gray-100">
-                                              <td className="px-2 py-2 text-base">{item.productId}</td>
-                                              <td className="px-2 py-2 text-base">{item.productName}</td>
-                                              <td className="px-2 py-2 text-base">{item.quantity}</td>
-                                              <td className="px-2 py-2 text-base">₹{Number(item.sellingPrice).toFixed(2)}</td>
-                                              <td className="px-2 py-2 text-base">₹{(item.quantity * Number(item.sellingPrice)).toFixed(2)}</td>
+                                              <td className="px-2 py-1.5 text-xs">{item.productId}</td>
+                                              <td className="px-2 py-1.5 text-xs">{item.productName}</td>
+                                              <td className="px-2 py-1.5 text-xs">{item.quantity}</td>
+                                              <td className="px-2 py-1.5 text-xs">₹{Number(item.sellingPrice).toFixed(2)}</td>
+                                              <td className="px-2 py-1.5 text-xs">₹{(item.quantity * Number(item.sellingPrice)).toFixed(2)}</td>
                                             </tr>
                                           ))}
                                       </tbody>
                                     </table>
                                   ) : (
-                                    <div className="text-base text-slate-500">Loading items...</div>
+                                    <div className="text-xs text-slate-500">Loading items...</div>
                                   )}
                                 </div>
                               </td>
@@ -476,20 +476,20 @@ async function cancelOrder(orderId: number) {
                         </React.Fragment>
                       );
                     })}
-                  </tbody>
-                </table>
+                </tbody>
+              </table>
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4 p-4 bg-white rounded-lg shadow-sm">
-                <div className="text-base text-slate-500">
+              <div className="flex flex-wrap items-center justify-between mt-4 p-4 bg-white rounded-lg shadow-sm gap-y-3">
+                <div className="text-xs sm:text-sm md:text-base text-slate-500 order-2 sm:order-1">
                   Showing {data.content.length} of {data.totalElements} orders
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 order-1 sm:order-2">
                   <button
                     onClick={() => setPage(Math.max(0, page - 1))}
                     disabled={page === 0}
-                    className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
+                    className={`px-2.5 py-1.5 text-xs sm:text-sm md:text-base border border-gray-300 rounded-md ${
                       page === 0 
                         ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                         : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -497,13 +497,13 @@ async function cancelOrder(orderId: number) {
                   >
                     Previous
                   </button>
-                  <span className="px-3 py-1.5 text-base text-gray-700">
-                    Page {page + 1} of {Math.ceil(data.totalElements / pageSize)}
+                  <span className="px-2 py-1.5 text-xs sm:text-sm md:text-base text-gray-700">
+                    {page + 1} / {Math.ceil(data.totalElements / pageSize)}
                   </span>
                   <button
                     onClick={() => setPage(page + 1)}
                     disabled={(page + 1) * pageSize >= data.totalElements}
-                    className={`px-4 py-1.5 text-base border border-gray-300 rounded-md ${
+                    className={`px-2.5 py-1.5 text-xs sm:text-sm md:text-base border border-gray-300 rounded-md ${
                       (page + 1) * pageSize >= data.totalElements 
                         ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                         : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"

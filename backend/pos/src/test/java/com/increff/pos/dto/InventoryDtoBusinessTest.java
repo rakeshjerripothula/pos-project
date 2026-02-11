@@ -43,7 +43,7 @@ class InventoryDtoBusinessTest {
         expectedData.setQuantity(100);
         expectedData.setProductName("Test Product");
         
-        when(inventoryFlow.upsertAndGetData(any())).thenReturn(expectedData);
+        when(inventoryFlow.upsert(any())).thenReturn(expectedData);
 
         // Act
         InventoryData result = inventoryDto.upsert(form);
@@ -53,7 +53,7 @@ class InventoryDtoBusinessTest {
         assertEquals(1, result.getProductId());
         assertEquals(100, result.getQuantity());
         assertEquals("Test Product", result.getProductName());
-        verify(inventoryFlow, times(1)).upsertAndGetData(any());
+        verify(inventoryFlow, times(1)).upsert(any());
     }
 
     @Test
@@ -79,7 +79,7 @@ class InventoryDtoBusinessTest {
         assertEquals("Product ID is required", error.getMessage());
 
         // Assert: flow is never called
-        verify(inventoryFlow, never()).upsertAndGetData(any());
+        verify(inventoryFlow, never()).upsert(any());
     }
 
     @Test
@@ -93,7 +93,7 @@ class InventoryDtoBusinessTest {
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.upsert(form));
         assertEquals("BAD_DATA", exception.getStatus().name());
         assertTrue(exception.hasErrors());
-        verify(inventoryFlow, never()).upsertAndGetData(any());
+        verify(inventoryFlow, never()).upsert(any());
     }
 
     @Test
@@ -101,7 +101,7 @@ class InventoryDtoBusinessTest {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.upsert(null));
         assertEquals("BAD_DATA", exception.getStatus().name());
-        verify(inventoryFlow, never()).upsertAndGetData(any());
+        verify(inventoryFlow, never()).upsert(any());
     }
 
     @Test
@@ -161,34 +161,6 @@ class InventoryDtoBusinessTest {
         assertEquals("BAD_DATA", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         verify(inventoryFlow, never()).bulkUpsertAndGetData(any());
-    }
-
-    @Test
-    void getByProductId_validId_success() {
-        // Arrange
-        Integer productId = 1;
-        com.increff.pos.model.data.InventoryData expectedData = createInventoryData(productId, 100, "Test Product");
-        
-        when(inventoryFlow.getByProductIdWithData(productId)).thenReturn(expectedData);
-
-        // Act
-        InventoryData result = inventoryDto.getByProductId(productId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(productId, result.getProductId());
-        assertEquals(100, result.getQuantity());
-        assertEquals("Test Product", result.getProductName());
-        verify(inventoryFlow, times(1)).getByProductIdWithData(productId);
-    }
-
-    @Test
-    void getByProductId_invalidId_throwsException() {
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.getByProductId(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
-        assertTrue(exception.getMessage().contains("Product ID is required"));
-        verify(inventoryFlow, never()).getByProductIdWithData(any());
     }
 
     @Test

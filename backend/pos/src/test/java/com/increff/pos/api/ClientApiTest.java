@@ -230,23 +230,6 @@ class ClientApiTest {
     }
 
     @Test
-    void should_get_all_clients_with_pagination() {
-        // Arrange
-        Pageable pageable = mock(Pageable.class);
-        List<ClientEntity> clients = List.of(new ClientEntity(), new ClientEntity());
-        Page<ClientEntity> clientPage = new PageImpl<>(clients);
-
-        when(clientDao.findAll(pageable)).thenReturn(clientPage);
-
-        // Act
-        Page<ClientEntity> result = clientApi.getAllClients(pageable);
-
-        // Assert
-        assertEquals(2, result.getContent().size());
-        verify(clientDao).findAll(pageable);
-    }
-
-    @Test
     void should_return_true_when_client_is_enabled() {
         // Arrange
         ClientEntity client = new ClientEntity();

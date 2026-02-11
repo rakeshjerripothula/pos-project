@@ -46,9 +46,15 @@ public class OrderFlow {
     @Autowired
     private InventoryFlow inventoryFlow;
 
+    public Page<OrderEntity> searchOrders(OrderStatus status, Integer clientId, ZonedDateTime start, ZonedDateTime end,
+            Integer page, Integer pageSize) {
+        return orderApi.search(status, clientId, start, end, page, pageSize);
+    }
+
     private void validateOrderItems(List<OrderItemEntity> items) {
         if (Objects.isNull(items) || items.isEmpty()) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Order must contain at least one item", "items", "Order must contain at least one item");
+            throw new ApiException(ApiStatus.BAD_DATA,
+                    "Order must contain at least one item", "items", "Order must contain at least one item");
         }
         
         validateSellingPriceAgainstMrp(items);
@@ -305,7 +311,4 @@ public class OrderFlow {
         return orderApi.getById(orderId);
     }
 
-    public Page<OrderEntity> searchOrders(OrderStatus status, Integer clientId, ZonedDateTime start, ZonedDateTime end, int page, int pageSize) {
-        return orderApi.search(status, clientId, start, end, page, pageSize);
-    }
 }

@@ -28,6 +28,36 @@ public class OrderDao {
     @PersistenceContext
     private EntityManager em;
 
+    public Page<OrderEntity> search(OrderStatus status, Integer clientId, ZonedDateTime start, ZonedDateTime end,
+            Pageable pageable) {
+
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+
+        CriteriaQuery<OrderEntity> cq = cb.createQuery(OrderEntity.class);
+        Root<OrderEntity> root = cq.from(OrderEntity.class);
+
+        List<Predicate> predicates = buildPredicates(cb, root, status, clientId, start, end);
+
+        cq.select(root).where(predicates.toArray(new Predicate[0])).orderBy(cb.desc(root.get("createdAt")));
+
+        TypedQuery<OrderEntity> query = em.createQuery(cq);
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+
+        List<OrderEntity> orders = query.getResultList();
+
+        CriteriaQuery<Long> countCq = cb.createQuery(Long.class);
+        Root<OrderEntity> countRoot = countCq.from(OrderEntity.class);
+
+        List<Predicate> countPredicates = buildPredicates(cb, countRoot, status, clientId, start, end);
+
+        countCq.select(cb.count(countRoot)).where(countPredicates.toArray(new Predicate[0]));
+
+        Long total = em.createQuery(countCq).getSingleResult();
+
+        return new PageImpl<>(orders, pageable, total);
+    }
+
     public OrderEntity save(OrderEntity order) {
         if (Objects.isNull(order.getId())) {
             em.persist(order);
@@ -40,52 +70,8 @@ public class OrderDao {
         return Optional.ofNullable(em.find(OrderEntity.class, orderId));
     }
 
-    public Page<OrderEntity> search(
-            OrderStatus status,
-            Integer clientId,
-            ZonedDateTime start,
-            ZonedDateTime end,
-            Pageable pageable) {
-
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-
-        CriteriaQuery<OrderEntity> cq = cb.createQuery(OrderEntity.class);
-        Root<OrderEntity> root = cq.from(OrderEntity.class);
-
-        List<Predicate> predicates = buildPredicates(cb, root, status, clientId, start, end);
-
-        cq.select(root)
-                .where(predicates.toArray(new Predicate[0]))
-                .orderBy(cb.desc(root.get("createdAt")));
-
-        TypedQuery<OrderEntity> query = em.createQuery(cq);
-        query.setFirstResult((int) pageable.getOffset());
-        query.setMaxResults(pageable.getPageSize());
-
-        List<OrderEntity> orders = query.getResultList();
-
-        // -------- count query --------
-        CriteriaQuery<Long> countCq = cb.createQuery(Long.class);
-        Root<OrderEntity> countRoot = countCq.from(OrderEntity.class);
-
-        List<Predicate> countPredicates =
-                buildPredicates(cb, countRoot, status, clientId, start, end);
-
-        countCq.select(cb.count(countRoot))
-                .where(countPredicates.toArray(new Predicate[0]));
-
-        Long total = em.createQuery(countCq).getSingleResult();
-
-        return new PageImpl<>(orders, pageable, total);
-    }
-
-    private List<Predicate> buildPredicates(
-            CriteriaBuilder cb,
-            Root<OrderEntity> root,
-            OrderStatus status,
-            Integer clientId,
-            ZonedDateTime start,
-            ZonedDateTime end) {
+    private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<OrderEntity> root, OrderStatus status,
+                                            Integer clientId, ZonedDateTime start, ZonedDateTime end) {
 
         List<Predicate> predicates = new ArrayList<>();
 

@@ -5,10 +5,7 @@ import com.increff.pos.entity.ProductEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +23,22 @@ public class ProductDao {
     @PersistenceContext
     private EntityManager em;
 
+    public List<ProductEntity> selectAll() {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<ProductEntity> cq = cb.createQuery(ProductEntity.class);
+
+        Root<ProductEntity> product = cq.from(ProductEntity.class);
+
+        cq.select(product).orderBy(cb.asc(product.get("productName")));
+
+        TypedQuery<ProductEntity> query = em.createQuery(cq);
+        return query.getResultList();
+    }
+
+    public Optional<ProductEntity> findById(Integer id) {
+        return Optional.ofNullable(em.find(ProductEntity.class, id));
+    }
+
     public ProductEntity save(ProductEntity product) {
         if (Objects.isNull(product.getId())) {
             em.persist(product);
@@ -38,7 +51,12 @@ public class ProductDao {
         int batchSize = 50;
 
         for (int i = 0; i < products.size(); i++) {
-            em.persist(products.get(i));
+            ProductEntity product = products.get(i);
+            if (product.getId() == null) {
+                em.persist(product);
+            } else {
+                em.merge(product);
+            }
 
             if (i > 0 && i % batchSize == 0) {
                 em.flush();
@@ -49,41 +67,18 @@ public class ProductDao {
         return products;
     }
 
-    public Optional<ProductEntity> findById(Integer id) {
-        return Optional.ofNullable(em.find(ProductEntity.class, id));
-    }
-
-    public List<ProductEntity> selectAll() {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<ProductEntity> cq = cb.createQuery(ProductEntity.class);
-
-        Root<ProductEntity> product = cq.from(ProductEntity.class);
-
-        cq.select(product).orderBy(cb.asc(product.get("id")));
-
-        TypedQuery<ProductEntity> query = em.createQuery(cq);
-        return query.getResultList();
-    }
-
     public List<ProductEntity> findAllById(List<Integer> ids) {
+
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<ProductEntity> cq = cb.createQuery(ProductEntity.class);
         Root<ProductEntity> root = cq.from(ProductEntity.class);
-
         cq.select(root).where(root.get("id").in(ids));
 
         return em.createQuery(cq).getResultList();
-    }
-
-    public boolean existsByBarcode(String barcode) {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<ProductEntity> root = cq.from(ProductEntity.class);
-
-        cq.select(cb.count(root))
-                .where(cb.equal(root.get("barcode"), barcode));
-
-        return em.createQuery(cq).getSingleResult() > 0;
     }
 
     public List<String> findExistingBarcodes(List<String> barcodes) {
@@ -92,137 +87,86 @@ public class ProductDao {
         CriteriaQuery<String> cq = cb.createQuery(String.class);
         Root<ProductEntity> root = cq.from(ProductEntity.class);
 
-        cq.select(root.get("barcode"))
-                .where(root.get("barcode").in(barcodes));
+        cq.select(root.get("barcode")).where(root.get("barcode").in(barcodes));
 
         return em.createQuery(cq).getResultList();
     }
 
     public boolean existsByBarcodeAndNotId(String barcode, Integer id) {
+
         CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
         Root<ProductEntity> root = cq.from(ProductEntity.class);
 
-        Predicate sameBarcode = cb.equal(root.get("barcode"), barcode);
-        Predicate differentId = cb.notEqual(root.get("id"), id);
+        cq.select(cb.literal(1)).where(cb.equal(root.get("barcode"), barcode), cb.notEqual(root.get("id"), id));
 
-        cq.select(cb.count(root))
-                .where(cb.and(sameBarcode, differentId));
-
-        return em.createQuery(cq).getSingleResult() > 0;
+        return !em.createQuery(cq).setMaxResults(1).getResultList().isEmpty();
     }
 
-    public Page<ProductEntity> findProductsForEnabledClients(Pageable pageable) {
-
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-
-        CriteriaQuery<ProductEntity> cq = cb.createQuery(ProductEntity.class);
-        Root<ProductEntity> productRoot = cq.from(ProductEntity.class);
-        Root<ClientEntity> clientRoot = cq.from(ClientEntity.class);
-
-        Predicate joinCondition = cb.equal(productRoot.get("clientId"), clientRoot.get("id"));
-
-        Predicate clientEnabled = cb.isTrue(clientRoot.get("enabled"));
-
-        cq.select(productRoot).where(cb.and(joinCondition, clientEnabled));
-
-        List<ProductEntity> data = em.createQuery(cq)
-                .setFirstResult((int) pageable.getOffset())
-                .setMaxResults(pageable.getPageSize())
-                .getResultList();
-
-        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
-        Root<ProductEntity> countProduct = countQuery.from(ProductEntity.class);
-        Root<ClientEntity> countClient = countQuery.from(ClientEntity.class);
-
-        Predicate countJoin = cb.equal(countProduct.get("clientId"), countClient.get("id"));
-
-        Predicate countEnabled = cb.isTrue(countClient.get("enabled"));
-
-        countQuery.select(cb.count(countProduct)).where(cb.and(countJoin, countEnabled));
-
-        Long total = em.createQuery(countQuery).getSingleResult();
-
-        return new PageImpl<>(data, pageable, total);
-    }
 
     public Page<ProductEntity> searchProducts(Integer clientId, String barcode, String productName, Pageable pageable) {
+        String normalizedBarcode = barcode == null ? null : barcode.trim().toLowerCase();
+        String normalizedProductName = productName == null ? null : productName.trim().toLowerCase();
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
 
-        // ---------- DATA QUERY ----------
         CriteriaQuery<ProductEntity> cq = cb.createQuery(ProductEntity.class);
-        Root<ProductEntity> productRoot = cq.from(ProductEntity.class);
-        Root<ClientEntity> clientRoot = cq.from(ClientEntity.class);
+        Root<ProductEntity> product = cq.from(ProductEntity.class);
+
+        Subquery<Integer> sub = cq.subquery(Integer.class);
+        Root<ClientEntity> client = sub.from(ClientEntity.class);
+
+        List<Predicate> subPredicates = new ArrayList<>();
+        subPredicates.add(cb.equal(client.get("id"), product.get("clientId")));
+        subPredicates.add(cb.isTrue(client.get("enabled")));
+
+        if (clientId != null) {
+            subPredicates.add(cb.equal(product.get("clientId"), clientId));
+        }
+
+        sub.select(cb.literal(1)).where(subPredicates.toArray(new Predicate[0]));
 
         List<Predicate> predicates = new ArrayList<>();
+        predicates.add(cb.exists(sub));
 
-        // join: product.clientId = client.id
-        predicates.add(
-                cb.equal(productRoot.get("clientId"), clientRoot.get("id"))
-        );
-
-        // enabled clients only
-        predicates.add(
-                cb.isTrue(clientRoot.get("enabled"))
-        );
-
-        // clientId filter (exact)
-        if (clientId != null) {
-            predicates.add(
-                    cb.equal(productRoot.get("clientId"), clientId)
-            );
+        if (normalizedBarcode != null && !normalizedBarcode.isEmpty()) {
+            predicates.add(cb.equal(cb.lower(product.get("barcode")), normalizedBarcode));
         }
 
-        // barcode filter (exact match)
-        if (barcode != null && !barcode.trim().isEmpty()) {
-            predicates.add(
-                    cb.equal(cb.lower(productRoot.get("barcode")), barcode.toLowerCase().trim())
-            );
+        if (normalizedProductName != null && !normalizedProductName.isEmpty()) {
+            predicates.add(cb.like(cb.lower(product.get("productName")), "%" + normalizedProductName + "%"));
         }
 
-        // productName filter (NORMAL contains search)
-        if (productName != null && !productName.trim().isEmpty()) {
-            predicates.add(
-                    cb.like(cb.lower(productRoot.get("productName")), "%" + productName.toLowerCase().trim() + "%")
-            );
-        }
-
-        cq.select(productRoot)
-                .where(predicates.toArray(new Predicate[0]))
-                .orderBy(cb.asc(productRoot.get("productName")));
+        cq.select(product).where(predicates.toArray(new Predicate[0])).orderBy(cb.asc(product.get("productName")));
 
         List<ProductEntity> data = em.createQuery(cq)
-                .setFirstResult((int) pageable.getOffset())
-                .setMaxResults(pageable.getPageSize())
-                .getResultList();
+                .setFirstResult((int) pageable.getOffset()).setMaxResults(pageable.getPageSize()).getResultList();
 
-        // ---------- COUNT QUERY ----------
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<ProductEntity> countProduct = countQuery.from(ProductEntity.class);
-        Root<ClientEntity> countClient = countQuery.from(ClientEntity.class);
+
+        Subquery<Integer> countSub = countQuery.subquery(Integer.class);
+        Root<ClientEntity> countClient = countSub.from(ClientEntity.class);
+
+        countSub.select(cb.literal(1))
+                .where(
+                        cb.equal(countClient.get("id"), countProduct.get("clientId")),
+                        cb.isTrue(countClient.get("enabled"))
+                );
 
         List<Predicate> countPredicates = new ArrayList<>();
-
-        countPredicates.add(cb.equal(countProduct.get("clientId"), countClient.get("id")));
-
-        countPredicates.add(cb.isTrue(countClient.get("enabled")));
+        countPredicates.add(cb.exists(countSub));
 
         if (clientId != null) {
             countPredicates.add(cb.equal(countProduct.get("clientId"), clientId));
         }
 
-        if (barcode != null && !barcode.trim().isEmpty()) {
-            countPredicates.add(cb.equal(cb.lower(countProduct.get("barcode")), barcode.toLowerCase().trim()));
+        if (normalizedBarcode != null && !normalizedBarcode.isEmpty()) {
+            countPredicates.add(cb.equal(cb.lower(countProduct.get("barcode")), normalizedBarcode));
         }
 
-        if (productName != null && !productName.trim().isEmpty()) {
-            countPredicates.add(
-                    cb.like(
-                            cb.lower(countProduct.get("productName")),
-                            "%" + productName.toLowerCase().trim() + "%"
-                    )
-            );
+        if (normalizedProductName != null && !normalizedProductName.isEmpty()) {
+            countPredicates.add(cb.like(cb.lower(countProduct.get("productName")), "%" + normalizedProductName + "%"));
         }
 
         countQuery.select(cb.count(countProduct)).where(countPredicates.toArray(new Predicate[0]));
@@ -237,43 +181,41 @@ public class ProductDao {
             Integer clientId,
             String productName,
             BigDecimal mrp,
-            Integer productId) {
-
+            Integer productId
+    ) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
-
         Root<ProductEntity> root = cq.from(ProductEntity.class);
 
         cq.select(cb.literal(1))
-                .where(
-                        cb.equal(root.get("clientId"), clientId),
-                        cb.equal(root.get("productName"), productName),
-                        cb.equal(root.get("mrp"), mrp),
-                        cb.notEqual(root.get("id"), productId)
-                );
+                .where(cb.equal(root.get("clientId"), clientId), cb.equal(root.get("productName"), productName),
+                        cb.equal(root.get("mrp"), mrp), cb.notEqual(root.get("id"), productId));
 
-        return !em.createQuery(cq)
-                .setMaxResults(1)
-                .getResultList()
-                .isEmpty();
+        return !em.createQuery(cq).setMaxResults(1).getResultList().isEmpty();
     }
 
-    public boolean existsByClientIdAndProductNameAndMrp(
-            Integer clientId,
-            String productName,
-            BigDecimal mrp) {
+    public boolean existsByBarcode(String barcode) {
+
         CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
         Root<ProductEntity> root = cq.from(ProductEntity.class);
 
-        cq.select(cb.count(root)).where(
-                        cb.equal(root.get("clientId"), clientId),
-                        cb.equal(root.get("productName"), productName),
-                        cb.equal(root.get("mrp"), mrp)
-                    );
+        cq.select(cb.literal(1)).where(cb.equal(root.get("barcode"), barcode));
 
-        Long count = em.createQuery(cq).getSingleResult();
-        return count > 0;
+        return !em.createQuery(cq).setMaxResults(1).getResultList().isEmpty();
+    }
+
+
+    public boolean existsByClientIdAndProductNameAndMrp(Integer clientId, String productName, BigDecimal mrp) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
+        Root<ProductEntity> root = cq.from(ProductEntity.class);
+
+        cq.select(cb.literal(1)).where(
+                        cb.equal(root.get("clientId"), clientId), cb.equal(root.get("productName"), productName),
+                        cb.equal(root.get("mrp"), mrp));
+
+        return !em.createQuery(cq).setMaxResults(1).getResultList().isEmpty();
     }
 
 }

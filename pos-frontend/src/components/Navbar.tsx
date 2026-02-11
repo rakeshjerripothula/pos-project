@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -76,29 +77,39 @@ export default function Navbar() {
     ...(!isOperator() ? [{ href: "/reports", label: "Reports" }] as const : []),
   ];
 
+  // Helper function to get user initials safely
+  function getUserInitials(email: string | undefined): string {
+    if (!email || typeof email !== 'string') return '?';
+    return email.charAt(0).toUpperCase();
+  }
+
   return (
     <>
-      <nav className="px-4 md:px-6 py-3 md:py-4 bg-slate-800 shadow-md sticky top-0 z-50">
+      <nav className="px-4 md:px-8 py-2.5 bg-slate-900 shadow-lg sticky top-0 z-50">
         <div className="flex items-center justify-between max-w-[1400px] mx-auto">
           {/* Logo + Navigation Links - Left side */}
-          <div className="flex items-center gap-4 md:gap-8">
+          <div className="flex items-center gap-6 md:gap-10">
             <Link
               href="/orders"
-              className="text-lg md:text-xl font-bold text-white no-underline"
+              className="no-underline flex items-center gap-3"
             >
-              PoS System
+              <img 
+                src="/logo3.png" 
+                alt="PoS System Logo" 
+                className="h-10 md:h-14 w-auto"
+              />
             </Link>
             
             {/* Desktop Navigation Links - Hidden on mobile */}
-            <div className="hidden md:flex gap-1">
+            <div className="hidden md:flex gap-3">
               {navItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 lg:px-4 py-2 rounded-md transition-all duration-200 text-base font-medium no-underline border-b-2 ${
+                  className={`px-4 py-2 rounded-lg transition-all duration-200 text-lg font-semibold no-underline tracking-wide ${
                     pathname === item.href
-                      ? "border-blue-400 text-white bg-white/10"
-                      : "border-transparent text-white hover:bg-white/10"
+                      ? "bg-white/15 text-white shadow-sm backdrop-blur-sm"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {item.label}
@@ -108,22 +119,32 @@ export default function Navbar() {
           </div>
 
           {/* User Section - Right side */}
-          <div className="hidden md:flex items-center gap-3 lg:gap-4">
+          <div className="hidden md:flex items-center gap-4">
             {user ? (
               <>
-                <div className="flex items-center gap-2 text-base">
-                  <span className="text-slate-400 hidden lg:inline">{user.email}</span>
-                  <span className={`px-2 py-0.5 text-sm rounded-full ${
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm text-slate-300 font-medium hidden lg:block max-w-[150px] truncate">{user.email}</span>
+                    <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full uppercase tracking-wider ${
+                      user.role === "SUPERVISOR" 
+                        ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30" 
+                        : "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
+                    }`}>
+                      {user.role}
+                    </span>
+                  </div>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
                     user.role === "SUPERVISOR" 
-                      ? "bg-emerald-500" 
-                      : "bg-blue-500"
+                      ? "bg-gradient-to-br from-emerald-400 to-emerald-600" 
+                      : "bg-gradient-to-br from-blue-400 to-blue-600"
                   }`}>
-                    {user.role}
-                  </span>
+                    {getUserInitials(user.email)}
+                  </div>
                 </div>
+                <div className="w-px h-8 bg-slate-600 mx-2" />
                 <button
                   onClick={handleLogout}
-                  className="px-3 lg:px-4 py-1.5 text-base text-white transition-colors bg-red-500 border-none rounded-md hover:bg-red-600 cursor-pointer"
+                  className="px-4 py-2 text-sm font-semibold text-white transition-all duration-200 bg-gradient-to-r from-red-500 to-red-600 border-none rounded-lg hover:from-red-600 hover:to-red-700 cursor-pointer shadow-lg shadow-red-500/30 hover:shadow-red-500/50 active:scale-95"
                 >
                   Logout
                 </button>
@@ -131,7 +152,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="px-3 lg:px-4 py-1.5 text-base font-medium text-white no-underline rounded-md bg-blue-500 hover:bg-blue-600 transition-colors"
+                className="px-5 py-2 text-sm font-semibold text-white no-underline rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 active:scale-95"
               >
                 Sign In
               </Link>
@@ -141,7 +162,7 @@ export default function Navbar() {
           {/* Mobile Hamburger Button - Hidden on desktop */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 text-white hover:bg-white/10 rounded-md transition-colors cursor-pointer"
+            className="md:hidden p-2.5 text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer active:scale-95"
             aria-label="Toggle menu"
           >
             {isMenuOpen ? (
@@ -162,23 +183,23 @@ export default function Navbar() {
         <div className="fixed inset-0 z-40 md:hidden">
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={closeMenu}
           />
           {/* Menu Content */}
-          <div className="absolute top-[57px] left-0 right-0 bg-slate-800 shadow-lg border-t border-slate-700">
-            <div className="flex flex-col py-2">
-              {/* Nav Links - Right aligned */}
-              <div className="flex flex-col">
+          <div className="absolute top-[65px] left-4 right-4 bg-slate-800/95 backdrop-blur-xl shadow-2xl rounded-2xl border border-slate-700/50 overflow-hidden">
+            <div className="flex flex-col py-3">
+              {/* Nav Links */}
+              <div className="flex flex-col px-2 gap-1">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={closeMenu}
-                    className={`px-4 py-3 transition-all duration-200 text-base font-medium no-underline border-l-4 ${
+                    className={`px-4 py-3.5 transition-all duration-200 text-base font-medium no-underline rounded-xl ${
                       pathname === item.href
-                        ? "border-blue-400 text-white bg-white/10"
-                        : "border-transparent text-white hover:bg-white/10"
+                        ? "bg-white/15 text-white"
+                        : "text-slate-300 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     {item.label}
@@ -187,34 +208,45 @@ export default function Navbar() {
               </div>
               
               {/* Divider */}
-              <div className="my-2 border-t border-slate-700" />
+              <div className="my-3 border-t border-slate-700/50" />
               
-              {/* User Section - Right aligned */}
+              {/* User Section */}
               {user ? (
-                <div className="px-4 py-2 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 justify-end">
-                    <span className="text-slate-400 text-base">{user.email}</span>
-                    <span className={`px-2 py-0.5 text-sm rounded-full ${
-                      user.role === "SUPERVISOR" 
-                        ? "bg-emerald-500" 
-                        : "bg-blue-500"
-                    }`}>
-                      {user.role}
-                    </span>
+                <div className="px-4 py-2.5 flex flex-col gap-3">
+                  <div className="flex items-center gap-3 justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
+                        user.role === "SUPERVISOR" 
+                          ? "bg-gradient-to-br from-emerald-400 to-emerald-600" 
+                          : "bg-gradient-to-br from-blue-400 to-blue-600"
+                      }`}>
+                        {getUserInitials(user.email)}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm text-slate-300 font-medium max-w-[180px] truncate">{user.email}</span>
+                        <span className={`px-2 py-0.5 text-xs font-bold rounded-full uppercase tracking-wider inline-block w-fit ${
+                          user.role === "SUPERVISOR" 
+                            ? "bg-emerald-500 text-white" 
+                            : "bg-blue-500 text-white"
+                        }`}>
+                          {user.role}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-base font-medium text-white transition-colors bg-red-500 border-none rounded-md hover:bg-red-600 cursor-pointer text-right"
+                    className="w-full px-4 py-3 text-base font-semibold text-white transition-all duration-200 bg-gradient-to-r from-red-500 to-red-600 border-none rounded-xl hover:from-red-600 hover:to-red-700 cursor-pointer shadow-lg"
                   >
                     Logout
                   </button>
                 </div>
               ) : (
-                <div className="px-4 py-2">
+                <div className="px-4 py-3">
                   <Link
                     href="/login"
                     onClick={closeMenu}
-                    className="block px-4 py-2 text-base font-medium text-white no-underline rounded-md bg-blue-500 hover:bg-blue-600 transition-colors text-center"
+                    className="block w-full px-4 py-3 text-base font-semibold text-white no-underline rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-center shadow-lg"
                   >
                     Sign In
                   </Link>

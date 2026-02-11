@@ -206,23 +206,6 @@ class ProductApiTest {
     }
 
     @Test
-    void should_list_products_for_enabled_clients() {
-        // Arrange
-        Pageable pageable = mock(Pageable.class);
-        List<ProductEntity> products = List.of(new ProductEntity(), new ProductEntity());
-        Page<ProductEntity> productPage = new PageImpl<>(products);
-
-        when(productDao.findProductsForEnabledClients(pageable)).thenReturn(productPage);
-
-        // Act
-        Page<ProductEntity> result = productApi.listProductsForEnabledClients(pageable);
-
-        // Assert
-        assertEquals(2, result.getContent().size());
-        verify(productDao).findProductsForEnabledClients(pageable);
-    }
-
-    @Test
     void should_get_product_by_id_when_exists() {
         // Arrange
         ProductEntity product = new ProductEntity();

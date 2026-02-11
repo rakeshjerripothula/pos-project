@@ -20,11 +20,22 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Repository
-@Transactional
 public class ClientDao {
 
     @PersistenceContext
     private EntityManager em;
+
+    public List<ClientEntity> selectAll() {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
+
+        Root<ClientEntity> client = cq.from(ClientEntity.class);
+
+        cq.select(client).orderBy(cb.asc(client.get("clientName")));
+
+        TypedQuery<ClientEntity> query = em.createQuery(cq);
+        return query.getResultList();
+    }
 
     public ClientEntity save(ClientEntity client) {
         if (Objects.isNull(client.getId())) {
@@ -34,49 +45,14 @@ public class ClientDao {
         return em.merge(client);
     }
 
-    public List<ClientEntity> selectAll() {
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
-
-        Root<ClientEntity> client = cq.from(ClientEntity.class);
-
-        cq.select(client).orderBy(cb.asc(client.get("id")));
-
-        TypedQuery<ClientEntity> query = em.createQuery(cq);
-        return query.getResultList();
-    }
-
     public Optional<ClientEntity> findById(Integer clientId) {
         return Optional.ofNullable(em.find(ClientEntity.class, clientId));
     }
 
-    public Page<ClientEntity> findAll(Pageable pageable) {
+    public Page<ClientEntity> searchClients(String clientName, Boolean enabled, Pageable pageable) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
 
-        CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
-        Root<ClientEntity> root = cq.from(ClientEntity.class);
-        cq.select(root);
-
-        List<ClientEntity> data = em.createQuery(cq)
-                .setFirstResult((int) pageable.getOffset())
-                .setMaxResults(pageable.getPageSize())
-                .getResultList();
-
-        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
-        Root<ClientEntity> countRoot = countQuery.from(ClientEntity.class);
-        countQuery.select(cb.count(countRoot));
-
-        Long total = em.createQuery(countQuery).getSingleResult();
-
-        return new PageImpl<>(data, pageable, total);
-    }
-
-    public Page<ClientEntity> searchByName(String clientName, Pageable pageable) {
-
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-
-        // -------- DATA QUERY --------
         CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
         Root<ClientEntity> root = cq.from(ClientEntity.class);
 
@@ -86,9 +62,13 @@ public class ClientDao {
             predicates.add(
                     cb.like(
                             cb.lower(root.get("clientName")),
-                            clientName.toLowerCase().trim() + "%"
+                            clientName.trim().toLowerCase() + "%"
                     )
             );
+        }
+
+        if (enabled != null) {
+            predicates.add(cb.equal(root.get("enabled"), enabled));
         }
 
         cq.where(predicates.toArray(new Predicate[0]));
@@ -99,16 +79,26 @@ public class ClientDao {
                 .setMaxResults(pageable.getPageSize())
                 .getResultList();
 
-        // -------- COUNT QUERY --------
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<ClientEntity> countRoot = countQuery.from(ClientEntity.class);
 
+        List<Predicate> countPredicates = new ArrayList<>();
+
+        if (clientName != null && !clientName.trim().isEmpty()) {
+            countPredicates.add(
+                    cb.like(
+                            cb.lower(countRoot.get("clientName")),
+                            clientName.trim().toLowerCase() + "%"
+                    )
+            );
+        }
+
+        if (enabled != null) {
+            countPredicates.add(cb.equal(countRoot.get("enabled"), enabled));
+        }
+
         countQuery.select(cb.count(countRoot));
-        countQuery.where(predicates
-                .stream()
-                .map(p -> p) // same predicates, different root
-                .toArray(Predicate[]::new)
-        );
+        countQuery.where(countPredicates.toArray(new Predicate[0]));
 
         Long total = em.createQuery(countQuery).getSingleResult();
 
@@ -121,15 +111,24 @@ public class ClientDao {
         CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
         Root<ClientEntity> root = cq.from(ClientEntity.class);
 
-        cq.select(root.get("id"))
-                .where(
-                        cb.and(
-                                root.get("id").in(clientIds),
-                                cb.isFalse(root.get("enabled"))
-                        )
-                );
+        cq.select(root.get("id")).where(cb.and(root.get("id").in(clientIds), cb.isFalse(root.get("enabled"))));
 
         return em.createQuery(cq).getResultList();
+    }
+
+    public List<Integer> findNonExistentClientIds(List<Integer> clientIds) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
+        Root<ClientEntity> root = cq.from(ClientEntity.class);
+
+        cq.select(root.get("id")).where(root.get("id").in(clientIds));
+
+        List<Integer> existingClientIds = em.createQuery(cq).getResultList();
+        
+        // Return clientIds that are not in the existingClientIds
+        return clientIds.stream()
+                .filter(id -> !existingClientIds.contains(id))
+                .toList();
     }
 
     public boolean existsByClientName(String clientName) {

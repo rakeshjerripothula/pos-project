@@ -181,33 +181,6 @@ async function handleSignup(e: React.FormEvent) {
           </div>
         </div>
       </div>
-
-      {/* Right Panel - Branding - Hidden on small screens */}
-      <div className="flex-1 hidden lg:flex items-center justify-center px-12 py-12 bg-gradient-to-br from-blue-500 to-purple-600">
-        <div className="max-w-sm text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Streamline Your Sales Operations
-          </h2>
-          <p className="text-lg text-white/80 leading-relaxed mb-12">
-            Manage clients, products, inventory, and orders all in one powerful platform.
-            Built for efficiency and designed for growth.
-          </p>
-          <div className="grid grid-cols-3 gap-8">
-            <div>
-              <p className="text-4xl font-bold text-white">500+</p>
-              <p className="text-sm text-white/70 mt-1">Clients</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-white">10K+</p>
-              <p className="text-sm text-white/70 mt-1">Products</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-white">200+</p>
-              <p className="text-sm text-white/70 mt-1">Orders/Day</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

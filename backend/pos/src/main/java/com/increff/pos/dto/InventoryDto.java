@@ -1,6 +1,5 @@
 package com.increff.pos.dto;
 
-import com.increff.pos.entity.InventoryEntity;
 import com.increff.pos.flow.InventoryFlow;
 import com.increff.pos.model.data.InventoryData;
 import com.increff.pos.model.data.PagedResponse;
@@ -19,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
-import java.util.Objects;
 
 import static com.increff.pos.util.Utils.parse;
 
@@ -29,9 +27,18 @@ public class InventoryDto extends AbstractDto {
     @Autowired
     private InventoryFlow inventoryFlow;
 
+    public List<InventoryData> getAll() {
+        return inventoryFlow.listAllForEnabledClientsWithData();
+    }
+
     public InventoryData upsert(InventoryForm form) {
         checkValid(form);
-        return inventoryFlow.upsertAndGetData(ConversionUtil.inventoryFormToEntity(form));
+        if (form.getQuantity() < 0) {
+            throw new ApiException(
+                    ApiStatus.BAD_DATA, "Quantity cannot be negative", "quantity", "Quantity cannot be negative"
+            );
+        }
+        return inventoryFlow.upsert(ConversionUtil.inventoryFormToEntity(form));
     }
 
     public PagedResponse<InventoryData> list(InventorySearchForm form) {
@@ -42,21 +49,18 @@ public class InventoryDto extends AbstractDto {
                 Sort.by("productId").ascending()
         );
 
-        return inventoryFlow.searchForEnabledClientsWithData(
-                form.getBarcode(),
-                form.getProductName(),
-                pageable
-        );
+        return inventoryFlow.searchForEnabledClientsWithData(form.getBarcode(), form.getProductName(), pageable);
     }
 
+    public TsvUploadResult<InventoryData> uploadTsv(MultipartFile file) {
+        TsvUploadResult<InventoryForm> parseResult = parseInventoryTsv(file);
 
-    public List<InventoryData> getAll() {
-        return inventoryFlow.listAllForEnabledClientsWithData();
-    }
+        if (!parseResult.isSuccess()) {
+            return TsvUploadResult.failure(parseResult.getErrors());
+        }
 
-    public InventoryData getByProductId(Integer productId) {
-        validateProductId(productId);
-        return inventoryFlow.getByProductIdWithData(productId);
+        List<InventoryData> savedData = bulkUpsert(parseResult.getData());
+        return TsvUploadResult.success(savedData);
     }
 
     public List<InventoryData> bulkUpsert(List<InventoryForm> forms) {
@@ -66,30 +70,13 @@ public class InventoryDto extends AbstractDto {
         for (InventoryForm f : forms) {
             if (!seen.add(f.getProductId())) {
                 throw new ApiException(
-                    ApiStatus.BAD_DATA,
-                    "Duplicate productId in bulk upload: " + f.getProductId(),
-                    "productId",
-                    "Duplicate productId: " + f.getProductId()
+                    ApiStatus.BAD_DATA, "Duplicate productId in bulk upload: " + f.getProductId(),
+                    "productId", "Duplicate productId: " + f.getProductId()
                 );
             }
         }
 
-        return inventoryFlow.bulkUpsertAndGetData(
-                forms.stream()
-                        .map(ConversionUtil::inventoryFormToEntity)
-                        .toList()
-        );
-    }
-
-    public TsvUploadResult<InventoryData> uploadTsv(MultipartFile file) {
-        TsvUploadResult<InventoryForm> parseResult = parseInventoryTsv(file);
-        
-        if (!parseResult.isSuccess()) {
-            return TsvUploadResult.failure(parseResult.getErrors());
-        }
-        
-        List<InventoryData> savedData = bulkUpsert(parseResult.getData());
-        return TsvUploadResult.success(savedData);
+        return inventoryFlow.bulkUpsertAndGetData(forms.stream().map(ConversionUtil::inventoryFormToEntity).toList());
     }
 
     public TsvUploadResult<InventoryForm> parseInventoryTsv(MultipartFile file) {
@@ -101,13 +88,11 @@ public class InventoryDto extends AbstractDto {
 
         for (int i = 0; i < rows.size(); i++) {
             String[] r = rows.get(i);
-            int rowNumber = i + 2; // +2 because: 0-based index + header row
+            int rowNumber = i + 2;
 
             if (r.length < 2) {
                 errors.add(new TsvUploadError(
-                    rowNumber,
-                    r,
-                    "Expected at least 2 columns, found " + r.length
+                    rowNumber, r, "Expected at least 2 columns, found " + r.length
                 ));
                 continue;
             }
@@ -117,29 +102,16 @@ public class InventoryDto extends AbstractDto {
                 try {
                     productId = Integer.parseInt(r[0].trim());
                     if (productId <= 0) {
-                        errors.add(new TsvUploadError(
-                            rowNumber,
-                            r,
-                            "Product ID must be greater than 0"
-                        ));
+                        errors.add(new TsvUploadError(rowNumber, r, "Product ID must be greater than 0"));
                         continue;
                     }
                 } catch (NumberFormatException e) {
-                    errors.add(new TsvUploadError(
-                        rowNumber,
-                        r,
-                        "Invalid product ID format: " + r[0]
-                    ));
+                    errors.add(new TsvUploadError(rowNumber, r, "Invalid product ID format: " + r[0]));
                     continue;
                 }
 
-                // Check for duplicate product IDs
                 if (!seenProductIds.add(productId)) {
-                    errors.add(new TsvUploadError(
-                        rowNumber,
-                        r,
-                        "Duplicate product ID: " + productId
-                    ));
+                    errors.add(new TsvUploadError(rowNumber, r, "Duplicate product ID: " + productId));
                     continue;
                 }
 
@@ -147,19 +119,11 @@ public class InventoryDto extends AbstractDto {
                 try {
                     quantity = Integer.parseInt(r[1].trim());
                     if (quantity < 0) {
-                        errors.add(new TsvUploadError(
-                            rowNumber,
-                            r,
-                            "Quantity cannot be negative"
-                        ));
+                        errors.add(new TsvUploadError(rowNumber, r, "Quantity cannot be negative"));
                         continue;
                     }
                 } catch (NumberFormatException e) {
-                    errors.add(new TsvUploadError(
-                        rowNumber,
-                        r,
-                        "Invalid quantity format: " + r[1]
-                    ));
+                    errors.add(new TsvUploadError(rowNumber, r, "Invalid quantity format: " + r[1]));
                     continue;
                 }
 
@@ -169,11 +133,7 @@ public class InventoryDto extends AbstractDto {
                 forms.add(f);
 
             } catch (Exception e) {
-                errors.add(new TsvUploadError(
-                    rowNumber,
-                    r,
-                    "Unexpected error: " + e.getMessage()
-                ));
+                errors.add(new TsvUploadError(rowNumber, r, "Unexpected error: " + e.getMessage()));
             }
         }
 
@@ -182,12 +142,6 @@ public class InventoryDto extends AbstractDto {
         }
 
         return TsvUploadResult.success(forms);
-    }
-
-    private void validateProductId(Integer productId) {
-        if (Objects.isNull(productId)) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Product ID is required", "productId", "Product ID is required");
-        }
     }
 
 }

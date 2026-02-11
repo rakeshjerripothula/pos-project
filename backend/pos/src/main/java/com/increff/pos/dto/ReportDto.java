@@ -100,15 +100,9 @@ public class ReportDto extends AbstractDto{
 
         ValidationUtil.validateOptionalDateRange(startDate, endDate);
 
-        List<SalesReportRow> allRows = reportApi.getAllSalesReport(
-                startDate,
-                endDate,
-                form.getClientId()
-        );
+        List<SalesReportRow> allRows = reportApi.getAllSalesReport(startDate, endDate, form.getClientId());
 
-        return allRows.stream()
-                .map(ConversionUtil::salesReportRowToData)
-                .toList();
+        return allRows.stream().map(ConversionUtil::salesReportRowToData).toList();
     }
 
     }

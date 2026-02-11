@@ -200,7 +200,6 @@ export default function ReportsPage() {
 
   const clientOptions: ClientOption[] = clients
     .filter((c) => c.enabled)
-    .sort((a, b) => a.clientName.localeCompare(b.clientName))
     .map((c) => ({ value: c.id, label: c.clientName }));
 
   const selectedClient = clientOptions.find((o) => o.value === salesClientId) || null;

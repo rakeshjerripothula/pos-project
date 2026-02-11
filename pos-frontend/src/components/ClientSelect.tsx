@@ -32,7 +32,6 @@ export default function ClientSelect({
     () =>
       clients
         .filter((c) => c.enabled)
-        .sort((a, b) => a.clientName.localeCompare(b.clientName))
         .map((c) => ({
           value: c.id,
           label: c.clientName,

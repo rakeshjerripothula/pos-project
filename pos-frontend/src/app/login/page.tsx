@@ -91,7 +91,7 @@ async function handleLogin(e: React.FormEvent) {
   return (
     <div className="flex min-h-screen">
       {/* Left Panel - Form */}
-      <div className="flex-1 flex items-center justify-center px-12 py-12 bg-white">
+      <div className="flex-1 flex items-center justify-center px-12 py-12">
         <div className="w-full max-w-sm">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-10">
@@ -130,7 +130,7 @@ async function handleLogin(e: React.FormEvent) {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 text-base border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               />
             </div>
 
@@ -147,19 +147,6 @@ async function handleLogin(e: React.FormEvent) {
             </button>
           </form>
 
-          {/* Role Info */}
-          <div className="mt-6 p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <p className="text-base text-slate-600">
-              <strong>Role Assignment:</strong>
-            </p>
-            <p className="text-base text-slate-600 mt-1">
-              Supervisor: <code className="px-2 py-0.5 bg-slate-200 rounded text-sm">admin@pos.com</code>
-            </p>
-            <p className="text-base text-slate-600 mt-1">
-              Operator: <em>Any other email</em>
-            </p>
-          </div>
-
           {/* Sign up link */}
           <div className="mt-5 text-center">
             <p className="text-base text-slate-500">
@@ -171,33 +158,6 @@ async function handleLogin(e: React.FormEvent) {
                 Sign up
               </a>
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Panel - Branding - Hidden on small screens */}
-      <div className="flex-1 hidden lg:flex items-center justify-center px-12 py-12 bg-gradient-to-br from-blue-500 to-purple-600">
-        <div className="max-w-sm text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Streamline Your Sales Operations
-          </h2>
-          <p className="text-lg text-white/80 leading-relaxed mb-12">
-            Manage clients, products, inventory, and orders all in one powerful platform.
-            Built for efficiency and designed for growth.
-          </p>
-          <div className="grid grid-cols-3 gap-8">
-            <div>
-              <p className="text-4xl font-bold text-white">500+</p>
-              <p className="text-sm text-white/70 mt-1">Clients</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-white">10K+</p>
-              <p className="text-sm text-white/70 mt-1">Products</p>
-            </div>
-            <div>
-              <p className="text-4xl font-bold text-white">200+</p>
-              <p className="text-sm text-white/70 mt-1">Orders/Day</p>
-            </div>
           </div>
         </div>
       </div>

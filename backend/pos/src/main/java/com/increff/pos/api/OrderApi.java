@@ -21,6 +21,14 @@ public class OrderApi {
     @Autowired
     private OrderDao orderDao;
 
+    public Page<OrderEntity> search(OrderStatus status, Integer clientId, ZonedDateTime start, ZonedDateTime end,
+                                    Integer page, Integer pageSize) {
+
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        return orderDao.search(status, clientId, start, end, pageable);
+    }
+
     public OrderEntity create(OrderEntity order) {
         return orderDao.save(order);
     }
@@ -38,14 +46,6 @@ public class OrderApi {
 
     public OrderEntity update(OrderEntity order) {
         return orderDao.save(order);
-    }
-
-    public Page<OrderEntity> search(OrderStatus status, Integer clientId, ZonedDateTime start, ZonedDateTime end,
-            Integer page, Integer pageSize) {
-
-        Pageable pageable = PageRequest.of(page, pageSize);
-
-        return orderDao.search(status, clientId, start, end, pageable);
     }
 
 }

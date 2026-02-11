@@ -242,53 +242,6 @@ class InvoiceFlowTest {
     }
 
     @Test
-    void should_get_client_name_successfully() {
-        // Arrange
-        Integer clientId = 1;
-        ClientEntity client = new ClientEntity();
-        client.setId(clientId);
-        client.setClientName("Test Client");
-
-        when(clientApi.getById(clientId)).thenReturn(client);
-
-        // Use reflection to test private method
-        try {
-            java.lang.reflect.Method method = InvoiceFlow.class.getDeclaredMethod("getClientName", Integer.class);
-            method.setAccessible(true);
-            
-            // Act
-            String result = (String) method.invoke(invoiceFlow, clientId);
-
-            // Assert
-            assertEquals("Test Client", result);
-            verify(clientApi).getById(clientId);
-            
-        } catch (Exception e) {
-            fail("Failed to test private method: " + e.getMessage());
-        }
-    }
-
-    @Test
-    void should_throw_exception_when_client_not_found() {
-        // Arrange
-        Integer clientId = 1;
-        when(clientApi.getById(clientId)).thenThrow(new ApiException(ApiStatus.NOT_FOUND, "Client not found"));
-
-        // Use reflection to test private method
-        try {
-            java.lang.reflect.Method method = InvoiceFlow.class.getDeclaredMethod("getClientName", Integer.class);
-            method.setAccessible(true);
-            
-            // Act & Assert
-            assertThrows(java.lang.reflect.InvocationTargetException.class, () -> 
-                method.invoke(invoiceFlow, clientId));
-            
-        } catch (Exception e) {
-            fail("Failed to test private method: " + e.getMessage());
-        }
-    }
-
-    @Test
     void should_save_pdf_successfully() {
         // Arrange
         Integer orderId = 1;

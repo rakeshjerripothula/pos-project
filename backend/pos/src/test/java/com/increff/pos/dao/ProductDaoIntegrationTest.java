@@ -142,36 +142,4 @@ class ProductDaoIntegrationTest {
         assertEquals(2, found.size());
     }
 
-    @Test
-    void testFindProductsForEnabledClients() {
-        ClientEntity enabledClient = new ClientEntity();
-        enabledClient.setClientName("Enabled Client " + System.currentTimeMillis());
-        enabledClient.setEnabled(true);
-        enabledClient = clientDao.save(enabledClient);
-
-        ClientEntity disabledClient = new ClientEntity();
-        disabledClient.setClientName("Disabled Client " + System.currentTimeMillis());
-        disabledClient.setEnabled(false);
-        disabledClient = clientDao.save(disabledClient);
-
-        ProductEntity enabledProduct = new ProductEntity();
-        enabledProduct.setProductName("Enabled Product");
-        enabledProduct.setMrp(new BigDecimal("10.00"));
-        enabledProduct.setClientId(enabledClient.getId());
-        enabledProduct.setBarcode("ENABLED" + (barcodeCounter++));
-        productDao.save(enabledProduct);
-
-        ProductEntity disabledProduct = new ProductEntity();
-        disabledProduct.setProductName("Disabled Product");
-        disabledProduct.setMrp(new BigDecimal("20.00"));
-        disabledProduct.setClientId(disabledClient.getId());
-        disabledProduct.setBarcode("DISABLED" + (barcodeCounter++));
-        productDao.save(disabledProduct);
-
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<ProductEntity> page = productDao.findProductsForEnabledClients(pageable);
-
-        assertEquals(1, page.getTotalElements());
-        assertEquals("Enabled Product", page.getContent().get(0).getProductName());
-    }
 }

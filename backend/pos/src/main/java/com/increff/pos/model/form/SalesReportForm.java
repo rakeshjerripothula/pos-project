@@ -18,9 +18,7 @@ public class SalesReportForm {
 
     private Integer clientId;
 
-    @NotNull(message = "Page number is required")
     private Integer page;
 
-    @NotNull(message = "Page size is required")
     private Integer pageSize;
 }
