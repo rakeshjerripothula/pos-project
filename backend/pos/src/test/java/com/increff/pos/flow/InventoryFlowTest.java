@@ -275,14 +275,7 @@ class InventoryFlowTest {
             createInventoryEntity(2, 200)
         );
         
-        List<ProductEntity> products = Arrays.asList(
-            createProductEntity(1, "Product 1", 1),
-            createProductEntity(2, "Product 2", 1)
-        );
-        
         when(inventoryApi.getByProductIds(Arrays.asList(1, 2))).thenReturn(inventories);
-        when(productApi.getByIds(Arrays.asList(1, 2))).thenReturn(products);
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
 
         // Act
         List<InventoryEntity> result = inventoryFlow.getInventoriesByProductIds(items);
@@ -294,19 +287,25 @@ class InventoryFlowTest {
         assertEquals(2, result.get(1).getProductId());
         assertEquals(200, result.get(1).getQuantity());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1, 2));
-        verify(productApi, times(1)).getByIds(Arrays.asList(1, 2));
-        verify(clientApi, times(1)).isClientEnabled(1);
+        verify(productApi, never()).getByIds(any());
+        verify(clientApi, never()).isClientEnabled(any());
     }
 
     @Test
-    void should_throw_exception_when_validating_empty_order_items() {
+    void should_handle_empty_order_items() {
         // Arrange
         List<OrderItemEntity> items = Collections.emptyList();
+        
+        when(inventoryApi.getByProductIds(Collections.emptyList())).thenReturn(Collections.emptyList());
 
-        // Act & Assert - The current implementation throws NoSuchElementException, not ApiException
-        assertThrows(NoSuchElementException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
+        // Act
+        List<InventoryEntity> result = inventoryFlow.getInventoriesByProductIds(items);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
         verify(inventoryApi, times(1)).getByProductIds(Collections.emptyList());
-        verify(productApi, times(1)).getByIds(Collections.emptyList()); // Still gets called with empty list
+        verify(productApi, never()).getByIds(any());
         verify(clientApi, never()).isClientEnabled(any());
     }
 
@@ -341,7 +340,7 @@ class InventoryFlowTest {
     }
 
     @Test
-    void should_throw_exception_when_validating_order_items_with_missing_products() {
+    void should_return_inventories_when_found() {
         // Arrange
         List<OrderItemEntity> items = Arrays.asList(
             createOrderItemEntity(1, 5)
@@ -352,19 +351,22 @@ class InventoryFlowTest {
         );
         
         when(inventoryApi.getByProductIds(Arrays.asList(1))).thenReturn(inventories);
-        when(productApi.getByIds(Arrays.asList(1))).thenReturn(Collections.emptyList());
 
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
-        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
-        assertEquals("One or more products not found", exception.getMessage());
+        // Act
+        List<InventoryEntity> result = inventoryFlow.getInventoriesByProductIds(items);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
-        verify(productApi, times(1)).getByIds(Arrays.asList(1));
+        verify(productApi, never()).getByIds(any());
         verify(clientApi, never()).isClientEnabled(any());
     }
 
     @Test
-    void should_throw_exception_when_validating_order_items_from_different_clients() {
+    void should_return_inventories_for_multiple_products() {
         // Arrange
         List<OrderItemEntity> items = Arrays.asList(
             createOrderItemEntity(1, 5),
@@ -376,25 +378,25 @@ class InventoryFlowTest {
             createInventoryEntity(2, 200)
         );
         
-        List<ProductEntity> products = Arrays.asList(
-            createProductEntity(1, "Product 1", 1),
-            createProductEntity(2, "Product 2", 2) // Different client
-        );
-        
         when(inventoryApi.getByProductIds(Arrays.asList(1, 2))).thenReturn(inventories);
-        when(productApi.getByIds(Arrays.asList(1, 2))).thenReturn(products);
 
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
-        assertTrue(exception.getMessage().contains("All products in an order must belong to the same client"));
+        // Act
+        List<InventoryEntity> result = inventoryFlow.getInventoriesByProductIds(items);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
+        assertEquals(2, result.get(1).getProductId());
+        assertEquals(200, result.get(1).getQuantity());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1, 2));
-        verify(productApi, times(1)).getByIds(Arrays.asList(1, 2));
+        verify(productApi, never()).getByIds(any());
         verify(clientApi, never()).isClientEnabled(any());
     }
 
     @Test
-    void should_throw_exception_when_validating_order_items_for_disabled_client() {
+    void should_return_inventory_when_found() {
         // Arrange
         List<OrderItemEntity> items = Arrays.asList(
             createOrderItemEntity(1, 5)
@@ -404,21 +406,19 @@ class InventoryFlowTest {
             createInventoryEntity(1, 100)
         );
         
-        List<ProductEntity> products = Arrays.asList(
-            createProductEntity(1, "Product 1", 1)
-        );
-        
         when(inventoryApi.getByProductIds(Arrays.asList(1))).thenReturn(inventories);
-        when(productApi.getByIds(Arrays.asList(1))).thenReturn(products);
-        when(clientApi.isClientEnabled(1)).thenReturn(false);
 
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
-        assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Client is disabled", exception.getMessage());
+        // Act
+        List<InventoryEntity> result = inventoryFlow.getInventoriesByProductIds(items);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
-        verify(productApi, times(1)).getByIds(Arrays.asList(1));
-        verify(clientApi, times(1)).isClientEnabled(1);
+        verify(productApi, never()).getByIds(any());
+        verify(clientApi, never()).isClientEnabled(any());
     }
 
     private InventoryEntity createInventoryEntity(Integer productId, Integer quantity) {

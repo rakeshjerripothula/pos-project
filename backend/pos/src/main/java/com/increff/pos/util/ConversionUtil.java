@@ -256,6 +256,14 @@ public final class ConversionUtil {
         return f;
     }
 
+    public static InvoiceSummaryData convertInvoiceEntityToSummary(InvoiceEntity invoice) {
+        InvoiceSummaryData data = new InvoiceSummaryData();
+        data.setOrderId(invoice.getOrderId());
+        data.setCreatedAt(invoice.getCreatedAt());
+        return data;
+    }
+
+
     public static <S, T> T map(S source, Class<T> targetClass) {
         if (Objects.isNull(source)) {
             return null;

@@ -5,6 +5,7 @@ import com.increff.pos.dao.ReportDao;
 import com.increff.pos.entity.DaySalesEntity;
 import com.increff.pos.model.internal.DaySalesAggregate;
 import com.increff.pos.util.ConversionUtil;
+import com.increff.pos.util.ValidationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -48,15 +49,12 @@ public class DaySalesApi {
 
     @Transactional(readOnly = true)
     public Page<DaySalesEntity> findByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        List<DaySalesEntity> results = daySalesDao.findByDateRange(startDate, endDate);
 
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), results.size());
+        return daySalesDao.findByDateRange(startDate, endDate, pageable);
+    }
 
-        if (start >= results.size()) {
-            return new PageImpl<>(List.of(), pageable, results.size());
-        }
+    public List<DaySalesEntity> findAllByDateRange(LocalDate startDate, LocalDate endDate) {
 
-        return new PageImpl<>(results.subList(start, end), pageable, results.size());
+        return daySalesDao.findAllByDateRange(startDate, endDate);
     }
 }

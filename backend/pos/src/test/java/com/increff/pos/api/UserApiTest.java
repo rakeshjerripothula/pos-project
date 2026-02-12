@@ -224,104 +224,7 @@ class UserApiTest {
         verify(userDao).findById(1);
     }
 
-    @Test
-    void should_get_user_by_email_when_exists() {
-        // Arrange
-        String email = "test@example.com";
-        String normalizedEmail = "test@example.com";
-        UserEntity user = new UserEntity();
-        user.setId(1);
-        user.setEmail(normalizedEmail);
-
-        when(userDao.findByEmail(normalizedEmail)).thenReturn(Optional.of(user));
-
-        // Act
-        UserEntity result = userApi.getByEmail(email);
-
-        // Assert
-        assertEquals(1, result.getId());
-        assertEquals(normalizedEmail, result.getEmail());
-        verify(userDao).findByEmail(normalizedEmail);
-    }
-
-    @Test
-    void should_throw_exception_when_getting_user_by_email_not_found() {
-        // Arrange
-        String email = "nonexistent@example.com";
-        String normalizedEmail = "nonexistent@example.com";
-
-        when(userDao.findByEmail(normalizedEmail)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> userApi.getByEmail(email));
-        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
-        assertEquals("User not found", exception.getMessage());
-        verify(userDao).findByEmail(normalizedEmail);
-    }
-
-    @Test
-    void should_normalize_email_when_getting_by_email() {
-        // Arrange
-        String email = "  TEST@EXAMPLE.COM  ";
-        String normalizedEmail = "test@example.com";
-        UserEntity user = new UserEntity();
-        user.setId(1);
-        user.setEmail(normalizedEmail);
-
-        when(userDao.findByEmail(normalizedEmail)).thenReturn(Optional.of(user));
-
-        // Act
-        UserEntity result = userApi.getByEmail(email);
-
-        // Assert
-        assertEquals(normalizedEmail, result.getEmail());
-        verify(userDao).findByEmail(normalizedEmail);
-    }
-
-    @Test
-    void should_validate_supervisor_when_user_is_supervisor() {
-        // Arrange
-        UserEntity supervisor = new UserEntity();
-        supervisor.setId(1);
-        supervisor.setEmail("supervisor@example.com");
-        supervisor.setRole(UserRole.SUPERVISOR);
-
-        when(userDao.findById(1)).thenReturn(Optional.of(supervisor));
-
-        // Act & Assert
-        assertDoesNotThrow(() -> userApi.validateSupervisor(1));
-        verify(userDao).findById(1);
-    }
-
-    @Test
-    void should_throw_exception_when_validating_supervisor_for_operator() {
-        // Arrange
-        UserEntity operator = new UserEntity();
-        operator.setId(1);
-        operator.setEmail("operator@example.com");
-        operator.setRole(UserRole.OPERATOR);
-
-        when(userDao.findById(1)).thenReturn(Optional.of(operator));
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> userApi.validateSupervisor(1));
-        assertEquals(ApiStatus.UNAUTHORIZED, exception.getStatus());
-        assertEquals("Access denied", exception.getMessage());
-        verify(userDao).findById(1);
-    }
-
-    @Test
-    void should_throw_exception_when_validating_supervisor_for_nonexistent_user() {
-        // Arrange
-        when(userDao.findById(1)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> userApi.validateSupervisor(1));
-        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
-        assertEquals("User not found: 1", exception.getMessage());
-        verify(userDao).findById(1);
-    }
-
+    
     @Test
     void should_parse_supervisor_emails_with_whitespace_and_empty_values() {
         // Arrange
@@ -443,33 +346,6 @@ class UserApiTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> userApi.login(email));
-        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
-        assertEquals("User not found", exception.getMessage());
-        verify(userDao).findByEmail(normalizedEmail);
-    }
-
-    @Test
-    void should_handle_null_email_in_getByEmail() {
-        // Arrange
-        when(userDao.findByEmail(null)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> userApi.getByEmail(null));
-        assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
-        assertEquals("User not found", exception.getMessage());
-        verify(userDao).findByEmail(null);
-    }
-
-    @Test
-    void should_handle_empty_email_in_getByEmail() {
-        // Arrange
-        String email = "";
-        String normalizedEmail = "";
-
-        when(userDao.findByEmail(normalizedEmail)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> userApi.getByEmail(email));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("User not found", exception.getMessage());
         verify(userDao).findByEmail(normalizedEmail);

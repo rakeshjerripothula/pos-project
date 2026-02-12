@@ -27,11 +27,8 @@ public class UserApi {
         if (supervisorEmailsStr == null) {
             supervisorEmailsStr = "";
         }
-        this.supervisorEmails = Arrays.stream(supervisorEmailsStr.split(","))
-                .map(String::trim)
-                .map(String::toLowerCase)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toSet());
+        this.supervisorEmails = Arrays.stream(supervisorEmailsStr.split(",")).map(String::trim)
+                .map(String::toLowerCase).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
     }
 
     public UserEntity signup(String email) {
@@ -39,9 +36,7 @@ public class UserApi {
 
         userDao.findByEmail(normalizedEmail).ifPresent(u -> {
             throw new ApiException(
-                    ApiStatus.CONFLICT,
-                    "User with this email already exists",
-                    "email",
+                    ApiStatus.CONFLICT, "User with this email already exists", "email",
                     "User with this email already exists"
             );
         });
@@ -57,50 +52,18 @@ public class UserApi {
     public UserEntity login(String email) {
         String normalizedEmail = normalizeEmail(email);
         return userDao.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new ApiException(
-                        ApiStatus.NOT_FOUND,
-                        "User not found",
-                        "email",
-                        "User not found"
-                ));
+                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "User not found", "email", "User not found"));
     }
 
     public UserEntity getById(Integer userId) {
         return userDao.findById(userId)
                 .orElseThrow(() -> new ApiException(
-                        ApiStatus.NOT_FOUND,
-                        "User not found: " + userId,
-                        "userId",
-                        "User not found"
+                        ApiStatus.NOT_FOUND, "User not found: " + userId, "userId", "User not found"
                 ));
-    }
-
-    public UserEntity getByEmail(String email) {
-        return userDao.findByEmail(normalizeEmail(email))
-                .orElseThrow(() -> new ApiException(
-                        ApiStatus.NOT_FOUND,
-                        "User not found",
-                        "email",
-                        "User not found"
-                ));
-    }
-
-    public void validateSupervisor(Integer userId) {
-        UserEntity user = getById(userId);
-        if (user.getRole() != UserRole.SUPERVISOR) {
-            throw new ApiException(
-                    ApiStatus.UNAUTHORIZED,
-                    "Access denied",
-                    "role",
-                    "Supervisor access required"
-            );
-        }
     }
 
     private UserRole determineRole(String email) {
-        return supervisorEmails.contains(email)
-                ? UserRole.SUPERVISOR
-                : UserRole.OPERATOR;
+        return supervisorEmails.contains(email) ? UserRole.SUPERVISOR : UserRole.OPERATOR;
     }
 
     private String normalizeEmail(String email) {

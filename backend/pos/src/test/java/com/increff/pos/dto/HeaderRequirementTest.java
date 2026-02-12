@@ -3,18 +3,49 @@ package com.increff.pos.dto;
 import com.increff.pos.model.data.TsvUploadResult;
 import com.increff.pos.model.form.InventoryForm;
 import com.increff.pos.model.form.ProductForm;
+import com.increff.pos.api.ClientApi;
+import com.increff.pos.entity.ClientEntity;
+import com.increff.pos.exception.ApiException;
+import com.increff.pos.exception.ApiStatus;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 class HeaderRequirementTest {
 
+    @Mock
+    private ClientApi clientApi;
+    
+    @InjectMocks
+    private ProductDto productDto;
+    
+    @InjectMocks
+    private InventoryDto inventoryDto;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        
+        // Mock clientApi to return valid clients for any client ID
+        try {
+            when(clientApi.getById(any())).thenReturn(new ClientEntity());
+        } catch (ApiException e) {
+            // Should not happen in setup
+        }
+    }
+
     @Test
-    void testProductTsv_WithoutHeader() throws IOException {
+    void testProductTsv_WithoutHeader() {
         // TSV without header - first row is treated as data
         String tsvContent = "Test Product 1\t10.99\t1\tBAR001\n" +
                 "Test Product 2\t20.50\t2\tBAR002\n";
@@ -26,7 +57,6 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        ProductDto productDto = new ProductDto();
         TsvUploadResult<ProductForm> result = productDto.parseProductTsv(file);
 
         // First row "Test Product 1\t10.99\t1\tBAR001" is skipped as header
@@ -56,7 +86,6 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
         TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
 
         // First row "1\t100" is skipped as header
@@ -85,7 +114,6 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        ProductDto productDto = new ProductDto();
         TsvUploadResult<ProductForm> result = productDto.parseProductTsv(file);
 
         assertTrue(result.isSuccess());
@@ -108,7 +136,6 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
         TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
 
         assertTrue(result.isSuccess());
@@ -129,7 +156,6 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
         TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
 
         assertTrue(result.isSuccess());

@@ -232,7 +232,7 @@ export default function ReportsPage() {
 
   return (
     <AuthGuard requiredRole="SUPERVISOR">
-      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-6">
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 px-30 p-6">
         <div className="max-w-[1400px] mx-auto">
           {/* Header with Toggle */}
           <div className="flex items-center justify-between mb-6">

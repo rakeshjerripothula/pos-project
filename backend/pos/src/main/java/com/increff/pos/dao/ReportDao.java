@@ -27,12 +27,8 @@ public class ReportDao {
     @PersistenceContext
     private EntityManager em;
 
-    public Page<SalesReportRow> getSalesReport(
-            ZonedDateTime startDate,
-            ZonedDateTime endDate,
-            Integer clientId,
-            Pageable pageable
-    ) {
+    public Page<SalesReportRow> getSalesReport(ZonedDateTime startDate, ZonedDateTime endDate, Integer clientId,
+            Pageable pageable) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
 
@@ -57,13 +53,10 @@ public class ReportDao {
         Expression<BigDecimal> revenueExpr = cb.sum(cb.prod(orderItem.get("quantity"), orderItem.get("sellingPrice")));
 
         cq.select(cb.construct(
-                        SalesReportRow.class,
-                        product.get("productName").alias("productName"),
-                        quantityExpr,
-                        revenueExpr
+                        SalesReportRow.class, product.get("productName").alias("productName"),
+                        quantityExpr, revenueExpr
                 ))
-                .where(predicates.toArray(new Predicate[0]))
-                .groupBy(product.get("id"), product.get("productName"))
+                .where(predicates.toArray(new Predicate[0])).groupBy(product.get("id"), product.get("productName"))
                 .orderBy(cb.desc(revenueExpr));
 
         TypedQuery<SalesReportRow> query = em.createQuery(cq);
@@ -89,8 +82,7 @@ public class ReportDao {
             countPredicates.add(cb.equal(countProduct.get("clientId"), clientId));
         }
 
-        countQuery.select(cb.countDistinct(countProduct.get("id")))
-                .where(countPredicates.toArray(new Predicate[0]));
+        countQuery.select(cb.countDistinct(countProduct.get("id"))).where(countPredicates.toArray(new Predicate[0]));
 
         Long total = em.createQuery(countQuery).getSingleResult();
 
@@ -122,13 +114,10 @@ public class ReportDao {
         Expression<BigDecimal> revenueExpr = cb.sum(cb.prod(orderItem.get("quantity"), orderItem.get("sellingPrice")));
 
         cq.select(cb.construct(
-                        SalesReportRow.class,
-                        product.get("productName").alias("productName"),
-                        quantityExpr,
-                        revenueExpr
+                        SalesReportRow.class, product.get("productName").alias("productName"),
+                        quantityExpr, revenueExpr
                 ))
-                .where(predicates.toArray(new Predicate[0]))
-                .groupBy(product.get("id"), product.get("productName"))
+                .where(predicates.toArray(new Predicate[0])).groupBy(product.get("id"), product.get("productName"))
                 .orderBy(cb.desc(revenueExpr));
 
         TypedQuery<SalesReportRow> query = em.createQuery(cq);
@@ -139,45 +128,27 @@ public class ReportDao {
     public DaySalesAggregate getDaySalesAggregate(ZonedDateTime utcStart, ZonedDateTime utcEnd) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<DaySalesAggregate> cq =
-                cb.createQuery(DaySalesAggregate.class);
+        CriteriaQuery<DaySalesAggregate> cq = cb.createQuery(DaySalesAggregate.class);
 
         Root<OrderEntity> order = cq.from(OrderEntity.class);
         Root<OrderItemEntity> item = cq.from(OrderItemEntity.class);
 
         List<Predicate> predicates = new ArrayList<>();
 
-        // Join
         predicates.add(cb.equal(item.get("orderId"), order.get("id")));
 
-        // Only invoiced orders
         predicates.add(cb.equal(order.get("status"), OrderStatus.INVOICED));
 
-        // UTC time range (IMPORTANT)
-        predicates.add(
-                cb.greaterThanOrEqualTo(order.get("createdAt"), utcStart)
-        );
-        predicates.add(
-                cb.lessThan(order.get("createdAt"), utcEnd)
-        );
+        predicates.add(cb.greaterThanOrEqualTo(order.get("createdAt"), utcStart));
+        predicates.add(cb.lessThan(order.get("createdAt"), utcEnd));
 
-        Expression<Long> ordersCount =
-                cb.countDistinct(order.get("id"));
+        Expression<Long> ordersCount = cb.countDistinct(order.get("id"));
 
-        Expression<Long> itemsCount =
-                cb.sumAsLong(item.get("quantity"));
+        Expression<Long> itemsCount = cb.sumAsLong(item.get("quantity"));
 
-        Expression<BigDecimal> revenue =
-                cb.sum(
-                        cb.prod(item.get("quantity"), item.get("sellingPrice"))
-                );
+        Expression<BigDecimal> revenue = cb.sum(cb.prod(item.get("quantity"), item.get("sellingPrice")));
 
-        cq.select(cb.construct(
-                        DaySalesAggregate.class,
-                        ordersCount,
-                        itemsCount,
-                        revenue
-                ))
+        cq.select(cb.construct(DaySalesAggregate.class, ordersCount, itemsCount, revenue))
                 .where(predicates.toArray(new Predicate[0]));
 
         return em.createQuery(cq).getSingleResult();

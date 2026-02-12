@@ -135,8 +135,11 @@ public class InventoryDao {
     }
 
     public List<InventoryEntity> saveAll(List<InventoryEntity> inventories) {
-        inventories.forEach(em::merge);
-        return inventories;
+        List<InventoryEntity> result = new ArrayList<>();
+        for (InventoryEntity inventory : inventories) {
+            result.add(em.merge(inventory));
+        }
+        return result;
     }
 
     public List<InventoryEntity> findByProductIds(List<Integer> productIds) {

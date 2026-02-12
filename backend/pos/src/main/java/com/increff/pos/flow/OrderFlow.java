@@ -1,15 +1,14 @@
 package com.increff.pos.flow;
 
 import com.increff.pos.api.*;
-import com.increff.pos.entity.InventoryEntity;
-import com.increff.pos.entity.OrderEntity;
-import com.increff.pos.entity.OrderItemEntity;
+import com.increff.pos.entity.*;
 import com.increff.pos.domain.OrderStatus;
-import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.OrderItemData;
+import com.increff.pos.model.form.InvoiceForm;
 import com.increff.pos.util.ConversionUtil;
+import com.increff.pos.util.InvoiceConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -43,6 +42,9 @@ public class OrderFlow {
 
     @Autowired
     private InventoryFlow inventoryFlow;
+
+    @Autowired
+    private InvoiceApi invoiceApi;
 
     public Page<OrderEntity> searchOrders(OrderStatus status, Integer clientId, ZonedDateTime start, ZonedDateTime end,
             Integer page, Integer pageSize) {
@@ -82,6 +84,14 @@ public class OrderFlow {
         return savedOrder;
     }
 
+    @Transactional(readOnly = true)
+    public byte[] downloadInvoice(Integer orderId) {
+
+        orderApi.getById(orderId);
+
+        return invoiceApi.download(orderId);
+    }
+
     private void validateOrderItems(List<OrderItemEntity> items) {
         if (Objects.isNull(items) || items.isEmpty()) {
             throw new ApiException(ApiStatus.BAD_DATA,
@@ -95,7 +105,8 @@ public class OrderFlow {
             ProductEntity product = productMap.get(item.getProductId());
             if (item.getSellingPrice().compareTo(product.getMrp()) > 0) {
                 throw new ApiException(
-                        ApiStatus.BAD_DATA, "Selling price cannot be greater than MRP for product: " + product.getProductName(),
+                        ApiStatus.BAD_DATA,
+                        "Selling price cannot be greater than MRP for product: " + product.getProductName(),
                         "sellingPrice", "Selling price cannot be greater than MRP"
                 );
             }
@@ -210,13 +221,6 @@ public class OrderFlow {
         inventoryFlow.bulkUpsert(updated);
     }
 
-
-    private Map<Integer, String> getProductNameMap(List<Integer> productIds) {
-        return productApi.getByIds(productIds).stream().collect(Collectors.toMap(
-                ProductEntity::getId,
-                ProductEntity::getProductName));
-    }
-
     public OrderEntity cancelOrder(Integer orderId) {
 
         OrderEntity order = orderApi.getById(orderId);
@@ -264,6 +268,59 @@ public class OrderFlow {
         }
         return orderApi.getById(orderId);
     }
+
+    @Transactional(readOnly = true)
+    public InvoiceForm buildInvoiceForm(Integer orderId) {
+
+        OrderEntity order = orderApi.getById(orderId);
+
+        if (!order.getStatus().equals(OrderStatus.CREATED)) {
+            throw new ApiException(ApiStatus.BAD_REQUEST, "Only CREATED orders can be invoiced");
+        }
+
+        List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
+
+        if (items.isEmpty()) {
+            throw new ApiException(ApiStatus.BAD_DATA, "Order has no items");
+        }
+
+        Map<Integer, ProductEntity> productMap = getProductMap(items);
+
+        ClientEntity client = clientApi.getById(order.getClientId());
+
+        return InvoiceConverter.convert(order, items, productMap, client.getClientName());
+    }
+
+    public InvoiceEntity saveInvoice(Integer orderId, String filePath) {
+
+        if (invoiceApi.existsForOrder(orderId)) {
+            throw new ApiException(
+                    ApiStatus.BAD_REQUEST,
+                    "Invoice already exists for order " + orderId
+            );
+        }
+
+        OrderEntity order = orderApi.getById(orderId);
+
+        if (!order.getStatus().equals(OrderStatus.CREATED)) {
+            throw new ApiException(
+                    ApiStatus.BAD_REQUEST,
+                    "Invoice can only be generated for CREATED orders"
+            );
+        }
+
+        InvoiceEntity invoice = new InvoiceEntity();
+        invoice.setOrderId(orderId);
+        invoice.setFilePath(filePath);
+
+        invoiceApi.create(invoice);
+
+        order.setStatus(OrderStatus.INVOICED);
+        orderApi.update(order);
+
+        return invoice;
+    }
+
 
     private Map<Integer, ProductEntity> getProductMap(List<OrderItemEntity> items) {
 

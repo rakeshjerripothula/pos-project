@@ -118,11 +118,12 @@ class OrderDtoTest {
     void getOrderItems_validId_success() {
         // Arrange
         Integer orderId = 1;
-        com.increff.pos.entity.OrderItemEntity orderItem = createOrderItemEntity(1, 1, 2, new BigDecimal("10.99"));
-        com.increff.pos.entity.ProductEntity product = createProductEntity(1, "Test Product", new BigDecimal("15.99"));
+        OrderItemData orderItemData = new OrderItemData();
+        orderItemData.setProductName("Test Product");
+        orderItemData.setQuantity(2);
+        orderItemData.setSellingPrice(new BigDecimal("10.99"));
         
-        when(orderItemApi.getByOrderId(orderId)).thenReturn(Arrays.asList(orderItem));
-        when(productApi.getByIds(Arrays.asList(1))).thenReturn(Arrays.asList(product));
+        when(orderFlow.getOrderItems(orderId)).thenReturn(Arrays.asList(orderItemData));
 
         // Act
         List<OrderItemData> result = orderDto.getOrderItems(orderId);
@@ -132,8 +133,7 @@ class OrderDtoTest {
         assertEquals(1, result.size());
         assertEquals("Test Product", result.get(0).getProductName());
         assertEquals(2, result.get(0).getQuantity());
-        verify(orderItemApi, times(1)).getByOrderId(orderId);
-        verify(productApi, times(1)).getByIds(Arrays.asList(1));
+        verify(orderFlow, times(1)).getOrderItems(orderId);
     }
 
     @Test

@@ -116,7 +116,7 @@ export default function DaySalesReportPage() {
 
   return (
     <AuthGuard requiredRole="SUPERVISOR">
-      <div className="min-h-[calc(100vh-64px)] bg-slate-50 p-3 sm:p-6">
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 px-4 sm:px-6 p-3 sm:p-6">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">

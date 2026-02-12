@@ -1,16 +1,18 @@
 package com.increff.pos.dto;
 
+import com.increff.pos.client.InvoiceClient;
+import com.increff.pos.entity.InvoiceEntity;
 import com.increff.pos.entity.OrderEntity;
 import com.increff.pos.entity.OrderItemEntity;
 import com.increff.pos.flow.OrderFlow;
-import com.increff.pos.model.data.OrderData;
-import com.increff.pos.model.data.OrderItemData;
-import com.increff.pos.model.data.OrderPageData;
+import com.increff.pos.model.data.*;
+import com.increff.pos.model.form.InvoiceForm;
 import com.increff.pos.model.form.OrderForm;
 import com.increff.pos.model.form.OrderPageForm;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.util.ConversionUtil;
+import com.increff.pos.util.PdfUtil;
 import com.increff.pos.util.ValidationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,7 +20,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,9 @@ public class OrderDto extends AbstractDto {
 
     @Autowired
     private OrderFlow orderFlow;
+
+    @Autowired
+    private InvoiceClient invoiceClient;
 
     public OrderPageData getOrders(OrderPageForm form) {
 
@@ -86,6 +90,28 @@ public class OrderDto extends AbstractDto {
             throw new ApiException(ApiStatus.BAD_DATA, "Order ID is required", "orderId", "Order ID is required");
         }
         return ConversionUtil.orderEntityToData(orderFlow.cancelOrder(orderId));
+    }
+
+    public InvoiceSummaryData generateInvoice(Integer orderId) {
+
+        InvoiceForm form = orderFlow.buildInvoiceForm(orderId);
+
+        InvoiceData data = invoiceClient.generate(form);
+
+        String filePath = PdfUtil.save(data.getBase64Pdf());
+
+        InvoiceEntity invoice = orderFlow.saveInvoice(orderId, filePath);
+
+        return ConversionUtil.convertInvoiceEntityToSummary(invoice);
+    }
+
+    public byte[] downloadInvoice(Integer orderId) {
+
+        if (orderId == null) {
+            throw new ApiException(ApiStatus.BAD_DATA, "Order ID is required", "orderId", "Order ID is required");
+        }
+
+        return orderFlow.downloadInvoice(orderId);
     }
 
     private void validateOrderId(Integer orderId) {

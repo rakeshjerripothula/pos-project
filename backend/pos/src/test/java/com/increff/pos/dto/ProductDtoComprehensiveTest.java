@@ -221,33 +221,6 @@ class ProductDtoComprehensiveTest {
         verify(productApi, never()).bulkCreateProducts(any());
     }
 
-
-    @Test
-    void getById_validId_success() {
-        // Arrange
-        Integer productId = 1;
-        com.increff.pos.entity.ProductEntity product = createProductEntity(productId, "Test Product", new BigDecimal("10.99"), 1, "BAR001");
-        when(productApi.getProductById(productId)).thenReturn(product);
-
-        // Act
-        ProductData result = productDto.getById(productId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(productId, result.getId());
-        assertEquals("Test Product", result.getProductName());
-        verify(productApi, times(1)).getProductById(productId);
-    }
-
-    @Test
-    void getById_invalidId_throwsException() {
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> productDto.getById(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
-        assertTrue(exception.getMessage().contains("Product ID is required"));
-        verify(productApi, never()).getProductById(any());
-    }
-
     @Test
     void getAll_success() {
         // Arrange

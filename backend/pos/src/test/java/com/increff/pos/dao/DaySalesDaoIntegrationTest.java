@@ -88,7 +88,7 @@ class DaySalesDaoIntegrationTest {
         daySales3.setTotalRevenue(new BigDecimal("300.00"));
         daySalesDao.save(daySales3);
 
-        List<DaySalesEntity> found = daySalesDao.findByDateRange(startDate, endDate);
+        List<DaySalesEntity> found = daySalesDao.findAllByDateRange(startDate, endDate);
 
         assertEquals(2, found.size());
         assertTrue(found.get(0).getDate().isAfter(found.get(1).getDate()) || 

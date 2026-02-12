@@ -31,39 +31,6 @@ public class ReportDto extends AbstractDto{
     @Autowired
     private DaySalesApi daySalesApi;
 
-    public SalesReportPageData getSalesReport(SalesReportForm form) {
-        checkValid(form);
-
-        ZonedDateTime startDate = form.getStartDate();
-        ZonedDateTime endDate = form.getEndDate();
-
-        ValidationUtil.validateOptionalDateRange(startDate, endDate);
-
-        Integer page = Objects.nonNull(form.getPage()) ? form.getPage() : 0;
-        Integer pageSize = Objects.nonNull(form.getPageSize()) ? form.getPageSize() : 10;
-
-        Pageable pageable = PageRequest.of(page, pageSize);
-
-        Page<SalesReportRow> pageResult = reportApi.getSalesReport(
-                startDate,
-                endDate,
-                form.getClientId(),
-                pageable
-        );
-
-        SalesReportPageData response = new SalesReportPageData();
-        response.setRows(
-                pageResult.getContent().stream()
-                        .map(ConversionUtil::salesReportRowToData)
-                        .toList()
-        );
-        response.setPage(page);
-        response.setPageSize(pageSize);
-        response.setTotalElements(pageResult.getTotalElements());
-
-        return response;
-    }
-
     public DaySalesPageData getDaySales(DaySalesReportForm form) {
         checkValid(form);
 
@@ -79,12 +46,34 @@ public class ReportDto extends AbstractDto{
 
         Page<DaySalesEntity> pageResult = daySalesApi.findByDateRange(startDate, endDate, pageable);
 
-        List<DaySalesData> rows = pageResult.getContent().stream()
-                .map(ConversionUtil::daySalesEntityToData)
-                .toList();
+        List<DaySalesData> rows = pageResult.getContent().stream().map(ConversionUtil::daySalesEntityToData).toList();
 
         DaySalesPageData response = new DaySalesPageData();
         response.setContent(rows);
+        response.setPage(page);
+        response.setPageSize(pageSize);
+        response.setTotalElements(pageResult.getTotalElements());
+
+        return response;
+    }
+
+    public SalesReportPageData getSalesReport(SalesReportForm form) {
+        checkValid(form);
+
+        ZonedDateTime startDate = form.getStartDate();
+        ZonedDateTime endDate = form.getEndDate();
+
+        ValidationUtil.validateOptionalDateRange(startDate, endDate);
+
+        Integer page = Objects.nonNull(form.getPage()) ? form.getPage() : 0;
+        Integer pageSize = Objects.nonNull(form.getPageSize()) ? form.getPageSize() : 10;
+
+        Pageable pageable = PageRequest.of(page, pageSize);
+
+        Page<SalesReportRow> pageResult = reportApi.getSalesReport(startDate, endDate, form.getClientId(), pageable);
+
+        SalesReportPageData response = new SalesReportPageData();
+        response.setRows(pageResult.getContent().stream().map(ConversionUtil::salesReportRowToData).toList());
         response.setPage(page);
         response.setPageSize(pageSize);
         response.setTotalElements(pageResult.getTotalElements());
@@ -105,4 +94,14 @@ public class ReportDto extends AbstractDto{
         return allRows.stream().map(ConversionUtil::salesReportRowToData).toList();
     }
 
+    public List<DaySalesData> getAllDaySalesForExport(DaySalesReportForm form) {
+        checkValid(form);
+
+        ValidationUtil.validateOptionalDateRange(form.getStartDate(), form.getEndDate());
+
+        List<DaySalesEntity> entities = daySalesApi.findAllByDateRange(form.getStartDate(), form.getEndDate());
+
+        return entities.stream().map(ConversionUtil::daySalesEntityToData).toList();
     }
+
+}

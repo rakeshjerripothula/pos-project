@@ -32,19 +32,4 @@ public class UserDto extends AbstractDto {
         return ConversionUtil.userEntityToData(user);
     }
 
-    public UserData getById(Integer userId) {
-        if(Objects.isNull(userId)){
-            throw new ApiException(ApiStatus.BAD_DATA, "User ID is required");
-        }
-        UserEntity user = userApi.getById(userId);
-        return ConversionUtil.userEntityToData(user);
-    }
-
-    public UserData getByEmail(String email) {
-        if(Objects.isNull(email)){
-            throw new ApiException(ApiStatus.BAD_DATA, "Email is required");
-        }
-        UserEntity user = userApi.getByEmail(email);
-        return ConversionUtil.userEntityToData(user);
-    }
 }

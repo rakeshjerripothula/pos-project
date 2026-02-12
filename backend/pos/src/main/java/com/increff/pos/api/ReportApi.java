@@ -18,12 +18,8 @@ public class ReportApi {
     @Autowired
     private ReportDao reportDao;
 
-    public Page<SalesReportRow> getSalesReport(
-            ZonedDateTime startDate,
-            ZonedDateTime endDate,
-            Integer clientId,
-            Pageable pageable
-    ) {
+    public Page<SalesReportRow> getSalesReport(ZonedDateTime startDate, ZonedDateTime endDate, Integer clientId,
+            Pageable pageable) {
         return reportDao.getSalesReport(startDate, endDate, clientId, pageable);
     }
 
