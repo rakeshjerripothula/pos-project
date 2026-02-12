@@ -1,3 +1,156 @@
-# TODO / planning docs
+# ==========================================
+# Central .gitignore for PoS_Project
+# ==========================================
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ==========================================
+# IDE and Editor Files
+# ==========================================
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+*.sublime-workspace
+*.sublime-project
+*.project
+*.factorypath
+.settings/
+.springBeans
+.sts4-cache
+.apt_generated
+.nbproject/
+nbproject/private/
+
+# ==========================================
+# Build and Compiled Files
+# ==========================================
+target/
+build/
+dist/
+out/
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+.mvn/wrapper/maven-wrapper.jar
+
+# ==========================================
+# Maven/NDK Specific
+# ==========================================
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+# ==========================================
+# Node.js / JavaScript
+# ==========================================
+node_modules/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.yarn/
+.pnp
+.pnp.*
+
+# ==========================================
+# Next.js
+# ==========================================
+.next/
+out/
+
+# ==========================================
+# Environment and Config
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+.vercel
+
+# ==========================================
+# Testing
+# ==========================================
+coverage/
+.nyc_output/
+*.lcov
+
+# ==========================================
+# Temporary Files
+# ==========================================
+*.tmp
+*.temp
+*.bak
+*~
+.#*
+\#*\#
+*#
+.cache/
+.temp/
+tmp/
+
+# ==========================================
+# Project Specific
+# ==========================================
+backend/pos/invoices/*.pdf
+HELP.md
 TODO*.md
 *TODO*.md
+
+# ==========================================
+# TypeScript
+# ==========================================
+*.tsbuildinfo
+next-env.d.ts
+
+# ==========================================
+# Gradle
+# ==========================================
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+build/
+!src/**/build/
+
+# ==========================================
+# NetBeans
+# ==========================================
+/nbbuild/
+/nbdist/
+/.nb-gradle/
+
+# ==========================================
+# Package Files
+# ==========================================
+*.7z
+*.dmg
+*.gz
+*.iso
+*.rar
+
