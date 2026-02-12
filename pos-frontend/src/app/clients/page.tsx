@@ -87,7 +87,6 @@ export default function ClientsPage() {
     try {
       await apiPatch(`/clients/${id}/toggle`, { enabled });
       toast.success(enabled ? "Client enabled" : "Client disabled");
-      // Refresh the client list
       await handleSearch();
     } catch (error: any) {
       toast.error("Failed to toggle client: " + error.message);
@@ -97,14 +96,12 @@ export default function ClientsPage() {
   async function addClient(clientName: string) {
     await apiPost("/clients", { clientName });
     setPage(0);
-    // Trigger search to reload clients
     await handleSearch();
     toast.success("Client created successfully");
   }
 
   async function updateClient(id: number, clientName: string) {
     await apiPut(`/clients/${id}`, { clientName });
-    // Reload current page using handleSearch
     await handleSearch();
     toast.success("Client updated successfully");
   }
@@ -113,7 +110,6 @@ export default function ClientsPage() {
     setSearchTerm("");
     setFilterEnabled(null);
     setPage(0);
-    // Trigger search after clearing filters
     handleSearch();
   }
 
@@ -136,9 +132,8 @@ export default function ClientsPage() {
           </div>
 
           <div className="p-3 sm:p-4 mb-4 bg-white rounded-lg shadow-sm">
-            {/* Mobile-first: stacked layout, becomes grid on sm+ */}
-            <div className="grid grid-cols-1 gap-3 mb-4 sm:grid-cols-[220px_180px_100px_auto]">
-              <div>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex-1 min-w-[160px] max-w-[220px]">
                 <label className="block mb-1.5 text-sm font-medium text-gray-700">
                   Search Client
                 </label>
@@ -156,23 +151,15 @@ export default function ClientsPage() {
                 />
               </div>
 
-              <div>
+              <div className="flex-1 min-w-[140px] max-w-[180px]">
                 <label className="block mb-1.5 text-sm font-medium text-gray-700">
-                  Filter by Status
+                  Status
                 </label>
                 <select
-                  value={
-                    filterEnabled === null
-                      ? ""
-                      : filterEnabled
-                      ? "enabled"
-                      : "disabled"
-                  }
+                  value={filterEnabled === null ? "" : filterEnabled ? "enabled" : "disabled"}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setFilterEnabled(
-                      value === "" ? null : value === "enabled"
-                    );
+                    setFilterEnabled(value === "" ? null : value === "enabled");
                   }}
                   className="w-full px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white h-[42px]"
                 >
@@ -182,21 +169,18 @@ export default function ClientsPage() {
                 </select>
               </div>
 
-              <div className="flex items-end">
+              <div className="flex gap-2 items-end">
                 <button
                   onClick={handleSearch}
-                  className="w-full px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
+                  className="px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
                 >
                   Search
                 </button>
-              </div>
-
-              <div className="flex items-end">
                 <button
                   onClick={clearFilters}
-                  className="w-full sm:w-auto px-4 py-2 text-base font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
+                  className="px-4 py-2 text-base font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
                 >
-                  Clear Filters
+                  Clear
                 </button>
               </div>
             </div>
@@ -261,4 +245,3 @@ export default function ClientsPage() {
     </AuthGuard>
   );
 }
-

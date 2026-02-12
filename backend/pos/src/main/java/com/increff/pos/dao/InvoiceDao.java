@@ -16,7 +16,7 @@ public class InvoiceDao {
     @PersistenceContext
     private EntityManager em;
 
-    public void insert(InvoiceEntity invoice) {
+    public void save(InvoiceEntity invoice) {
         em.persist(invoice);
     }
 

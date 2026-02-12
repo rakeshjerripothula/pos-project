@@ -78,6 +78,12 @@ export default function ProductsPage() {
   useEffect(() => {
     let mounted = true;
     
+    // Skip if already loaded initial data and no search/page change was triggered
+    if (initialDataLoaded.current && !searchTriggered) {
+      setLoading(false);
+      return;
+    }
+    
     async function loadProducts() {
       setLoading(true);
       try {
@@ -108,7 +114,7 @@ export default function ProductsPage() {
     }
     loadProducts();
     return () => { mounted = false; };
-  }, [page, searchTriggered, filterClientId]);
+  }, [page, searchTriggered]);
 
   // Create inventory map for quick lookup
   const inventoryMap = useMemo(() => {
@@ -279,9 +285,9 @@ export default function ProductsPage() {
           </div>
 
           <div className="p-3 sm:p-4 mb-4 bg-white rounded-lg shadow-sm">
-            {/* Mobile-first: stacked layout, becomes grid on sm+ */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[150px_minmax(150px,250px)_150px_120px] lg:grid-cols-[180px_minmax(180px,280px)_180px_120px]">
-              <div>
+            {/* Flexible grid layout */}
+            <div className="flex flex-wrap gap-3">
+              <div className="flex-1 min-w-[140px] max-w-[200px]">
                 <label className="block mb-1.5 text-sm font-medium text-gray-700">
                   Search Name
                 </label>
@@ -294,7 +300,7 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div>
+              <div className="flex-1 min-w-[140px] max-w-[220px]">
                 <label className="block mb-1.5 text-sm font-medium text-gray-700">
                   Filter by Client
                 </label>
@@ -306,9 +312,9 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div>
+              <div className="flex-1 min-w-[140px] max-w-[180px]">
                 <label className="block mb-1.5 text-sm font-medium text-gray-700">
-                  Search by Barcode
+                  Barcode
                 </label>
                 <input
                   type="text"
@@ -319,19 +325,19 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="flex items-end gap-2">
+              <div className="flex gap-2 items-end">
                 <button
                   onClick={() => {
                     setPage(0);
                     setSearchTriggered(true);
                   }}
-                  className="flex-1 px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
+                  className="px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
                 >
                   Search
                 </button>
                 <button
                   onClick={clearFilters}
-                  className="flex-1 px-4 py-2 text-base font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
+                  className="px-4 py-2 text-base font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
                 >
                   Clear
                 </button>

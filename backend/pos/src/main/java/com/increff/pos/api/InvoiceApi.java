@@ -16,7 +16,7 @@ public class InvoiceApi {
     private InvoiceDao invoiceDao;
 
     public void create(InvoiceEntity invoice) {
-        invoiceDao.insert(invoice);
+        invoiceDao.save(invoice);
     }
 
     public boolean existsForOrder(Integer orderId) {

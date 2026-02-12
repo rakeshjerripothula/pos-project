@@ -23,7 +23,7 @@ class InvoiceDaoIntegrationTest {
         invoice.setOrderId(123);
         invoice.setFilePath("/invoices/invoice-123.pdf");
 
-        invoiceDao.insert(invoice);
+        invoiceDao.save(invoice);
 
         InvoiceEntity found = invoiceDao.selectByOrderId(123);
         
@@ -38,7 +38,7 @@ class InvoiceDaoIntegrationTest {
         invoice.setOrderId(456);
         invoice.setFilePath("/invoices/invoice-456.pdf");
 
-        invoiceDao.insert(invoice);
+        invoiceDao.save(invoice);
 
         InvoiceEntity found = invoiceDao.selectByOrderId(456);
 

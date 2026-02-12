@@ -98,7 +98,7 @@ public class OrderDto extends AbstractDto {
 
         InvoiceData data = invoiceClient.generate(form);
 
-        String filePath = PdfUtil.save(data.getBase64Pdf());
+        String filePath = PdfUtil.save(data.getBase64Pdf(), orderId);
 
         InvoiceEntity invoice = orderFlow.saveInvoice(orderId, filePath);
 

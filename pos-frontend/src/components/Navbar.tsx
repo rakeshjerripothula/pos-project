@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -85,94 +84,96 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="px-4 md:px-8 py-2.5 bg-slate-900 shadow-lg sticky top-0 z-50">
-        <div className="flex items-center justify-between max-w-[1400px] mx-auto">
+      <nav className="w-full px-4 sm:px-6 md:px-8 py-2.5 bg-slate-900 shadow-lg sticky top-0 z-50">
+        <div className="w-full max-w-[1400px] mx-auto">
           {/* Logo + Navigation Links - Left side */}
-          <div className="flex items-center gap-6 md:gap-10">
-            <Link
-              href="/orders"
-              className="no-underline flex items-center"
-            >
-              <span className="text-xl md:text-2xl font-bold text-white tracking-wide">
-                PoS System
-              </span>
-            </Link>
-            
-            {/* Desktop Navigation Links - Hidden on mobile */}
-            <div className="hidden md:flex gap-3">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-4 py-2 rounded-lg transition-all duration-200 text-lg font-semibold no-underline tracking-wide ${
-                    pathname === item.href
-                      ? "bg-white/15 text-white shadow-sm backdrop-blur-sm"
-                      : "text-slate-300 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* User Section - Right side */}
-          <div className="hidden md:flex items-center gap-4">
-            {user ? (
-              <>
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col items-end">
-                    <span className="text-sm text-slate-300 font-medium hidden lg:block max-w-[150px] truncate">{user.email}</span>
-                    <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full uppercase tracking-wider ${
-                      user.role === "SUPERVISOR" 
-                        ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30" 
-                        : "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-                    }`}>
-                      {user.role}
-                    </span>
-                  </div>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
-                    user.role === "SUPERVISOR" 
-                      ? "bg-gradient-to-br from-emerald-400 to-emerald-600" 
-                      : "bg-gradient-to-br from-blue-400 to-blue-600"
-                  }`}>
-                    {getUserInitials(user.email)}
-                  </div>
-                </div>
-                <div className="w-px h-8 bg-slate-600 mx-2" />
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-2 text-sm font-semibold text-white transition-all duration-200 bg-gradient-to-r from-red-500 to-red-600 border-none rounded-lg hover:from-red-600 hover:to-red-700 cursor-pointer shadow-lg shadow-red-500/30 hover:shadow-red-500/50 active:scale-95"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6 md:gap-10">
               <Link
-                href="/login"
-                className="px-5 py-2 text-sm font-semibold text-white no-underline rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 active:scale-95"
+                href="/orders"
+                className="no-underline flex items-center"
               >
-                Sign In
+                <span className="text-xl md:text-2xl font-bold text-white tracking-wide">
+                  PoS System
+                </span>
               </Link>
-            )}
-          </div>
+              
+              {/* Desktop Navigation Links - Hidden on mobile */}
+              <div className="hidden md:flex gap-3">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`px-4 py-2 rounded-lg transition-all duration-200 text-lg font-semibold no-underline tracking-wide ${
+                      pathname === item.href
+                        ? "bg-white/15 text-white shadow-sm backdrop-blur-sm"
+                        : "text-slate-300 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
 
-          {/* Mobile Hamburger Button - Hidden on desktop */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2.5 text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer active:scale-95"
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
+            {/* User Section - Right side */}
+            <div className="hidden md:flex items-center gap-4">
+              {user ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-end">
+                      <span className="text-sm text-slate-300 font-medium hidden lg:block max-w-[150px] truncate">{user.email}</span>
+                      <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full uppercase tracking-wider ${
+                        user.role === "SUPERVISOR" 
+                          ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30" 
+                          : "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
+                      }`}>
+                        {user.role}
+                      </span>
+                    </div>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ${
+                      user.role === "SUPERVISOR" 
+                        ? "bg-gradient-to-br from-emerald-400 to-emerald-600" 
+                        : "bg-gradient-to-br from-blue-400 to-blue-600"
+                    }`}>
+                      {getUserInitials(user.email)}
+                    </div>
+                  </div>
+                  <div className="w-px h-8 bg-slate-600 mx-2" />
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 text-sm font-semibold text-white transition-all duration-200 bg-gradient-to-r from-red-500 to-red-600 border-none rounded-lg hover:from-red-600 hover:to-red-700 cursor-pointer shadow-lg shadow-red-500/30 hover:shadow-red-500/50 active:scale-95"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-5 py-2 text-sm font-semibold text-white no-underline rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 active:scale-95"
+                >
+                  Sign In
+                </Link>
+              )}
+            </div>
+
+            {/* Mobile Hamburger Button - Hidden on desktop */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2.5 text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer active:scale-95"
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       </nav>
 

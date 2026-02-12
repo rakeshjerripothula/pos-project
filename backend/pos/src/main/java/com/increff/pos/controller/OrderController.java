@@ -51,7 +51,7 @@ public class OrderController {
         return orderDto.generateInvoice(id);
     }
 
-    @GetMapping("/orders/{id}/invoice")
+    @GetMapping("/{id}/invoice/download")
     public ResponseEntity<byte[]> downloadInvoice(@PathVariable("id") Integer orderId) {
 
         byte[] pdf = orderDto.downloadInvoice(orderId);

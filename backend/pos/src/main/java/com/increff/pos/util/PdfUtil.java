@@ -10,14 +10,14 @@ public class PdfUtil {
 
     private static final String INVOICE_DIR = "invoices/";
 
-    public static String save(String base64Pdf) {
+    public static String save(String base64Pdf, Integer orderId) {
 
         try {
             byte[] decoded = Base64.getDecoder().decode(base64Pdf);
 
             Files.createDirectories(Paths.get(INVOICE_DIR));
 
-            String fileName = "invoice-" + UUID.randomUUID() + ".pdf";
+            String fileName = "invoice-" + orderId + ".pdf";
 
             Path path = Paths.get(INVOICE_DIR + fileName);
 

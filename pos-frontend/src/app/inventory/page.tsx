@@ -94,6 +94,7 @@ export default function InventoryPage() {
         if (mounted) {
           setInventory(data.data);
           setTotalElements(data.total);
+          loadedRef.current = true;
           setSearchTriggered(false); // Reset after search
         }
       } catch (error: any) {
@@ -256,11 +257,11 @@ export default function InventoryPage() {
           </div>
 
           <div className="p-3 sm:p-4 mb-4 bg-white rounded-lg shadow-sm">
-            {/* Mobile-first: stacked layout, becomes grid on sm+ */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_120px] lg:grid-cols-[200px_200px_120px]">
-              <div>
+            {/* Flexible grid layout */}
+            <div className="flex flex-wrap gap-3">
+              <div className="flex-1 min-w-[160px] max-w-[220px]">
                 <label className="block mb-1.5 text-sm font-medium text-gray-700">
-                  Search Product Name
+                  Product Name
                 </label>
                 <input
                   type="text"
@@ -271,9 +272,9 @@ export default function InventoryPage() {
                 />
               </div>
 
-              <div>
+              <div className="flex-1 min-w-[160px] max-w-[200px]">
                 <label className="block mb-1.5 text-sm font-medium text-gray-700">
-                  Search by Barcode
+                  Barcode
                 </label>
                 <input
                   type="text"
@@ -284,19 +285,19 @@ export default function InventoryPage() {
                 />
               </div>
 
-              <div className="flex items-end gap-2">
+              <div className="flex gap-2 items-end">
                 <button
                   onClick={() => {
                     setPage(0);
                     setSearchTriggered(true);
                   }}
-                  className="flex-1 px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
+                  className="px-4 py-2 text-base font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors cursor-pointer h-[42px]"
                 >
                   Search
                 </button>
                 <button
                   onClick={clearFilters}
-                  className="flex-1 px-4 py-2 text-base font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
+                  className="px-4 py-2 text-base font-medium text-white bg-gray-500 rounded-md hover:bg-gray-600 transition-colors cursor-pointer h-[42px]"
                 >
                   Clear
                 </button>

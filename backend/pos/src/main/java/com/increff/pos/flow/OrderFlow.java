@@ -295,8 +295,7 @@ public class OrderFlow {
 
         if (invoiceApi.existsForOrder(orderId)) {
             throw new ApiException(
-                    ApiStatus.BAD_REQUEST,
-                    "Invoice already exists for order " + orderId
+                    ApiStatus.BAD_REQUEST, "Invoice already exists for order " + orderId
             );
         }
 

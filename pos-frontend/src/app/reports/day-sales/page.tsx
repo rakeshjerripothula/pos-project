@@ -116,7 +116,7 @@ export default function DaySalesReportPage() {
 
   return (
     <AuthGuard requiredRole="SUPERVISOR">
-      <div className="min-h-[calc(100vh-64px)] bg-slate-50 px-4 sm:px-6 p-3 sm:p-6">
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 px-4 sm:px-30 p-3 sm:p-6">
         <div className="max-w-[1400px] mx-auto">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
@@ -124,16 +124,16 @@ export default function DaySalesReportPage() {
             </h1>
             <Link
               href="/reports"
-              className="px-5 py-2.5 text-sm font-medium text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition-colors no-underline"
+              className="px-4 py-2 text-sm font-medium text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition-colors no-underline"
             >
               Back to Reports
             </Link>
           </div>
 
           {/* Filters */}
-          <div className="p-5 mb-6 bg-white rounded-xl shadow-sm">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_auto]">
-              <div>
+          <div className="p-4 sm:p-5 mb-4 sm:mb-6 bg-white rounded-xl shadow-sm">
+            <div className="flex flex-wrap gap-3">
+              <div className="flex-1 min-w-[160px] max-w-[200px]">
                 <label className="block mb-2 text-sm font-medium text-gray-700">
                   Start Date
                 </label>
@@ -144,11 +144,11 @@ export default function DaySalesReportPage() {
                     setStartDate(e.target.value);
                     setPage(0);
                   }}
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
-              <div>
+              <div className="flex-1 min-w-[160px] max-w-[200px]">
                 <label className="block mb-2 text-sm font-medium text-gray-700">
                   End Date
                 </label>
@@ -159,18 +159,18 @@ export default function DaySalesReportPage() {
                     setEndDate(e.target.value);
                     setPage(0);
                   }}
-                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                 />
               </div>
 
-              <div className="flex items-end">
+              <div className="flex gap-2 items-end">
                 <button
                   onClick={() => {
                     setPage(0);
                     loadReport();
                   }}
                   disabled={loading}
-                  className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors ${
+                  className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors h-[42px] ${
                     loading 
                       ? "bg-blue-400 cursor-not-allowed" 
                       : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
@@ -178,43 +178,43 @@ export default function DaySalesReportPage() {
                 >
                   {loading ? "Loading..." : "Generate Report"}
                 </button>
+                <button
+                  onClick={handleExportCsv}
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2 h-[42px]"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export
+                </button>
               </div>
             </div>
           </div>
 
           {/* Summary */}
           {data && data.content.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 mb-4 sm:mb-6 md:grid-cols-6 p-4 sm:p-5 bg-white rounded-xl shadow-sm">
-              <div>
-                <div className="text-xs text-slate-500">Total Days</div>
-                <div className="text-xl sm:text-2xl font-bold text-slate-800">{data.totalElements}</div>
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">Total Orders</div>
-                <div className="text-xl sm:text-2xl font-bold text-slate-800">{totalOrders}</div>
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">Total Items Sold</div>
-                <div className="text-xl sm:text-2xl font-bold text-slate-800">{totalItems}</div>
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">Total Revenue</div>
-                <div className="text-xl sm:text-2xl font-bold text-slate-800">₹{totalRevenue.toFixed(2)}</div>
-              </div>
-              <div>
-                <div className="text-xs text-slate-500">Avg Daily Revenue</div>
-                <div className="text-xl sm:text-2xl font-bold text-slate-800">₹{avgDailyRevenue.toFixed(2)}</div>
-              </div>
-              <div className="flex items-center justify-end">
-                <button
-                  onClick={handleExportCsv}
-                  className="px-3 py-2 text-xs sm:text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Export CSV
-                </button>
+            <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-white rounded-xl shadow-sm">
+              <div className="flex flex-wrap justify-between gap-4">
+                <div>
+                  <div className="text-sm text-slate-500">Total Days</div>
+                  <div className="text-xl sm:text-2xl font-bold text-slate-800">{data.totalElements}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-500">Total Orders</div>
+                  <div className="text-xl sm:text-2xl font-bold text-slate-800">{totalOrders}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-500">Total Items Sold</div>
+                  <div className="text-xl sm:text-2xl font-bold text-slate-800">{totalItems}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-slate-500">Total Revenue</div>
+                  <div className="text-xl sm:text-2xl font-bold text-slate-800">₹{totalRevenue.toFixed(2)}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-slate-500">Avg Daily Revenue</div>
+                  <div className="text-xl sm:text-2xl font-bold text-slate-800">₹{avgDailyRevenue.toFixed(2)}</div>
+                </div>
               </div>
             </div>
           )}
@@ -230,14 +230,14 @@ export default function DaySalesReportPage() {
           ) : data ? (
             <>
               <div className="p-4 sm:p-6 bg-white rounded-xl shadow-sm overflow-x-auto">
-                <table className="w-full border-collapse min-w-[450px]">
+                <table className="w-full border-collapse min-w-[500px]">
                   <thead>
                     <tr className="border-b-2 border-gray-200">
-                      <th className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Date</th>
-                      <th className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Orders</th>
-                      <th className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Items Sold</th>
-                      <th className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Revenue</th>
-                      <th className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Avg Order Value</th>
+                      <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Date</th>
+                      <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Orders</th>
+                      <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Items Sold</th>
+                      <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Revenue</th>
+                      <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Avg Order Value</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -248,7 +248,7 @@ export default function DaySalesReportPage() {
                           : 0;
                       return (
                         <tr key={idx} className="border-b border-gray-100">
-                          <td className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm">
+                          <td className="px-3 py-3 text-sm sm:text-base">
                             {mounted
                               ? new Date(item.date).toLocaleDateString("en-IN", {
                                   year: "numeric",
@@ -257,10 +257,10 @@ export default function DaySalesReportPage() {
                                 })
                               : ""}
                           </td>
-                          <td className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm">{item.invoicedOrdersCount}</td>
-                          <td className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm">{item.invoicedItemsCount}</td>
-                          <td className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm">₹{Number(item.totalRevenue).toFixed(2)}</td>
-                          <td className="px-2 py-2 sm:px-3 py-2.5 text-xs sm:text-sm">₹{avgOrderValue.toFixed(2)}</td>
+                          <td className="px-3 py-3 text-sm sm:text-base">{item.invoicedOrdersCount}</td>
+                          <td className="px-3 py-3 text-sm sm:text-base">{item.invoicedItemsCount}</td>
+                          <td className="px-3 py-3 text-sm sm:text-base">₹{Number(item.totalRevenue).toFixed(2)}</td>
+                          <td className="px-3 py-3 text-sm sm:text-base">₹{avgOrderValue.toFixed(2)}</td>
                         </tr>
                       );
                     })}
@@ -271,14 +271,14 @@ export default function DaySalesReportPage() {
               {/* Pagination */}
               {data.totalElements > pageSize && (
                 <div className="flex flex-wrap items-center justify-between mt-4 sm:mt-6 p-4 sm:p-6 bg-white rounded-xl shadow-sm gap-y-3">
-                  <div className="text-xs sm:text-sm text-slate-500 order-2 sm:order-1">
+                  <div className="text-sm text-slate-500 order-2 sm:order-1">
                     Showing {data.content.length} of {data.totalElements} days
                   </div>
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2 order-1 sm:order-2">
+                  <div className="flex flex-wrap gap-2 order-1 sm:order-2">
                     <button
                       onClick={() => setPage(Math.max(0, page - 1))}
                       disabled={page === 0}
-                      className={`px-2.5 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg ${
+                      className={`px-3 py-2 text-sm border border-gray-300 rounded-lg ${
                         page === 0 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -286,13 +286,13 @@ export default function DaySalesReportPage() {
                     >
                       Previous
                     </button>
-                    <span className="px-2 py-1.5 text-xs sm:text-sm text-gray-700">
+                    <span className="px-3 py-2 text-sm text-gray-700">
                       {page + 1} / {Math.ceil(data.totalElements / pageSize)}
                     </span>
                     <button
                       onClick={() => setPage(page + 1)}
                       disabled={(page + 1) * pageSize >= data.totalElements}
-                      className={`px-2.5 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-lg ${
+                      className={`px-3 py-2 text-sm border border-gray-300 rounded-lg ${
                         (page + 1) * pageSize >= data.totalElements 
                           ? "bg-white text-gray-400 cursor-not-allowed opacity-50" 
                           : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"

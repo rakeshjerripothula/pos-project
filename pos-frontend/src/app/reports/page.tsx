@@ -34,6 +34,7 @@ export default function ReportsPage() {
   const clientsLoadedRef = useRef(false);
   const [salesPage, setSalesPage] = useState(0);
   const [salesMounted, setSalesMounted] = useState(false);
+  const salesInitialLoadRef = useRef(false);
   const salesPageSize = 10;
 
   // Day sales report state
@@ -42,7 +43,7 @@ export default function ReportsPage() {
   const [daySalesStartDate, setDaySalesStartDate] = useState("");
   const [daySalesEndDate, setDaySalesEndDate] = useState("");
   const [daySalesPage, setDaySalesPage] = useState(0);
-  const initialLoadRef = useRef(false);
+  const daySalesInitialLoadRef = useRef(false);
   const [daySalesMounted, setDaySalesMounted] = useState(false);
   const daySalesPageSize = 10;
 
@@ -73,20 +74,21 @@ export default function ReportsPage() {
     setDaySalesMounted(true);
   }, []);
 
+  // Initial load of sales report
+  useEffect(() => {
+    if (!salesInitialLoadRef.current && salesStartDate && salesEndDate) {
+      salesInitialLoadRef.current = true;
+      loadSalesReport();
+    }
+  }, [salesStartDate, salesEndDate]);
+
   // Initial load of day sales report
   useEffect(() => {
-    if (!initialLoadRef.current && daySalesStartDate && daySalesEndDate) {
-      initialLoadRef.current = true;
+    if (!daySalesInitialLoadRef.current && daySalesStartDate && daySalesEndDate) {
+      daySalesInitialLoadRef.current = true;
       loadDaySalesReport();
     }
   }, [daySalesStartDate, daySalesEndDate]);
-
-  // Load sales report when filters change
-  useEffect(() => {
-    if (salesStartDate && salesEndDate) {
-      loadSalesReport();
-    }
-  }, [salesStartDate, salesEndDate, salesPage, salesClientId]);
 
   async function loadClients() {
     if (clientsLoadedRef.current) return;
@@ -232,11 +234,11 @@ export default function ReportsPage() {
 
   return (
     <AuthGuard requiredRole="SUPERVISOR">
-      <div className="min-h-[calc(100vh-64px)] bg-slate-50 px-30 p-6">
+      <div className="min-h-[calc(100vh-64px)] bg-slate-50 px-4 sm:px-30 p-3 sm:p-6">
         <div className="max-w-[1400px] mx-auto">
           {/* Header with Toggle */}
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-slate-800">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
               {activeReport === "sales" ? "Sales Report" : "Day-on-Day Sales Report"}
             </h1>
             
@@ -244,7 +246,7 @@ export default function ReportsPage() {
             <div className="flex bg-white rounded-lg shadow-sm p-1">
               <button
                 onClick={() => setActiveReport("sales")}
-                className={`px-5 py-2 text-base font-medium rounded-md transition-colors ${
+                className={`px-4 sm:px-5 py-2 text-sm sm:text-base font-medium rounded-md transition-colors ${
                   activeReport === "sales"
                     ? "bg-blue-500 text-white"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
@@ -254,7 +256,7 @@ export default function ReportsPage() {
               </button>
               <button
                 onClick={() => setActiveReport("daySales")}
-                className={`px-5 py-2 text-base font-medium rounded-md transition-colors ${
+                className={`px-4 sm:px-5 py-2 text-sm sm:text-base font-medium rounded-md transition-colors ${
                   activeReport === "daySales"
                     ? "bg-blue-500 text-white"
                     : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
@@ -269,9 +271,9 @@ export default function ReportsPage() {
           {activeReport === "sales" && (
             <>
               {/* Filters */}
-              <div className="p-5 mb-6 bg-white rounded-xl shadow-sm">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_200px_160px_140px]">
-                  <div>
+              <div className="p-4 sm:p-5 mb-4 sm:mb-6 bg-white rounded-xl shadow-sm">
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex-1 min-w-[180px] max-w-[200px]">
                     <label className="block mb-2 text-sm font-medium text-gray-700">
                       Start Date
                     </label>
@@ -282,11 +284,11 @@ export default function ReportsPage() {
                         setSalesStartDate(e.target.value);
                         setSalesPage(0);
                       }}
-                      className="w-full px-3.5 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
+                      className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                     />
                   </div>
 
-                  <div>
+                  <div className="flex-1 min-w-[180px] max-w-[200px]">
                     <label className="block mb-2 text-sm font-medium text-gray-700">
                       End Date
                     </label>
@@ -297,11 +299,11 @@ export default function ReportsPage() {
                         setSalesEndDate(e.target.value);
                         setSalesPage(0);
                       }}
-                      className="w-full px-3.5 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
+                      className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                     />
                   </div>
 
-                  <div>
+                  <div className="flex-1 min-w-[180px] max-w-[220px]">
                     <label className="block mb-2 text-sm font-medium text-gray-700">
                       Client
                     </label>
@@ -347,19 +349,19 @@ export default function ReportsPage() {
                       />
                     ) : (
                       <div className="px-3.5 py-2.5 text-sm text-slate-500 bg-gray-50 border border-gray-300 rounded-lg h-[42px] flex items-center">
-                        Loading clients...
+                        Loading...
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-end">
+                  <div className="flex gap-2 items-end">
                     <button
                       onClick={() => {
                         setSalesPage(0);
                         loadSalesReport();
                       }}
                       disabled={salesLoading}
-                      className={`w-full px-5 py-2.5 text-base font-medium text-white rounded-lg transition-colors h-[42px] ${
+                      className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors h-[42px] ${
                         salesLoading
                           ? "bg-blue-400 cursor-not-allowed"
                           : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
@@ -367,12 +369,9 @@ export default function ReportsPage() {
                     >
                       {salesLoading ? "Loading..." : "Generate Report"}
                     </button>
-                  </div>
-
-                  <div className="flex items-end">
                     <button
                       onClick={handleSalesExportCsv}
-                      className="w-full px-4 py-2.5 text-base font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-2 h-[42px]"
+                      className="px-4 py-2.5 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2 h-[42px]"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -388,7 +387,7 @@ export default function ReportsPage() {
                           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                         />
                       </svg>
-                      Export CSV
+                      Export
                     </button>
                   </div>
                 </div>
@@ -397,7 +396,7 @@ export default function ReportsPage() {
               {/* Summary */}
               {salesData && salesData.rows.length > 0 && (
                 <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-white rounded-xl shadow-sm">
-                  <div className="flex justify-between">
+                  <div className="flex flex-wrap justify-between gap-4">
                     <div>
                       <div className="text-sm text-slate-500">Total Products</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
@@ -429,27 +428,21 @@ export default function ReportsPage() {
                 </div>
               ) : salesData ? (
                 <>
-                  <div className="p-6 bg-white rounded-xl shadow-sm overflow-x-auto">
-                    <table className="w-full border-collapse">
+                  <div className="p-4 sm:p-6 bg-white rounded-xl shadow-sm overflow-x-auto">
+                    <table className="w-full border-collapse min-w-[450px]">
                       <thead>
                         <tr className="border-b-2 border-gray-200">
-                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
-                            Product Name
-                          </th>
-                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
-                            Quantity Sold
-                          </th>
-                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
-                            Revenue
-                          </th>
+                          <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Product Name</th>
+                          <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Quantity Sold</th>
+                          <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Revenue</th>
                         </tr>
                       </thead>
                       <tbody>
                         {salesData.rows.map((item, idx) => (
                           <tr key={idx} className="border-b border-gray-100">
-                            <td className="px-3 py-3 text-base">{item.productName}</td>
-                            <td className="px-3 py-3 text-base">{item.quantitySold}</td>
-                            <td className="px-3 py-3 text-base">
+                            <td className="px-3 py-3 text-sm sm:text-base">{item.productName}</td>
+                            <td className="px-3 py-3 text-sm sm:text-base">{item.quantitySold}</td>
+                            <td className="px-3 py-3 text-sm sm:text-base">
                               ₹{Number(item.revenue).toFixed(2)}
                             </td>
                           </tr>
@@ -460,15 +453,15 @@ export default function ReportsPage() {
 
                   {/* Pagination */}
                   {salesData.totalElements > salesPageSize && (
-                    <div className="flex items-center justify-between mt-6 p-6 bg-white rounded-xl shadow-sm">
-                      <div className="text-base text-slate-500">
+                    <div className="flex flex-wrap items-center justify-between mt-4 sm:mt-6 p-4 sm:p-6 bg-white rounded-xl shadow-sm gap-y-3">
+                      <div className="text-sm text-slate-500 order-2 sm:order-1">
                         Showing {salesData.rows.length} of {salesData.totalElements} products
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2 order-1 sm:order-2">
                         <button
                           onClick={() => setSalesPage(Math.max(0, salesPage - 1))}
                           disabled={salesPage === 0}
-                          className={`px-4 py-2 text-base border border-gray-300 rounded-lg ${
+                          className={`px-3 py-2 text-sm border border-gray-300 rounded-lg ${
                             salesPage === 0
                               ? "bg-white text-gray-400 cursor-not-allowed opacity-50"
                               : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -476,14 +469,13 @@ export default function ReportsPage() {
                         >
                           Previous
                         </button>
-                        <span className="px-4 py-2 text-base text-gray-700">
-                          Page {salesPage + 1} of{" "}
-                          {Math.ceil(salesData.totalElements / salesPageSize)}
+                        <span className="px-3 py-2 text-sm text-gray-700">
+                          {salesPage + 1} / {Math.ceil(salesData.totalElements / salesPageSize)}
                         </span>
                         <button
                           onClick={() => setSalesPage(salesPage + 1)}
                           disabled={(salesPage + 1) * salesPageSize >= salesData.totalElements}
-                          className={`px-4 py-2 text-base border border-gray-300 rounded-lg ${
+                          className={`px-3 py-2 text-sm border border-gray-300 rounded-lg ${
                             (salesPage + 1) * salesPageSize >= salesData.totalElements
                               ? "bg-white text-gray-400 cursor-not-allowed opacity-50"
                               : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -503,9 +495,9 @@ export default function ReportsPage() {
           {activeReport === "daySales" && (
             <>
               {/* Filters */}
-              <div className="p-5 mb-6 bg-white rounded-xl shadow-sm">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-[200px_200px_160px_140px]">
-                  <div>
+              <div className="p-4 sm:p-5 mb-4 sm:mb-6 bg-white rounded-xl shadow-sm">
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex-1 min-w-[180px] max-w-[200px]">
                     <label className="block mb-2 text-sm font-medium text-gray-700">
                       Start Date
                     </label>
@@ -516,11 +508,11 @@ export default function ReportsPage() {
                         setDaySalesStartDate(e.target.value);
                         setDaySalesPage(0);
                       }}
-                      className="w-full px-3.5 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
+                      className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                     />
                   </div>
 
-                  <div>
+                  <div className="flex-1 min-w-[180px] max-w-[200px]">
                     <label className="block mb-2 text-sm font-medium text-gray-700">
                       End Date
                     </label>
@@ -531,18 +523,18 @@ export default function ReportsPage() {
                         setDaySalesEndDate(e.target.value);
                         setDaySalesPage(0);
                       }}
-                      className="w-full px-3.5 py-2.5 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
+                      className="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-[42px]"
                     />
                   </div>
 
-                  <div className="flex items-end">
+                  <div className="flex gap-2 items-end">
                     <button
                       onClick={() => {
                         setDaySalesPage(0);
                         loadDaySalesReport();
                       }}
                       disabled={daySalesLoading}
-                      className={`w-full px-5 py-2.5 text-base font-medium text-white rounded-lg transition-colors h-[42px] ${
+                      className={`px-5 py-2.5 text-sm font-medium text-white rounded-lg transition-colors h-[42px] ${
                         daySalesLoading
                           ? "bg-blue-400 cursor-not-allowed"
                           : "bg-blue-500 hover:bg-blue-600 cursor-pointer"
@@ -550,12 +542,9 @@ export default function ReportsPage() {
                     >
                       {daySalesLoading ? "Loading..." : "Generate Report"}
                     </button>
-                  </div>
-
-                  <div className="flex items-end">
                     <button
                       onClick={handleDaySalesExportCsv}
-                      className="w-full px-4 py-2.5 text-base font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center justify-center gap-2 h-[42px]"
+                      className="px-4 py-2.5 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors cursor-pointer flex items-center gap-2 h-[42px]"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -571,7 +560,7 @@ export default function ReportsPage() {
                           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                         />
                       </svg>
-                      Export CSV
+                      Export
                     </button>
                   </div>
                 </div>
@@ -580,7 +569,7 @@ export default function ReportsPage() {
               {/* Summary */}
               {daySalesData && daySalesData.content.length > 0 && (
                 <div className="mb-4 sm:mb-6 p-4 sm:p-5 bg-white rounded-xl shadow-sm">
-                  <div className="flex justify-between">
+                  <div className="flex flex-wrap justify-between gap-4">
                     <div>
                       <div className="text-sm text-slate-500">Total Days</div>
                       <div className="text-xl sm:text-2xl font-bold text-slate-800">
@@ -624,25 +613,15 @@ export default function ReportsPage() {
                 </div>
               ) : daySalesData ? (
                 <>
-                  <div className="p-6 bg-white rounded-xl shadow-sm overflow-x-auto">
-                    <table className="w-full border-collapse">
+                  <div className="p-4 sm:p-6 bg-white rounded-xl shadow-sm overflow-x-auto">
+                    <table className="w-full border-collapse min-w-[550px]">
                       <thead>
                         <tr className="border-b-2 border-gray-200">
-                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
-                            Date
-                          </th>
-                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
-                            Orders
-                          </th>
-                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
-                            Items Sold
-                          </th>
-                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
-                            Revenue
-                          </th>
-                          <th className="px-3 py-3 text-base font-semibold text-left text-gray-700">
-                            Avg Order Value
-                          </th>
+                          <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Date</th>
+                          <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Orders</th>
+                          <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Items Sold</th>
+                          <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Revenue</th>
+                          <th className="px-3 py-3 text-sm sm:text-base font-semibold text-left text-gray-700">Avg Order Value</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -653,7 +632,7 @@ export default function ReportsPage() {
                               : 0;
                           return (
                             <tr key={idx} className="border-b border-gray-100">
-                              <td className="px-3 py-3 text-base">
+                              <td className="px-3 py-3 text-sm sm:text-base">
                                 {daySalesMounted
                                   ? new Date(item.date).toLocaleDateString("en-IN", {
                                       year: "numeric",
@@ -662,16 +641,16 @@ export default function ReportsPage() {
                                     })
                                   : ""}
                               </td>
-                              <td className="px-3 py-3 text-base">
+                              <td className="px-3 py-3 text-sm sm:text-base">
                                 {item.invoicedOrdersCount}
                               </td>
-                              <td className="px-3 py-3 text-base">
+                              <td className="px-3 py-3 text-sm sm:text-base">
                                 {item.invoicedItemsCount}
                               </td>
-                              <td className="px-3 py-3 text-base">
+                              <td className="px-3 py-3 text-sm sm:text-base">
                                 ₹{Number(item.totalRevenue).toFixed(2)}
                               </td>
-                              <td className="px-3 py-3 text-base">
+                              <td className="px-3 py-3 text-sm sm:text-base">
                                 ₹{avgOrderValue.toFixed(2)}
                               </td>
                             </tr>
@@ -683,18 +662,17 @@ export default function ReportsPage() {
 
                   {/* Pagination */}
                   {daySalesData.totalElements > daySalesPageSize && (
-                    <div className="flex items-center justify-between mt-6 p-6 bg-white rounded-xl shadow-sm">
-                      <div className="text-base text-slate-500">
-                        Showing {daySalesData.content.length} of{" "}
-                        {daySalesData.totalElements} days
+                    <div className="flex flex-wrap items-center justify-between mt-4 sm:mt-6 p-4 sm:p-6 bg-white rounded-xl shadow-sm gap-y-3">
+                      <div className="text-sm text-slate-500 order-2 sm:order-1">
+                        Showing {daySalesData.content.length} of {daySalesData.totalElements} days
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2 order-1 sm:order-2">
                         <button
                           onClick={() =>
                             setDaySalesPage(Math.max(0, daySalesPage - 1))
                           }
                           disabled={daySalesPage === 0}
-                          className={`px-4 py-2 text-base border border-gray-300 rounded-lg ${
+                          className={`px-3 py-2 text-sm border border-gray-300 rounded-lg ${
                             daySalesPage === 0
                               ? "bg-white text-gray-400 cursor-not-allowed opacity-50"
                               : "bg-white text-gray-700 hover:bg-gray-50 cursor-pointer"
@@ -702,9 +680,8 @@ export default function ReportsPage() {
                         >
                           Previous
                         </button>
-                        <span className="px-4 py-2 text-base text-gray-700">
-                          Page {daySalesPage + 1} of{" "}
-                          {Math.ceil(daySalesData.totalElements / daySalesPageSize)}
+                        <span className="px-3 py-2 text-sm text-gray-700">
+                          {daySalesPage + 1} / {Math.ceil(daySalesData.totalElements / daySalesPageSize)}
                         </span>
                         <button
                           onClick={() => setDaySalesPage(daySalesPage + 1)}
@@ -712,7 +689,7 @@ export default function ReportsPage() {
                             (daySalesPage + 1) * daySalesPageSize >=
                             daySalesData.totalElements
                           }
-                          className={`px-4 py-2 text-base border border-gray-300 rounded-lg ${
+                          className={`px-3 py-2 text-sm border border-gray-300 rounded-lg ${
                             (daySalesPage + 1) * daySalesPageSize >=
                             daySalesData.totalElements
                               ? "bg-white text-gray-400 cursor-not-allowed opacity-50"
