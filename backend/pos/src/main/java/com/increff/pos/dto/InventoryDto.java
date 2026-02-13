@@ -3,11 +3,13 @@ package com.increff.pos.dto;
 import com.increff.pos.flow.InventoryFlow;
 import com.increff.pos.model.data.InventoryData;
 import com.increff.pos.model.data.PagedResponse;
+import com.increff.pos.model.data.ProductData;
 import com.increff.pos.model.data.TsvUploadError;
 import com.increff.pos.model.data.TsvUploadResult;
 import com.increff.pos.model.form.InventoryForm;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
+import com.increff.pos.exception.TsvUploadException;
 import com.increff.pos.model.form.InventorySearchForm;
 import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,16 +54,24 @@ public class InventoryDto extends AbstractDto {
         return inventoryFlow.searchForEnabledClientsWithData(form.getBarcode(), form.getProductName(), pageable);
     }
 
-    public TsvUploadResult<InventoryData> uploadTsv(MultipartFile file) {
+    public TsvUploadResult<InventoryData>  uploadTsv(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(ApiStatus.BAD_DATA, "Empty file", "file", "File is empty");
+        }
+
         TsvUploadResult<InventoryForm> parseResult = parseInventoryTsv(file);
 
         if (!parseResult.isSuccess()) {
-            return TsvUploadResult.failure(parseResult.getErrors());
+            throw new TsvUploadException(
+                    parseResult.getErrors(),
+                    ApiStatus.BAD_DATA
+            );
         }
 
         List<InventoryData> savedData = bulkUpsert(parseResult.getData());
         return TsvUploadResult.success(savedData);
     }
+
 
     public List<InventoryData> bulkUpsert(List<InventoryForm> forms) {
         checkValidList(forms);
@@ -85,6 +95,13 @@ public class InventoryDto extends AbstractDto {
         List<InventoryForm> forms = new ArrayList<>();
         List<TsvUploadError> errors = new ArrayList<>();
         Set<Integer> seenProductIds = new HashSet<>();
+        if (rows.size() > 5000) {
+            throw new ApiException(
+                    ApiStatus.BAD_DATA,
+                    "Maximum 5000 rows allowed in upload"
+            );
+        }
+
 
         for (int i = 0; i < rows.size(); i++) {
             String[] r = rows.get(i);

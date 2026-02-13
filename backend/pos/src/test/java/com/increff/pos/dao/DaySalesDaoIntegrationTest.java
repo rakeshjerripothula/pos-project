@@ -95,23 +95,4 @@ class DaySalesDaoIntegrationTest {
                   found.get(0).getDate().equals(found.get(1).getDate()));
     }
 
-    @Test
-    void testDeleteByDate() {
-        LocalDate date = LocalDate.of(2024, 1, 15);
-        
-        DaySalesEntity daySales = new DaySalesEntity();
-        daySales.setDate(date);
-        daySales.setInvoicedOrdersCount(5);
-        daySales.setInvoicedItemsCount(12);
-        daySales.setTotalRevenue(new BigDecimal("750.25"));
-        daySalesDao.save(daySales);
-
-        Optional<DaySalesEntity> beforeDelete = daySalesDao.findByDate(date);
-        assertTrue(beforeDelete.isPresent());
-
-        daySalesDao.deleteByDate(date);
-
-        Optional<DaySalesEntity> afterDelete = daySalesDao.findByDate(date);
-        assertFalse(afterDelete.isPresent());
-    }
 }

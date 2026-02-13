@@ -150,10 +150,6 @@ public class OrderFlow {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    public OrderEntity update(OrderEntity order) {
-        return orderApi.update(order);
-    }
-
     private Integer validateAndGetClientId(Map<Integer, ProductEntity> productMap) {
         Integer clientId = null;
         for (ProductEntity product : productMap.values()) {

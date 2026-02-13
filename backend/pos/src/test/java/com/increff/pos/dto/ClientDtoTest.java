@@ -1,20 +1,27 @@
 package com.increff.pos.dto;
 
+import com.increff.pos.api.ClientApi;
+import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.model.data.ClientData;
+import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.form.ClientForm;
+import com.increff.pos.model.form.ClientSearchForm;
 import com.increff.pos.model.form.ClientToggleForm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class ClientDtoTest {
@@ -168,7 +175,7 @@ class ClientDtoTest {
     @Test
     void getAll_success() {
         // Arrange
-        List<com.increff.pos.entity.ClientEntity> entities = Arrays.asList(
+        List<ClientEntity> entities = Arrays.asList(
             createClientEntity(1, "Client 1", true),
             createClientEntity(2, "Client 2", false)
         );
@@ -185,6 +192,32 @@ class ClientDtoTest {
         assertEquals("Client 2", result.get(1).getClientName());
         assertFalse(result.get(1).getEnabled());
         verify(clientApi, times(1)).getAll();
+    }
+
+    @Test
+    void testListClients() {
+        // Arrange
+        ClientSearchForm form = new ClientSearchForm();
+        form.setPage(0);
+        form.setPageSize(10);
+        form.setClientName("Test Client");
+        form.setEnabled(true);
+
+        ClientEntity entity = createClientEntity(1, "Test Client", true);
+        Page<ClientEntity> page = new PageImpl<>(List.of(entity));
+
+        when(clientApi.getClientsList(any(), any(), any())).thenReturn(page);
+
+        // Act
+        PagedResponse<ClientData> result = clientDto.listClients(form);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getData().size());
+        assertEquals(1, result.getTotal());
+        assertEquals("Test Client", result.getData().get(0).getClientName());
+        assertTrue(result.getData().get(0).getEnabled());
+        verify(clientApi).getClientsList(any(), any(), any());
     }
 
     private com.increff.pos.entity.ClientEntity createClientEntity(Integer id, String name, Boolean enabled) {

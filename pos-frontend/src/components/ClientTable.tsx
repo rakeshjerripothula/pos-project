@@ -9,10 +9,14 @@ export default function ClientTable({
   clients,
   onToggle,
   onUpdate,
+  page = 0,
+  pageSize = 10,
 }: {
   clients: ClientData[];
   onToggle: (id: number, enabled: boolean) => void;
   onUpdate: (id: number, clientName: string) => Promise<void>;
+  page?: number;
+  pageSize?: number;
 }) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -63,7 +67,7 @@ export default function ClientTable({
         <tbody>
           {clients.map((c, index) => (
             <tr key={c.id} className="border-b border-gray-100">
-              <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{index + 1}</td>
+              <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{(page * pageSize) + index + 1}</td>
               <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
                 {editingId === c.id ? (
                   <input

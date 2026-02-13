@@ -45,47 +45,8 @@ public class InventoryController {
     }
 
     @PostMapping("/upload/tsv")
-    public ResponseEntity<?> uploadInventoryTsv(@RequestParam("file") MultipartFile file) throws IOException {
-
-        try {
-            TsvUploadResult<InventoryData> result = inventoryDto.uploadTsv(file);
-
-            if (!result.isSuccess()) {
-                byte[] errorData = TsvErrorExportUtil.exportErrorsToTsv(result.getErrors(), "inventory");
-                String filename = TsvErrorExportUtil.generateErrorFilename("inventory");
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-                headers.setContentDispositionFormData("attachment", filename);
-                headers.setContentLength(errorData.length);
-
-                return new ResponseEntity<>(errorData, headers, HttpStatus.BAD_REQUEST);
-            }
-
-            return ResponseEntity.ok(result.getData());
-        } catch (ApiException e) {
-
-            List<TsvUploadError> errors = Collections.singletonList(
-                    new TsvUploadError(null, null, e.getMessage())
-            );
-            byte[] errorData = TsvErrorExportUtil.exportErrorsToTsv(errors, "inventory");
-            String filename = TsvErrorExportUtil.generateErrorFilename("inventory");
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment", filename);
-            headers.setContentLength(errorData.length);
-
-            HttpStatus httpStatus = switch (e.getStatus()) {
-                case CONFLICT -> HttpStatus.CONFLICT;
-                case FORBIDDEN -> HttpStatus.FORBIDDEN;
-                case NOT_FOUND -> HttpStatus.NOT_FOUND;
-                case BAD_DATA, BAD_REQUEST -> HttpStatus.BAD_REQUEST;
-                default -> HttpStatus.BAD_REQUEST;
-            };
-
-            return new ResponseEntity<>(errorData, headers, httpStatus);
-        }
+    public void uploadInventoryTsv(@RequestParam("file") MultipartFile file) {
+        inventoryDto.uploadTsv(file);
     }
 
 }

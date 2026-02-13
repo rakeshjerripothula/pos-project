@@ -321,4 +321,36 @@ class ClientApiTest {
         verify(clientDao).existsByClientName("test client");
         verify(clientDao).save(client);
     }
+
+    @Test
+    void should_get_non_existent_client_ids() {
+        // Arrange
+        List<Integer> clientIds = List.of(1, 2, 3, 4);
+        List<Integer> nonExistentIds = List.of(2, 4);
+
+        when(clientDao.findNonExistentClientIds(clientIds)).thenReturn(nonExistentIds);
+
+        // Act
+        List<Integer> result = clientApi.getNonExistentClientIds(clientIds);
+
+        // Assert
+        assertEquals(nonExistentIds, result);
+        verify(clientDao).findNonExistentClientIds(clientIds);
+    }
+
+    @Test
+    void should_get_non_existent_client_ids_when_all_exist() {
+        // Arrange
+        List<Integer> clientIds = List.of(1, 2, 3);
+        List<Integer> nonExistentIds = List.of();
+
+        when(clientDao.findNonExistentClientIds(clientIds)).thenReturn(nonExistentIds);
+
+        // Act
+        List<Integer> result = clientApi.getNonExistentClientIds(clientIds);
+
+        // Assert
+        assertEquals(0, result.size());
+        verify(clientDao).findNonExistentClientIds(clientIds);
+    }
 }

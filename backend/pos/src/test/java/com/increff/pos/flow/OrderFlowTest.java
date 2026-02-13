@@ -43,6 +43,9 @@ class OrderFlowTest {
     @Mock
     private InventoryFlow inventoryFlow;
 
+    @Mock
+    private InvoiceApi invoiceApi;
+
     @InjectMocks
     private OrderFlow orderFlow;
 
@@ -544,5 +547,182 @@ class OrderFlowTest {
         verify(inventoryFlow).bulkUpsert(anyList());
         verify(orderApi).create(any(OrderEntity.class));
         verify(orderItemApi).createAll(anyList());
+    }
+
+    @Test
+    void should_get_order_items_when_valid_order_id() {
+        // Arrange
+        Integer orderId = 1;
+        OrderItemEntity item1 = new OrderItemEntity();
+        item1.setProductId(1);
+        item1.setQuantity(2);
+        item1.setSellingPrice(new BigDecimal("50.00"));
+
+        OrderItemEntity item2 = new OrderItemEntity();
+        item2.setProductId(2);
+        item2.setQuantity(1);
+        item2.setSellingPrice(new BigDecimal("30.00"));
+
+        List<OrderItemEntity> items = List.of(item1, item2);
+
+        ProductEntity product1 = new ProductEntity();
+        product1.setId(1);
+        product1.setProductName("Product 1");
+
+        ProductEntity product2 = new ProductEntity();
+        product2.setId(2);
+        product2.setProductName("Product 2");
+
+        when(orderItemApi.getByOrderId(orderId)).thenReturn(items);
+        when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
+
+        // Act
+        List<com.increff.pos.model.data.OrderItemData> result = orderFlow.getOrderItems(orderId);
+
+        // Assert
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals("Product 1", result.get(0).getProductName());
+        assertEquals(2, result.get(0).getQuantity());
+        assertEquals(new BigDecimal("50.00"), result.get(0).getSellingPrice());
+        verify(orderItemApi).getByOrderId(orderId);
+        verify(productApi).getByIds(List.of(1, 2));
+    }
+
+    @Test
+    void should_download_invoice_when_valid_order_id() {
+        // Arrange
+        Integer orderId = 1;
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        byte[] expectedPdf = "invoice content".getBytes();
+
+        when(orderApi.getById(orderId)).thenReturn(order);
+        when(invoiceApi.download(orderId)).thenReturn(expectedPdf);
+
+        // Act
+        byte[] result = orderFlow.downloadInvoice(orderId);
+
+        // Assert
+        assertArrayEquals(expectedPdf, result);
+        verify(orderApi).getById(orderId);
+        verify(invoiceApi).download(orderId);
+    }
+
+    @Test
+    void should_build_invoice_form_when_valid_order() {
+        // Arrange
+        Integer orderId = 1;
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setClientId(1);
+        order.setStatus(OrderStatus.CREATED);
+        order.setCreatedAt(ZonedDateTime.now());
+
+        OrderItemEntity item = new OrderItemEntity();
+        item.setProductId(1);
+        item.setQuantity(2);
+        item.setSellingPrice(new BigDecimal("50.00"));
+
+        List<OrderItemEntity> items = List.of(item);
+
+        ProductEntity product = new ProductEntity();
+        product.setId(1);
+        product.setProductName("Test Product");
+
+        ClientEntity client = new ClientEntity();
+        client.setId(1);
+        client.setClientName("Test Client");
+
+        when(orderApi.getById(orderId)).thenReturn(order);
+        when(orderItemApi.getByOrderId(orderId)).thenReturn(items);
+        when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
+        when(clientApi.getById(1)).thenReturn(client);
+
+        // Act
+        com.increff.pos.model.form.InvoiceForm result = orderFlow.buildInvoiceForm(orderId);
+
+        // Assert
+        assertNotNull(result);
+        verify(orderApi).getById(orderId);
+        verify(orderItemApi).getByOrderId(orderId);
+        verify(productApi).getByIds(List.of(1));
+        verify(clientApi).getById(1);
+    }
+
+    @Test
+    void should_throw_exception_when_building_invoice_form_for_non_created_order() {
+        // Arrange
+        Integer orderId = 1;
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setStatus(OrderStatus.INVOICED); // Not CREATED
+
+        when(orderApi.getById(orderId)).thenReturn(order);
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> orderFlow.buildInvoiceForm(orderId));
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Only CREATED orders can be invoiced", exception.getMessage());
+        verify(orderApi).getById(orderId);
+        verifyNoInteractions(orderItemApi, productApi, clientApi);
+    }
+
+    @Test
+    void should_throw_exception_when_building_invoice_form_for_order_with_no_items() {
+        // Arrange
+        Integer orderId = 1;
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setClientId(1);
+        order.setStatus(OrderStatus.CREATED);
+
+        when(orderApi.getById(orderId)).thenReturn(order);
+        when(orderItemApi.getByOrderId(orderId)).thenReturn(List.of()); // Empty items
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> orderFlow.buildInvoiceForm(orderId));
+        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals("Order has no items", exception.getMessage());
+        verify(orderApi).getById(orderId);
+        verify(orderItemApi).getByOrderId(orderId);
+        verifyNoInteractions(productApi, clientApi);
+    }
+
+    @Test
+    void should_throw_exception_when_saving_invoice_for_order_with_existing_invoice() {
+        // Arrange
+        Integer orderId = 1;
+        String filePath = "/path/to/invoice.pdf";
+
+        when(invoiceApi.existsForOrder(orderId)).thenReturn(true);
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> orderFlow.saveInvoice(orderId, filePath));
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
+        assertTrue(exception.getMessage().contains("Invoice already exists for order " + orderId));
+        verify(invoiceApi).existsForOrder(orderId);
+        verifyNoInteractions(orderApi);
+    }
+
+    @Test
+    void should_throw_exception_when_saving_invoice_for_non_created_order() {
+        // Arrange
+        Integer orderId = 1;
+        String filePath = "/path/to/invoice.pdf";
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setStatus(OrderStatus.INVOICED); // Not CREATED
+
+        when(invoiceApi.existsForOrder(orderId)).thenReturn(false);
+        when(orderApi.getById(orderId)).thenReturn(order);
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> orderFlow.saveInvoice(orderId, filePath));
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Invoice can only be generated for CREATED orders", exception.getMessage());
+        verify(invoiceApi).existsForOrder(orderId);
+        verify(orderApi).getById(orderId);
+        verifyNoMoreInteractions(invoiceApi);
     }
 }

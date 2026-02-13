@@ -48,7 +48,7 @@ public class ClientDto extends AbstractDto {
         Pageable pageable = PageRequest.of(
                 form.getPage(),
                 form.getPageSize(),
-                Sort.by("clientName").ascending()
+                Sort.by("createdAt").descending()
         );
 
         Page<ClientEntity> page = clientApi.getClientsList(form.getClientName(), form.getEnabled(), pageable);

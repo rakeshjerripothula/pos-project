@@ -72,7 +72,7 @@ public class ClientDao {
         }
 
         cq.where(predicates.toArray(new Predicate[0]));
-        cq.orderBy(cb.asc(root.get("clientName")));
+        cq.orderBy(cb.desc(root.get("createdAt")));
 
         List<ClientEntity> data = em.createQuery(cq)
                 .setFirstResult((int) pageable.getOffset())

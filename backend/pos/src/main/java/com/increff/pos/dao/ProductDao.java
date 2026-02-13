@@ -137,7 +137,7 @@ public class ProductDao {
             predicates.add(cb.like(cb.lower(product.get("productName")), "%" + normalizedProductName + "%"));
         }
 
-        cq.select(product).where(predicates.toArray(new Predicate[0])).orderBy(cb.asc(product.get("productName")));
+        cq.select(product).where(predicates.toArray(new Predicate[0])).orderBy(cb.desc(product.get("createdAt")));
 
         List<ProductEntity> data = em.createQuery(cq)
                 .setFirstResult((int) pageable.getOffset()).setMaxResults(pageable.getPageSize()).getResultList();
@@ -205,6 +205,43 @@ public class ProductDao {
         return !em.createQuery(cq).setMaxResults(1).getResultList().isEmpty();
     }
 
+    public List<String> findExistingClientNameMrpCombinations(List<ProductEntity> products) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<String> cq = cb.createQuery(String.class);
+        Root<ProductEntity> root = cq.from(ProductEntity.class);
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        for (ProductEntity product : products) {
+            predicates.add(cb.and(
+                    cb.equal(root.get("clientId"), product.getClientId()),
+                    cb.equal(root.get("productName"), product.getProductName()),
+                    cb.equal(root.get("mrp"), product.getMrp())
+            ));
+        }
+
+        // clientId-productName-mrp
+        Expression<String> clientIdExp =
+                root.get("clientId").as(String.class);
+        Expression<String> productNameExp =
+                root.get("productName");
+        Expression<String> mrpExp =
+                root.get("mrp").as(String.class);
+
+        Expression<String> keyExpression =
+                cb.concat(
+                        cb.concat(
+                                cb.concat(clientIdExp, "-"),
+                                cb.concat(productNameExp, "-")
+                        ),
+                        mrpExp
+                );
+
+        cq.select(keyExpression)
+                .where(cb.or(predicates.toArray(new Predicate[0])));
+
+        return em.createQuery(cq).getResultList();
+    }
 
     public boolean existsByClientIdAndProductNameAndMrp(Integer clientId, String productName, BigDecimal mrp) {
         CriteriaBuilder cb = em.getCriteriaBuilder();

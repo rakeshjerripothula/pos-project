@@ -16,8 +16,9 @@ public class InvoiceDao {
     @PersistenceContext
     private EntityManager em;
 
-    public void save(InvoiceEntity invoice) {
+    public InvoiceEntity save(InvoiceEntity invoice) {
         em.persist(invoice);
+        return invoice;
     }
 
     public InvoiceEntity selectByOrderId(Integer orderId) {

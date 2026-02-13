@@ -190,7 +190,7 @@ export default function ClientsPage() {
             <div className="py-8 text-center text-slate-500">Loading...</div>
           ) : (
             <div className="p-4 bg-white rounded-lg shadow-sm overflow-x-auto">
-              <ClientTable clients={clients} onToggle={toggleClient} onUpdate={updateClient} />
+              <ClientTable clients={clients} onToggle={toggleClient} onUpdate={updateClient} page={page} pageSize={pageSize} />
               {totalElements > 0 && (
                 <div className="flex flex-wrap items-center justify-between mt-4 pt-4 border-t border-gray-200 gap-y-3">
                   <div className="text-xs sm:text-sm md:text-base text-slate-500 order-2 sm:order-1">

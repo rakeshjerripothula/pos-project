@@ -5,11 +5,13 @@ import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.ProductData;
 import com.increff.pos.model.data.TsvUploadError;
 import com.increff.pos.model.data.TsvUploadResult;
+import com.increff.pos.model.form.InventoryForm;
 import com.increff.pos.model.form.ProductForm;
 import com.increff.pos.api.ProductApi;
 import com.increff.pos.api.ClientApi;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
+import com.increff.pos.exception.TsvUploadException;
 import com.increff.pos.model.form.ProductSearchForm;
 import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,8 +25,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static com.increff.pos.util.Utils.parse;
 
@@ -64,7 +68,7 @@ public class ProductDto extends AbstractDto {
         Pageable pageable = PageRequest.of(
                 form.getPage(),
                 form.getPageSize(),
-                Sort.by("productName").ascending()
+                Sort.by("createdAt").descending()
         );
 
         Page<ProductEntity> page = productApi.searchProducts(
@@ -87,7 +91,10 @@ public class ProductDto extends AbstractDto {
         TsvUploadResult<ProductForm> parseResult = parseProductTsv(file);
 
         if (!parseResult.isSuccess()) {
-            return TsvUploadResult.failure(parseResult.getErrors());
+            throw new TsvUploadException(
+                    parseResult.getErrors(),
+                    ApiStatus.BAD_DATA
+            );
         }
 
         List<ProductData> savedData = bulkCreateProducts(parseResult.getData());
@@ -99,6 +106,12 @@ public class ProductDto extends AbstractDto {
         List<String[]> rows = parse(file);
         List<ProductForm> forms = new ArrayList<>();
         List<TsvUploadError> errors = new ArrayList<>();
+        if (rows.size() > 5000) {
+            throw new ApiException(
+                    ApiStatus.BAD_DATA,
+                    "Maximum 5000 rows allowed in upload"
+            );
+        }
 
         for (int i = 0; i < rows.size(); i++) {
             String[] r = rows.get(i);

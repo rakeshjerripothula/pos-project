@@ -89,18 +89,6 @@ public class DaySalesDao {
         return new PageImpl<>(content, pageable, total);
     }
 
-    public void deleteByDate(LocalDate date) {
-
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaDelete<DaySalesEntity> cd = cb.createCriteriaDelete(DaySalesEntity.class);
-
-        Root<DaySalesEntity> root = cd.from(DaySalesEntity.class);
-
-        cd.where(cb.equal(root.get("date"), date));
-
-        em.createQuery(cd).executeUpdate();
-    }
-
     public List<DaySalesEntity> findAllByDateRange(LocalDate startDate, LocalDate endDate) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();

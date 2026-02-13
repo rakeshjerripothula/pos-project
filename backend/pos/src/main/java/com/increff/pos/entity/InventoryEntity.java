@@ -17,7 +17,7 @@ public class InventoryEntity extends AbstractEntity{
     @GeneratedValue(strategy = GenerationType.TABLE, generator = "id_gen")
     @TableGenerator(
             name = "id_gen", table = "id_generator", pkColumnName = "gen_name", valueColumnName = "gen_value",
-            pkColumnValue = "inventory_id", allocationSize = 1
+            pkColumnValue = "inventory_id", allocationSize = 50
     )
     private Integer id;
 

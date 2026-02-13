@@ -41,8 +41,6 @@ public class DaySalesApi {
 
         DaySalesAggregate aggregate = reportDao.getDaySalesAggregate(utcStart, utcEnd);
 
-        daySalesDao.deleteByDate(date);
-
         DaySalesEntity entity = ConversionUtil.daySalesAggregateToEntity(date, aggregate);
         daySalesDao.save(entity);
     }

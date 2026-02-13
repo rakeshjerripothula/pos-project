@@ -22,7 +22,7 @@ public class OrderEntity extends AbstractEntity{
     @GeneratedValue(strategy = GenerationType.TABLE, generator = "id_gen")
     @TableGenerator(
             name = "id_gen", table = "id_generator", pkColumnName = "gen_name", valueColumnName = "gen_value",
-            pkColumnValue = "order_id", allocationSize = 1
+            pkColumnValue = "order_id", allocationSize = 50
     )
     private Integer id;
 

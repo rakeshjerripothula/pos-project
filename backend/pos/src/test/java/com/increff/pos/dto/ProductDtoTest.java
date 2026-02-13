@@ -2,15 +2,19 @@ package com.increff.pos.dto;
 
 import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.exception.ApiException;
+import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.ProductData;
 import com.increff.pos.model.data.TsvUploadError;
 import com.increff.pos.model.data.TsvUploadResult;
 import com.increff.pos.model.form.ProductForm;
+import com.increff.pos.model.form.ProductSearchForm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,6 +25,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class ProductDtoTest {
@@ -268,6 +273,90 @@ class ProductDtoTest {
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().getFirst().getMessage().contains("Product name is required"));
         verify(productApi, never()).bulkCreateProducts(any());
+    }
+
+    @Test
+    void testGetAll() {
+        // Arrange
+        List<com.increff.pos.entity.ProductEntity> entities = Arrays.asList(
+                createProductEntity(1, "Product 1", new BigDecimal("10.99"), 1, "BAR001"),
+                createProductEntity(2, "Product 2", new BigDecimal("15.99"), 2, "BAR002")
+        );
+
+        when(productApi.getAll()).thenReturn(entities);
+
+        // Act
+        List<ProductData> result = productDto.getAll();
+
+        // Assert
+        assertEquals(2, result.size());
+        assertEquals("Product 1", result.get(0).getProductName());
+        assertEquals("Product 2", result.get(1).getProductName());
+        verify(productApi).getAll();
+    }
+
+    @Test
+    void testListProducts() {
+        // Arrange
+        ProductSearchForm form = new ProductSearchForm();
+        form.setPage(0);
+        form.setPageSize(10);
+        form.setClientId(1);
+        form.setBarcode("BAR001");
+        form.setProductName("Test Product");
+
+        com.increff.pos.entity.ProductEntity entity = createProductEntity(1, "Test Product", new BigDecimal("10.99"), 1, "BAR001");
+        Page<com.increff.pos.entity.ProductEntity> page = new PageImpl<>(List.of(entity));
+
+        when(productApi.searchProducts(any(), any(), any(), any())).thenReturn(page);
+
+        // Act
+        PagedResponse<ProductData> result = productDto.listProducts(form);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getData().size());
+        assertEquals(1, result.getTotal());
+        assertEquals("Test Product", result.getData().get(0).getProductName());
+        verify(productApi).searchProducts(any(), any(), any(), any());
+    }
+
+    @Test
+    void testUploadProductsTsv() {
+        // Arrange
+        ProductForm form = new ProductForm();
+        form.setProductName("Test Product");
+        form.setMrp(BigDecimal.valueOf(100.0));
+        form.setClientId(1);
+        form.setBarcode("BAR001");
+
+        TsvUploadResult<ProductForm> parseResult = TsvUploadResult.success(List.of(form));
+        when(productApi.bulkCreateProducts(any())).thenReturn(List.of(createProductEntity(1, "Test Product", BigDecimal.valueOf(100.0), 1, "BAR001")));
+
+        // Mock parseProductTsv method by using spy
+        ProductDto spyProductDto = spy(productDto);
+        doReturn(parseResult).when(spyProductDto).parseProductTsv(any());
+
+        String tsvContent = "productName\tmrp\tclientId\tbarcode\nTest Product\t100.00\t1\tBAR001";
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "products.tsv", "text/tab-separated-values", tsvContent.getBytes()
+        );
+
+        // Act
+        TsvUploadResult<ProductData> result = spyProductDto.uploadProductsTsv(file);
+
+        // Assert
+        assertTrue(result.isSuccess());
+        assertEquals(1, result.getData().size());
+        assertEquals("Test Product", result.getData().get(0).getProductName());
+    }
+
+    @Test
+    void testUploadProductsTsv_emptyFile_throwsException() {
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> productDto.uploadProductsTsv(null));
+        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertTrue(exception.getMessage().contains("Empty file"));
     }
 
     private com.increff.pos.entity.ProductEntity createProductEntity(Integer id, String name, BigDecimal mrp, Integer clientId, String barcode) {

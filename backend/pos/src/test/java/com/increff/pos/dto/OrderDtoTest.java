@@ -1,10 +1,14 @@
 package com.increff.pos.dto;
 
 import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.entity.InvoiceEntity;
 import com.increff.pos.exception.ApiException;
+import com.increff.pos.model.data.InvoiceData;
+import com.increff.pos.model.data.InvoiceSummaryData;
 import com.increff.pos.model.data.OrderData;
 import com.increff.pos.model.data.OrderItemData;
 import com.increff.pos.model.data.OrderPageData;
+import com.increff.pos.model.form.InvoiceForm;
 import com.increff.pos.model.form.OrderForm;
 import com.increff.pos.model.form.OrderItemForm;
 import com.increff.pos.model.form.OrderPageForm;
@@ -17,7 +21,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -29,6 +32,9 @@ class OrderDtoTest {
 
     @Mock
     private com.increff.pos.flow.OrderFlow orderFlow;
+
+    @Mock
+    private com.increff.pos.client.InvoiceClient invoiceClient;
 
     @Mock
     private com.increff.pos.api.OrderItemApi orderItemApi;
@@ -185,6 +191,89 @@ class OrderDtoTest {
         verify(orderFlow, never()).searchOrders(any(), any(), any(), any(), anyInt(), anyInt());
     }
 
+    @Test
+    void testGetOrderItems() {
+        // Arrange
+        Integer orderId = 1;
+        List<OrderItemData> expectedItems = Arrays.asList(
+                createOrderItemData(1, 2, BigDecimal.valueOf(100.0)),
+                createOrderItemData(2, 3, BigDecimal.valueOf(200.0))
+        );
+
+        when(orderFlow.getOrderItems(orderId)).thenReturn(expectedItems);
+
+        // Act
+        List<OrderItemData> result = orderDto.getOrderItems(orderId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(2, result.get(0).getQuantity());
+        assertEquals(BigDecimal.valueOf(100.0), result.get(0).getSellingPrice());
+        verify(orderFlow).getOrderItems(orderId);
+    }
+
+    @Test
+    void testGetOrderItems_nullOrderId_throwsException() {
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> orderDto.getOrderItems(null));
+        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertTrue(exception.getMessage().contains("Order ID is required"));
+        verify(orderFlow, never()).getOrderItems(any());
+    }
+
+    @Test
+    void testGenerateInvoice() {
+        // Arrange
+        Integer orderId = 1;
+        InvoiceForm invoiceForm = new InvoiceForm();
+        InvoiceData invoiceData = new InvoiceData();
+        invoiceData.setBase64Pdf("base64pdfcontent");
+        
+        InvoiceEntity invoiceEntity = new InvoiceEntity();
+        invoiceEntity.setOrderId(orderId);
+        invoiceEntity.setFilePath("/path/to/invoice.pdf");
+
+        when(orderFlow.buildInvoiceForm(orderId)).thenReturn(invoiceForm);
+        when(invoiceClient.generate(invoiceForm)).thenReturn(invoiceData);
+        when(orderFlow.saveInvoice(eq(orderId), any())).thenReturn(invoiceEntity);
+
+        // Act
+        InvoiceSummaryData result = orderDto.generateInvoice(orderId);
+
+        // Assert
+        assertNotNull(result);
+        verify(orderFlow).buildInvoiceForm(orderId);
+        verify(invoiceClient).generate(invoiceForm);
+        verify(orderFlow).saveInvoice(eq(orderId), any());
+    }
+
+    @Test
+    void testDownloadInvoice() {
+        // Arrange
+        Integer orderId = 1;
+        byte[] expectedPdf = "pdf content".getBytes();
+
+        when(orderFlow.downloadInvoice(orderId)).thenReturn(expectedPdf);
+
+        // Act
+        byte[] result = orderDto.downloadInvoice(orderId);
+
+        // Assert
+        assertArrayEquals(expectedPdf, result);
+        verify(orderFlow).downloadInvoice(orderId);
+    }
+
+    @Test
+    void testDownloadInvoice_nullOrderId_throwsException() {
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> orderDto.downloadInvoice(null));
+        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertTrue(exception.getMessage().contains("Order ID is required"));
+        verify(orderFlow, never()).downloadInvoice(any());
+    }
+
     private com.increff.pos.entity.OrderEntity createOrderEntity(Integer id, OrderStatus status) {
         com.increff.pos.entity.OrderEntity order = new com.increff.pos.entity.OrderEntity();
         order.setId(id);
@@ -199,6 +288,14 @@ class OrderDtoTest {
         item.setQuantity(quantity);
         item.setSellingPrice(sellingPrice);
         return item;
+    }
+
+    private OrderItemData createOrderItemData(Integer productId, Integer quantity, BigDecimal sellingPrice) {
+        OrderItemData data = new OrderItemData();
+        data.setProductId(productId);
+        data.setQuantity(quantity);
+        data.setSellingPrice(sellingPrice);
+        return data;
     }
 
     private com.increff.pos.entity.ProductEntity createProductEntity(Integer id, String name, BigDecimal mrp) {

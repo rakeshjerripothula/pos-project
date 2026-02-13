@@ -148,6 +148,17 @@ public class ProductApi {
             );
         }
 
+        List<String> existingClientNameMrpCombinations = productDao.findExistingClientNameMrpCombinations(products);
+
+        if (!existingClientNameMrpCombinations.isEmpty()) {
+            throw new ApiException(
+                    ApiStatus.CONFLICT, 
+                    "Duplicate product combinations (client-name-mrp): " + existingClientNameMrpCombinations, 
+                    "product", 
+                    "Duplicate product for client with same name and MRP"
+            );
+        }
+
         List<Integer> nonExistentClients = clientApi.getNonExistentClientIds(clientIds);
 
         if (!nonExistentClients.isEmpty()) {

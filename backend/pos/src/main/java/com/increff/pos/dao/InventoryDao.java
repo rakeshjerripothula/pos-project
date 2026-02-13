@@ -24,9 +24,6 @@ public class InventoryDao {
     @PersistenceContext
     private EntityManager em;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
     public List<InventoryEntity> findAllForEnabledClients() {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<InventoryEntity> cq = cb.createQuery(InventoryEntity.class);

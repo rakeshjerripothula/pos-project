@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { apiGet, apiPost } from "@/lib/api";
 import { InventoryData, ProductData, PagedResponse, InventorySearchForm } from "@/lib/types";
 import AddInventoryModal from "@/components/AddInventoryModal";
@@ -43,9 +43,6 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBarcode, setFilterBarcode] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
-  
-  // Track if data is already loaded to prevent duplicate calls
-  const loadedRef = useRef(false);
 
   useEffect(() => {
     setIsUserOperator(isOperator());
@@ -74,12 +71,6 @@ export default function InventoryPage() {
   useEffect(() => {
     let mounted = true;
     
-    // Only skip if already loaded initial data and no search was triggered
-    if (loadedRef.current && !searchTriggered) {
-      setLoading(false);
-      return;
-    }
-    
     async function loadInventory() {
       setLoading(true);
       try {
@@ -94,7 +85,6 @@ export default function InventoryPage() {
         if (mounted) {
           setInventory(data.data);
           setTotalElements(data.total);
-          loadedRef.current = true;
           setSearchTriggered(false); // Reset after search
         }
       } catch (error: any) {
@@ -312,7 +302,7 @@ export default function InventoryPage() {
               <table className="w-full border-collapse min-w-[500px]">
                 <thead>
                   <tr className="border-b-2 border-gray-200">
-                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Product ID</th>
+                    <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">S. No.</th>
                     <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Product Name</th>
                     <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Barcode</th>
                     <th className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-left text-gray-700">Available Quantity</th>
@@ -329,9 +319,9 @@ export default function InventoryPage() {
                       </td>
                     </tr>
                   ) : (
-                    inventory.map((i) => (
+                    inventory.map((i, index) => (
                       <tr key={i.productId} className="border-b border-gray-100">
-                        <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{i.productId}</td>
+                        <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{(page * pageSize) + index + 1}</td>
                         <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm font-medium">{i.productName}</td>
                         <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{barcodeMap.get(i.productId) || '-'}</td>
                         <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">

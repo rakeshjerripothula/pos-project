@@ -380,4 +380,97 @@ class ProductApiTest {
         verify(clientApi).getDisabledClientIds(List.of(1)); // Should be called with distinct client IDs
         verify(productDao).saveAll(products);
     }
+
+    @Test
+    void should_get_all_products() {
+        // Arrange
+        ProductEntity product1 = new ProductEntity();
+        product1.setId(1);
+        product1.setProductName("Product 1");
+
+        ProductEntity product2 = new ProductEntity();
+        product2.setId(2);
+        product2.setProductName("Product 2");
+
+        List<ProductEntity> expectedProducts = List.of(product1, product2);
+
+        when(productDao.selectAll()).thenReturn(expectedProducts);
+
+        // Act
+        List<ProductEntity> result = productApi.getAll();
+
+        // Assert
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getId());
+        assertEquals(2, result.get(1).getId());
+        verify(productDao).selectAll();
+    }
+
+    @Test
+    void should_throw_exception_when_bulk_creating_products_with_duplicate_client_name_mrp() {
+        // Arrange
+        ProductEntity product1 = new ProductEntity();
+        product1.setProductName("mouse");
+        product1.setMrp(new BigDecimal("510.00"));
+        product1.setClientId(15);
+        product1.setBarcode("11111");
+
+        ProductEntity product2 = new ProductEntity();
+        product2.setProductName("keyboard");
+        product2.setMrp(new BigDecimal("750.00"));
+        product2.setClientId(20);
+        product2.setBarcode("22222");
+
+        List<ProductEntity> products = List.of(product1, product2);
+
+        when(productDao.findExistingBarcodes(List.of("11111", "22222"))).thenReturn(List.of());
+        when(productDao.findExistingClientNameMrpCombinations(products))
+            .thenReturn(List.of("15-mouse-510.00")); // Simulate existing duplicate
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> productApi.bulkCreateProducts(products));
+        assertEquals(ApiStatus.CONFLICT, exception.getStatus());
+        assertTrue(exception.getMessage().contains("Duplicate product combinations"));
+        assertTrue(exception.getMessage().contains("15-mouse-510.00"));
+        verify(productDao).findExistingBarcodes(List.of("11111", "22222"));
+        verify(productDao).findExistingClientNameMrpCombinations(products);
+        verify(clientApi, never()).getDisabledClientIds(any());
+        verify(productDao, never()).saveAll(any());
+    }
+
+    @Test
+    void should_search_products_with_filters() {
+        // Arrange
+        Integer clientId = 1;
+        String barcode = "12345";
+        String productName = "Test Product";
+        Pageable pageable = mock(Pageable.class);
+
+        ProductEntity product1 = new ProductEntity();
+        product1.setId(1);
+        product1.setClientId(clientId);
+        product1.setBarcode(barcode);
+        product1.setProductName(productName);
+
+        ProductEntity product2 = new ProductEntity();
+        product2.setId(2);
+        product2.setClientId(clientId);
+        product2.setBarcode("67890");
+        product2.setProductName("Another Product");
+
+        org.springframework.data.domain.Page<ProductEntity> expectedPage = 
+            new org.springframework.data.domain.PageImpl<>(List.of(product1, product2));
+
+        when(productDao.searchProducts(clientId, barcode, productName, pageable)).thenReturn(expectedPage);
+
+        // Act
+        org.springframework.data.domain.Page<ProductEntity> result = 
+            productApi.searchProducts(clientId, barcode, productName, pageable);
+
+        // Assert
+        assertEquals(2, result.getContent().size());
+        assertEquals(1, result.getContent().get(0).getId());
+        assertEquals(2, result.getContent().get(1).getId());
+        verify(productDao).searchProducts(clientId, barcode, productName, pageable);
+    }
 }

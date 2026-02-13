@@ -1,15 +1,20 @@
 package com.increff.pos.dto;
 
 import com.increff.pos.exception.ApiException;
+import com.increff.pos.flow.InventoryFlow;
 import com.increff.pos.model.data.InventoryData;
+import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.TsvUploadError;
 import com.increff.pos.model.data.TsvUploadResult;
 import com.increff.pos.model.form.InventoryForm;
+import com.increff.pos.model.form.InventorySearchForm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -261,6 +266,134 @@ class InventoryDtoTest {
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.bulkUpsert(forms));
         assertEquals("BAD_DATA", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Duplicate productId"));
+        verify(inventoryFlow, never()).bulkUpsertAndGetData(any());
+    }
+
+    @Test
+    void testGetAll() {
+        // Arrange
+        List<InventoryData> expectedData = Arrays.asList(
+                createInventoryData(1, 100, "Product 1"),
+                createInventoryData(2, 200, "Product 2")
+        );
+
+        when(inventoryFlow.listAllForEnabledClientsWithData()).thenReturn(expectedData);
+
+        // Act
+        List<InventoryData> result = inventoryDto.getAll();
+
+        // Assert
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getProductId());
+        assertEquals(100, result.get(0).getQuantity());
+        assertEquals("Product 1", result.get(0).getProductName());
+        verify(inventoryFlow).listAllForEnabledClientsWithData();
+    }
+
+    @Test
+    void testUpsert() {
+        // Arrange
+        InventoryForm form = createInventoryForm(1, 100);
+        InventoryData expectedData = createInventoryData(1, 100, "Product 1");
+
+        when(inventoryFlow.upsert(any())).thenReturn(expectedData);
+
+        // Act
+        InventoryData result = inventoryDto.upsert(form);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getProductId());
+        assertEquals(100, result.getQuantity());
+        assertEquals("Product 1", result.getProductName());
+        verify(inventoryFlow).upsert(any());
+    }
+
+    @Test
+    void testUpsert_negativeQuantity_throwsException() {
+        // Arrange
+        InventoryForm form = createInventoryForm(1, -100); // Negative quantity
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.upsert(form));
+        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertTrue(exception.hasErrors());
+        assertEquals("quantity", exception.getErrors().get(0).getField());
+        assertEquals("Quantity cannot be negative", exception.getErrors().get(0).getMessage());
+        verify(inventoryFlow, never()).upsert(any());
+    }
+
+    @Test
+    void testList() {
+        // Arrange
+        InventorySearchForm form = new InventorySearchForm();
+        form.setPage(0);
+        form.setPageSize(10);
+        form.setBarcode("BAR001");
+        form.setProductName("Test Product");
+
+        InventoryData expectedData = createInventoryData(1, 100, "Test Product");
+        PagedResponse<InventoryData> expectedResponse = new PagedResponse<>(Arrays.asList(expectedData), 1L);
+
+        when(inventoryFlow.searchForEnabledClientsWithData(any(), any(), any())).thenReturn(expectedResponse);
+
+        // Act
+        PagedResponse<InventoryData> result = inventoryDto.list(form);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getData().size());
+        assertEquals(1, result.getTotal());
+        assertEquals("Test Product", result.getData().get(0).getProductName());
+        verify(inventoryFlow).searchForEnabledClientsWithData(any(), any(), any());
+    }
+
+    @Test
+    void testUploadTsv() {
+        // Arrange
+        InventoryForm form = createInventoryForm(1, 100);
+        TsvUploadResult<InventoryForm> parseResult = TsvUploadResult.success(List.of(form));
+        List<InventoryData> expectedData = Arrays.asList(createInventoryData(1, 100, "Product 1"));
+
+        when(inventoryFlow.bulkUpsertAndGetData(any())).thenReturn(expectedData);
+
+        // Mock parseInventoryTsv method by using spy
+        InventoryDto spyInventoryDto = spy(inventoryDto);
+        doReturn(parseResult).when(spyInventoryDto).parseInventoryTsv(any());
+
+        String tsvContent = "productId\tquantity\n1\t100";
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "inventory.tsv", "text/tab-separated-values", tsvContent.getBytes()
+        );
+
+        // Act
+        TsvUploadResult<InventoryData> result = spyInventoryDto.uploadTsv(file);
+
+        // Assert
+        assertTrue(result.isSuccess());
+        assertEquals(1, result.getData().size());
+        assertEquals(1, result.getData().get(0).getProductId());
+        assertEquals(100, result.getData().get(0).getQuantity());
+    }
+
+    @Test
+    void testUploadTsv_parseFailure_returnsFailure() {
+        // Arrange
+        TsvUploadResult<InventoryForm> parseResult = TsvUploadResult.failure(
+                Arrays.asList(new TsvUploadError(1, new String[]{"invalid"}, "Invalid data"))
+        );
+
+        // Mock parseInventoryTsv method by using spy
+        InventoryDto spyInventoryDto = spy(inventoryDto);
+        doReturn(parseResult).when(spyInventoryDto).parseInventoryTsv(any());
+
+        String tsvContent = "productId\tquantity\ninvalid\t100";
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "inventory.tsv", "text/tab-separated-values", tsvContent.getBytes()
+        );
+
+        // Act & Assert
+        assertThrows(com.increff.pos.exception.TsvUploadException.class, () -> spyInventoryDto.uploadTsv(file));
         verify(inventoryFlow, never()).bulkUpsertAndGetData(any());
     }
 

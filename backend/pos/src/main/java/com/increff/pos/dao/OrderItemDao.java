@@ -16,10 +16,11 @@ public class OrderItemDao {
     @PersistenceContext
     private EntityManager em;
 
-    public void saveAll(List<OrderItemEntity> items) {
+    public List<OrderItemEntity> saveAll(List<OrderItemEntity> items) {
         for (OrderItemEntity item : items) {
             em.persist(item);
         }
+        return items;
     }
 
     public List<OrderItemEntity> findByOrderId(Integer orderId) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { apiGet, apiPost, apiPut } from "@/lib/api";
 import { ProductData, InventoryData, ClientData, PagedResponse, ProductSearchForm } from "@/lib/types";
 import AddProductModal from "@/components/AddProductModal";
@@ -28,9 +28,6 @@ export default function ProductsPage() {
   const [filterClientId, setFilterClientId] = useState<number | null>(null);
   const [filterBarcode, setFilterBarcode] = useState("");
   const [searchTriggered, setSearchTriggered] = useState(false);
-
-  // Track if initial data is loaded
-  const initialDataLoaded = useRef(false);
 
   useEffect(() => {
     setIsUserOperator(isOperator());
@@ -78,12 +75,6 @@ export default function ProductsPage() {
   useEffect(() => {
     let mounted = true;
     
-    // Skip if already loaded initial data and no search/page change was triggered
-    if (initialDataLoaded.current && !searchTriggered) {
-      setLoading(false);
-      return;
-    }
-    
     async function loadProducts() {
       setLoading(true);
       try {
@@ -99,7 +90,6 @@ export default function ProductsPage() {
         if (mounted) {
           setProducts(data.data);
           setTotalElements(data.total);
-          initialDataLoaded.current = true;
           setSearchTriggered(false); // Reset after search
         }
       } catch (error: any) {
@@ -156,7 +146,6 @@ export default function ProductsPage() {
       const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
       setProducts(data.data);
       setTotalElements(data.total);
-      initialDataLoaded.current = true;
     } catch (error: any) {
       toast.error("Failed to reload products: " + error.message);
     } finally {
@@ -220,7 +209,6 @@ export default function ProductsPage() {
         const data = await apiPost<PagedResponse<ProductData>>("/products/list", form);
         setProducts(data.data);
         setTotalElements(data.total);
-        initialDataLoaded.current = true;
       } catch (error: any) {
         toast.error("Failed to reload products: " + error.message);
       } finally {
@@ -376,7 +364,7 @@ export default function ProductsPage() {
                       const client = clients.find((c) => c.id === p.clientId);
                       return (
                         <tr key={p.id} className="border-b border-gray-100">
-                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{index + 1}</td>
+                          <td className="px-1.5 py-2 sm:px-2 sm:py-2.5 text-xs sm:text-sm">{(page * pageSize) + index + 1}</td>
                           <td className="px-1.5 py-2 sm:px-2 sm:py-2.5">
                             {p.imageUrl ? (
                               <img
