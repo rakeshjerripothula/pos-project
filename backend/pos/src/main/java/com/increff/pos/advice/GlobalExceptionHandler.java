@@ -105,7 +105,6 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) throws IOException {
 
-        // Extract module name from request path
         String path = request.getRequestURI();
         String module = extractConstraintFromPath(path);
 
@@ -140,16 +139,14 @@ public class GlobalExceptionHandler {
         if (errorMessage == null) {
             return null;
         }
-        
-        // Look for constraint name in the error message
+
         if (errorMessage.contains("uk_client_name_mrp")) {
             return "uk_client_name_mrp";
         }
         if (errorMessage.contains("uk_product_barcode")) {
             return "uk_product_barcode";
         }
-        
-        // Try to extract constraint name from "for key" pattern
+
         int keyIndex = errorMessage.indexOf("for key '");
         if (keyIndex != -1) {
             int start = keyIndex + 9;
