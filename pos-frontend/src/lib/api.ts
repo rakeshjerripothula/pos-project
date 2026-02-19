@@ -1,8 +1,10 @@
-
-import { getAuth } from "./auth";
+import { getCredentials, generateBasicAuthHeader, clearCredentials, clearAllAuth } from "./auth";
 import { ApiError, FieldError } from "./types";
 
 const BASE_URL = "http://localhost:8080";
+
+// Event name for auth failures - to notify components to redirect to login
+const AUTH_FAILURE_EVENT = "pos-auth-failure";
 
 export class ApiValidationError extends Error {
   fieldErrors: FieldError[];
@@ -14,17 +16,43 @@ export class ApiValidationError extends Error {
   }
 }
 
-function getHeaders(): HeadersInit {
+/**
+ * Dispatch auth failure event and clear credentials
+ */
+function handleAuthFailure(): void {
+  clearCredentials();
+  clearAllAuth();
+  if (typeof window !== "undefined") {
+    (window as any).__CURRENT_USER__ = null;
+    window.dispatchEvent(new Event(AUTH_FAILURE_EVENT));
+  }
+}
+
+/**
+ * Check if response is 401 (Unauthorized - no/invalid credentials)
+ */
+function isUnauthorized(status: number): boolean {
+  return status === 401;
+}
+
+/**
+ * Check if response is 403 (Forbidden - authenticated but not authorized)
+ */
+function isForbidden(status: number): boolean {
+  return status === 403;
+}
+
+function getHeaders(includeAuth: boolean = true): HeadersInit {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
 
-  // Add userId header if user is logged in (only on client side)
-  if (typeof window !== "undefined" && window.sessionStorage) {
+  // Add Basic Auth header if user is logged in (only on client side)
+  if (includeAuth && typeof window !== "undefined" && window.sessionStorage) {
     try {
-      const auth = getAuth();
-      if (auth) {
-        headers["X-User-Id"] = auth.userId.toString();
+      const credentials = getCredentials();
+      if (credentials) {
+        headers["Authorization"] = generateBasicAuthHeader(credentials.email, credentials.password);
       }
     } catch (e) {
       // sessionStorage not available
@@ -81,6 +109,18 @@ export async function apiGet<T>(path: string): Promise<T> {
     });
 
     if (!res.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (isUnauthorized(res.status)) {
+        handleAuthFailure();
+        // We'll let the component handle the redirect, but throw a specific error
+        const error = await parseErrorResponse(res);
+        throw new Error("Unauthorized: " + error.message);
+      }
+      // Handle 403 Forbidden - show permission error (don't clear credentials)
+      if (isForbidden(res.status)) {
+        const error = await parseErrorResponse(res);
+        throw new Error("Forbidden: " + error.message);
+      }
       throw await parseErrorResponse(res);
     }
 
@@ -108,6 +148,17 @@ export async function apiPost<T>(path: string, body: any): Promise<T> {
     });
 
     if (!res.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (isUnauthorized(res.status)) {
+        handleAuthFailure();
+        const error = await parseErrorResponse(res);
+        throw new Error("Unauthorized: " + error.message);
+      }
+      // Handle 403 Forbidden - show permission error (don't clear credentials)
+      if (isForbidden(res.status)) {
+        const error = await parseErrorResponse(res);
+        throw new Error("Forbidden: " + error.message);
+      }
       throw await parseErrorResponse(res);
     }
 
@@ -135,6 +186,17 @@ export async function apiPatch<T>(path: string, body: any): Promise<T> {
     });
 
     if (!res.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (isUnauthorized(res.status)) {
+        handleAuthFailure();
+        const error = await parseErrorResponse(res);
+        throw new Error("Unauthorized: " + error.message);
+      }
+      // Handle 403 Forbidden - show permission error (don't clear credentials)
+      if (isForbidden(res.status)) {
+        const error = await parseErrorResponse(res);
+        throw new Error("Forbidden: " + error.message);
+      }
       throw await parseErrorResponse(res);
     }
 
@@ -168,6 +230,17 @@ export async function apiPut<T>(path: string, body?: any): Promise<T> {
     const res = await fetch(`${BASE_URL}${path}`, init);
 
     if (!res.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (isUnauthorized(res.status)) {
+        handleAuthFailure();
+        const error = await parseErrorResponse(res);
+        throw new Error("Unauthorized: " + error.message);
+      }
+      // Handle 403 Forbidden - show permission error (don't clear credentials)
+      if (isForbidden(res.status)) {
+        const error = await parseErrorResponse(res);
+        throw new Error("Forbidden: " + error.message);
+      }
       throw await parseErrorResponse(res);
     }
 
@@ -197,6 +270,17 @@ export async function apiExport(path: string, body: any): Promise<void> {
     });
 
     if (!res.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (isUnauthorized(res.status)) {
+        handleAuthFailure();
+        const error = await parseErrorResponse(res);
+        throw new Error("Unauthorized: " + error.message);
+      }
+      // Handle 403 Forbidden - show permission error (don't clear credentials)
+      if (isForbidden(res.status)) {
+        const error = await parseErrorResponse(res);
+        throw new Error("Forbidden: " + error.message);
+      }
       throw await parseErrorResponse(res);
     }
 
@@ -229,4 +313,3 @@ export async function apiExport(path: string, body: any): Promise<void> {
     throw error;
   }
 }
-

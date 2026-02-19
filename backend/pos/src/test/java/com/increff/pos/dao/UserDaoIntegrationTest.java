@@ -1,7 +1,7 @@
 package com.increff.pos.dao;
 
 import com.increff.pos.entity.UserEntity;
-import com.increff.pos.domain.UserRole;
+import com.increff.pos.model.domain.UserRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,9 +26,9 @@ class UserDaoIntegrationTest {
         user.setEmail("test@example.com");
         user.setRole(UserRole.OPERATOR);
 
-        userDao.insert(user);
+        userDao.save(user);
 
-        Optional<UserEntity> found = userDao.findById(user.getId());
+        Optional<UserEntity> found = userDao.selectById(user.getId());
         assertTrue(found.isPresent());
         assertEquals("test@example.com", found.get().getEmail());
         assertEquals(UserRole.OPERATOR, found.get().getRole());
@@ -39,9 +39,9 @@ class UserDaoIntegrationTest {
         UserEntity user = new UserEntity();
         user.setEmail("test@example.com");
         user.setRole(UserRole.SUPERVISOR);
-        userDao.insert(user);
+        userDao.save(user);
 
-        Optional<UserEntity> found = userDao.findById(user.getId());
+        Optional<UserEntity> found = userDao.selectById(user.getId());
 
         assertTrue(found.isPresent());
         assertEquals(user.getId(), found.get().getId());
@@ -53,16 +53,17 @@ class UserDaoIntegrationTest {
     void testSelectByEmail() {
         UserEntity user = new UserEntity();
         user.setEmail("unique@example.com");
+        user.setPassword("password123"); // Add required password
         user.setRole(UserRole.OPERATOR);
-        userDao.insert(user);
+        userDao.save(user);
 
-        Optional<UserEntity> found = userDao.findByEmail("unique@example.com");
+        Optional<UserEntity> found = userDao.selectByEmail("unique@example.com");
 
         assertTrue(found.isPresent());
         assertEquals("unique@example.com", found.get().getEmail());
         assertEquals(UserRole.OPERATOR, found.get().getRole());
 
-        Optional<UserEntity> notFound = userDao.findByEmail("nonexistent@example.com");
+        Optional<UserEntity> notFound = userDao.selectByEmail("nonexistent@example.com");
         assertFalse(notFound.isPresent());
     }
 }

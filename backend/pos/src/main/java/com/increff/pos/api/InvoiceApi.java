@@ -9,28 +9,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@Transactional
 public class InvoiceApi {
 
     @Autowired
     private InvoiceDao invoiceDao;
 
+    @Transactional
     public void create(InvoiceEntity invoice) {
         invoiceDao.save(invoice);
     }
 
+    @Transactional(readOnly = true)
     public boolean existsForOrder(Integer orderId) {
-        return invoiceDao.selectByOrderId(orderId) != null;
+        return invoiceDao.selectByOrderId(orderId).isPresent();
     }
 
+    @Transactional(readOnly = true)
     public InvoiceEntity getByOrderId(Integer orderId) {
-        InvoiceEntity invoice = invoiceDao.selectByOrderId(orderId);
-        if (invoice == null) {
-            throw new ApiException(ApiStatus.NOT_FOUND, "Invoice not found for order " + orderId);
-        }
-        return invoice;
+        return invoiceDao.selectByOrderId(orderId)
+                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "Invoice not found for order " + orderId));
     }
 
+    @Transactional(readOnly = true)
     public byte[] download(Integer orderId) {
         InvoiceEntity invoice = getByOrderId(orderId);
         try {

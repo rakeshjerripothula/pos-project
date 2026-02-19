@@ -8,7 +8,9 @@ import {
   isAuthCheckInProgress,
   setAuthCheckStarted,
   setAuthCheckComplete,
-  User 
+  User,
+  saveCredentials,
+  generateBasicAuthHeader
 } from "@/lib/auth";
 import toast from "react-hot-toast";
 
@@ -17,6 +19,7 @@ const USER_UPDATE_EVENT = "pos-user-update";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const initialized = useRef(false);
@@ -56,24 +59,50 @@ async function handleLogin(e: React.FormEvent) {
     try {
       // Store email in lowercase and trimmed
       const trimmedEmail = email.trim().toLowerCase();
+      const trimmedPassword = password.trim();
 
-      const res = await fetch("http://localhost:8080/users/login", {
-        method: "POST",
+      // Generate Basic Auth header
+      const authHeader = generateBasicAuthHeader(trimmedEmail, trimmedPassword);
+
+      // Call /users/me endpoint with Basic Auth to verify credentials
+      const res = await fetch("http://localhost:8080/users/me", {
+        method: "GET",
         headers: {
-          "Content-Type": "application/json",
+          "Authorization": authHeader,
         },
-        body: JSON.stringify({ 
-          email: trimmedEmail, 
-        }),
       });
+
+      if (res.status === 401) {
+        // Invalid credentials
+        setAuthCheckComplete();
+        toast.error("Invalid email or password");
+        return;
+      }
+
+      if (res.status === 403) {
+        // Authenticated but forbidden
+        setAuthCheckComplete();
+        toast.error("You are not allowed to perform this action");
+        return;
+      }
 
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || "Login failed");
       }
 
-      const user: User = await res.json();
+      // Get user data from /me endpoint
+      const userData = await res.json();
+      
+      const user: User = {
+        id: userData.id,
+        email: userData.email,
+        role: userData.role,
+      };
+      
       saveUser(user);
+      // Save credentials for Basic Auth on subsequent requests
+      saveCredentials(trimmedEmail, trimmedPassword);
       setAuthCheckComplete();
       
       // Notify Navbar and other components immediately
@@ -82,7 +111,12 @@ async function handleLogin(e: React.FormEvent) {
       router.replace("/orders");
     } catch (err: any) {
       setAuthCheckComplete();
-      toast.error(err.message || "Login failed. Please try again.");
+      // Handle network errors or other failures
+      if (err.message && err.message.includes("Failed to fetch")) {
+        toast.error("Unable to connect to server. Please ensure the backend is running.");
+      } else {
+        toast.error(err.message || "Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -128,6 +162,25 @@ async function handleLogin(e: React.FormEvent) {
                 placeholder="name@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+                className="w-full px-4 py-3 text-base border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="password"
+                className="text-base font-medium text-gray-700"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
                 className="w-full px-4 py-3 text-base border border-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"

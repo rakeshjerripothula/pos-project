@@ -1,6 +1,6 @@
 package com.increff.pos.model.data;
 
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import lombok.Getter;
 import lombok.Setter;
 

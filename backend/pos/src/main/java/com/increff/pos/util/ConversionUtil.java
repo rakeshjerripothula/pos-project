@@ -6,6 +6,7 @@ import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.*;
 import com.increff.pos.model.form.*;
 import com.increff.pos.model.internal.DaySalesAggregate;
+import com.increff.pos.model.internal.ProductUniquenessKey;
 import com.increff.pos.model.internal.SalesReportRow;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -26,12 +27,13 @@ public final class ConversionUtil {
 
     static {
         modelMapper = new ModelMapper();
-        modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
+        modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT).setSkipNullEnabled(true);
+
+        modelMapper.typeMap(OrderEntity.class, OrderData.class).addMapping(OrderEntity::getId, OrderData::setOrderId)
+                .addMappings(mapper -> mapper.skip(OrderData::setItems));
     }
 
-    private ConversionUtil() {
-
-    }
+    private ConversionUtil() {}
 
     public static ClientEntity clientFormToEntity(ClientForm form) {
         ClientEntity entity = new ClientEntity();
@@ -40,28 +42,11 @@ public final class ConversionUtil {
     }
 
     public static ClientData clientEntityToData(ClientEntity entity) {
-        if (Objects.isNull(entity)) {
-            return null;
-        }
-
-        ClientData data = new ClientData();
-        data.setId(entity.getId());
-        data.setClientName(entity.getClientName());
-        data.setEnabled(entity.getEnabled());
-        return data;
+        return map(entity, ClientData.class);
     }
 
     public static OrderData orderEntityToData(OrderEntity entity) {
-        if (Objects.isNull(entity)) {
-            return null;
-        }
-
-        OrderData data = new OrderData();
-        data.setOrderId(entity.getId());
-        data.setClientId(entity.getClientId());
-        data.setCreatedAt(entity.getCreatedAt());
-        data.setStatus(entity.getStatus());
-        return data;
+        return map(entity, OrderData.class);
     }
 
     public static OrderItemEntity orderItemFormToEntity(OrderItemForm form) {
@@ -70,34 +55,6 @@ public final class ConversionUtil {
         entity.setQuantity(form.getQuantity());
         entity.setSellingPrice(form.getSellingPrice().setScale(2, RoundingMode.HALF_UP));
         return entity;
-    }
-
-    public static List<OrderItemData> orderItemEntitiesToData(List<OrderItemEntity> items, Map<Integer, ProductEntity> productMap) {
-        if (Objects.isNull(items) || items.isEmpty()) {
-            return List.of();
-        }
-
-        return items.stream()
-                .map(item -> orderItemEntityToData(item, productMap))
-                .collect(Collectors.toList());
-    }
-
-    public static OrderItemData orderItemEntityToData(OrderItemEntity item, Map<Integer, ProductEntity> productMap) {
-        if (Objects.isNull(item)) {
-            return null;
-        }
-        
-        OrderItemData itemData = new OrderItemData();
-        itemData.setProductId(item.getProductId());
-        itemData.setQuantity(item.getQuantity());
-        itemData.setSellingPrice(item.getSellingPrice().setScale(2, RoundingMode.HALF_UP));
-        
-        ProductEntity product = productMap.get(item.getProductId());
-        if (Objects.nonNull(product)) {
-            itemData.setProductName(product.getProductName());
-        }
-        
-        return itemData;
     }
 
     public static OrderItemEntity createOrderItem(OrderItemEntity item, Integer orderId) {
@@ -109,39 +66,71 @@ public final class ConversionUtil {
         return orderItem;
     }
 
+    public static List<OrderItemData> orderItemEntitiesToData(
+            List<OrderItemEntity> items, Map<Integer, ProductEntity> productMap
+    ) {
+        if (Objects.isNull(items) || items.isEmpty()) {
+            return List.of();
+        }
+        return items.stream().map(item -> orderItemEntityToData(item, productMap)).collect(Collectors.toList());
+    }
+
+    public static OrderItemData orderItemEntityToData(OrderItemEntity item, Map<Integer, ProductEntity> productMap) {
+        if (Objects.isNull(item)) {
+            return null;
+        }
+
+        OrderItemData data = new OrderItemData();
+        data.setProductId(item.getProductId());
+        data.setQuantity(item.getQuantity());
+        data.setSellingPrice(item.getSellingPrice().setScale(2, RoundingMode.HALF_UP));
+
+        ProductEntity product = productMap.get(item.getProductId());
+        if (Objects.nonNull(product)) {
+            data.setProductName(product.getProductName());
+        }
+        return data;
+    }
+
     public static ProductEntity productFormToEntity(ProductForm form) {
-        
         ProductEntity entity = new ProductEntity();
-        entity.setProductName(normalize(form.getProductName().trim()));
+        entity.setProductName(normalize(form.getProductName()));
         entity.setMrp(form.getMrp().setScale(2, RoundingMode.HALF_UP));
         entity.setClientId(form.getClientId());
-        entity.setBarcode(normalize(form.getBarcode().trim()));
+        entity.setBarcode(normalize(form.getBarcode()));
         entity.setImageUrl(form.getImageUrl());
         return entity;
     }
 
     public static ProductData productEntityToData(ProductEntity entity) {
-        if (Objects.isNull(entity)) {
-            return null;
-        }
-        
-        ProductData data = new ProductData();
-        data.setId(entity.getId());
-        data.setProductName(entity.getProductName());
-        data.setMrp(entity.getMrp());
-        data.setClientId(entity.getClientId());
-        data.setBarcode(entity.getBarcode());
-        data.setImageUrl(entity.getImageUrl());
-        return data;
+        return map(entity, ProductData.class);
+    }
+
+    public static ProductForm convertUploadToProductForm(ProductUploadForm uploadForm, Integer clientId) {
+
+        ProductForm form = new ProductForm();
+
+        form.setProductName(normalize(uploadForm.getProductName()));
+
+        form.setMrp(uploadForm.getMrp());
+
+        form.setClientId(clientId);
+
+        form.setBarcode(normalize(uploadForm.getBarcode()));
+
+        form.setImageUrl(uploadForm.getImageUrl());
+
+        return form;
     }
 
     public static InventoryEntity inventoryFormToEntity(InventoryForm form) {
-        if (Objects.isNull(form)) {
-            return null;
-        }
-        
+        return map(form, InventoryEntity.class);
+    }
+
+    public static InventoryEntity inventoryUploadFormToEntity(InventoryUploadForm form, Integer productId) {
+
         InventoryEntity entity = new InventoryEntity();
-        entity.setProductId(form.getProductId());
+        entity.setProductId(productId);
         entity.setQuantity(form.getQuantity());
         return entity;
     }
@@ -150,34 +139,28 @@ public final class ConversionUtil {
         if (Objects.isNull(entity)) {
             return null;
         }
-        
+
         InventoryData data = new InventoryData();
         data.setProductId(entity.getProductId());
         data.setQuantity(entity.getQuantity());
-        
+
         if (Objects.nonNull(product)) {
             data.setProductName(product.getProductName());
         }
-        
         return data;
     }
 
     public static UserData userEntityToData(UserEntity entity) {
-        if (Objects.isNull(entity)) {
-            return null;
-        }
-        
-        UserData data = new UserData();
-        data.setId(entity.getId());
-        data.setEmail(entity.getEmail());
-        data.setRole(entity.getRole());
-        return data;
+        return map(entity, UserData.class);
     }
 
-    public static InvoiceItemForm orderItemEntityToInvoiceItemForm(OrderItemEntity item, Map<Integer, ProductEntity> productMap) {
+    public static InvoiceItemForm orderItemEntityToInvoiceItemForm(
+            OrderItemEntity item, Map<Integer, ProductEntity> productMap
+    ) {
         ProductEntity product = productMap.get(item.getProductId());
         if (product == null) {
-            throw new ApiException(ApiStatus.NOT_FOUND, "Product not found: " + item.getProductId());
+            throw new ApiException(ApiStatus.NOT_FOUND,
+                    "Product not found: " + item.getProductId());
         }
 
         InvoiceItemForm form = new InvoiceItemForm();
@@ -185,37 +168,21 @@ public final class ConversionUtil {
         form.setQuantity(item.getQuantity());
         form.setSellingPrice(item.getSellingPrice());
 
-        BigDecimal lineTotal =
-                item.getSellingPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+        BigDecimal lineTotal = item.getSellingPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
         form.setLineTotal(lineTotal);
 
         return form;
     }
 
-    public static InvoiceSummaryData invoiceEntityToSummaryData(InvoiceEntity invoiceEntity){
-        if (Objects.isNull(invoiceEntity)) {
-            return null;
-        }
-        InvoiceSummaryData invoiceData = new InvoiceSummaryData();
-        invoiceData.setOrderId(invoiceEntity.getOrderId());
-        invoiceData.setCreatedAt(invoiceEntity.getCreatedAt());
-        return invoiceData;
+    public static InvoiceSummaryData invoiceEntityToSummaryData(InvoiceEntity entity) {
+        return map(entity, InvoiceSummaryData.class);
     }
 
     public static DaySalesData daySalesEntityToData(DaySalesEntity entity) {
-        if (Objects.isNull(entity)) {
-            return null;
-        }
-        
-        DaySalesData data = new DaySalesData();
-        data.setDate(entity.getDate());
-        data.setInvoicedOrdersCount(entity.getInvoicedOrdersCount());
-        data.setInvoicedItemsCount(entity.getInvoicedItemsCount());
-        data.setTotalRevenue(entity.getTotalRevenue());
-        return data;
+        return map(entity, DaySalesData.class);
     }
 
-    public static DaySalesEntity daySalesAggregateToEntity(LocalDate date, DaySalesAggregate aggregate){
+    public static DaySalesEntity daySalesAggregateToEntity(LocalDate date, DaySalesAggregate aggregate) {
         DaySalesEntity entity = new DaySalesEntity();
         entity.setDate(date);
         entity.setInvoicedOrdersCount(aggregate.getInvoicedOrdersCountAsInt());
@@ -232,6 +199,18 @@ public final class ConversionUtil {
         return data;
     }
 
+    public static ProductForm tsvRowToProductForm(String[] r) {
+        ProductForm f = new ProductForm();
+        f.setProductName(r[0].trim());
+        f.setMrp(new BigDecimal(r[1].trim()).setScale(2, RoundingMode.HALF_UP));
+        f.setClientId(Integer.parseInt(r[2].trim()));
+        f.setBarcode(r[3].trim());
+
+        if (r.length > 4) {
+            f.setImageUrl(r[4].trim());
+        }
+        return f;
+    }
 
     public static String normalize(String value) {
         if (Objects.isNull(value)) {
@@ -239,30 +218,6 @@ public final class ConversionUtil {
         }
         return value.trim().toLowerCase();
     }
-
-    public static ProductForm tsvRowToProductForm(String[] r){
-        ProductForm f = new ProductForm();
-        f.setProductName(r[0].trim());
-
-        f.setMrp(new BigDecimal(r[1].trim()).setScale(2, RoundingMode.HALF_UP));
-
-        f.setClientId(Integer.parseInt(r[2].trim()));
-        f.setBarcode(r[3].trim());
-
-        if (r.length > 4) {
-            f.setImageUrl(r[4].trim());
-        }
-
-        return f;
-    }
-
-    public static InvoiceSummaryData convertInvoiceEntityToSummary(InvoiceEntity invoice) {
-        InvoiceSummaryData data = new InvoiceSummaryData();
-        data.setOrderId(invoice.getOrderId());
-        data.setCreatedAt(invoice.getCreatedAt());
-        return data;
-    }
-
 
     public static <S, T> T map(S source, Class<T> targetClass) {
         if (Objects.isNull(source)) {
@@ -275,9 +230,15 @@ public final class ConversionUtil {
         if (Objects.isNull(sourceList) || sourceList.isEmpty()) {
             return List.of();
         }
-        return sourceList.stream()
-                .map(source -> modelMapper.map(source, targetClass))
-                .collect(Collectors.toList());
+        return sourceList.stream().map(source -> modelMapper.map(source, targetClass)).collect(Collectors.toList());
     }
 
+    public static OrderPageData orderPageEntityToResponse(List<OrderData> orders, int page, int pageSize, long totalElements) {
+        OrderPageData response = new OrderPageData();
+        response.setContent(orders);
+        response.setPage(page);
+        response.setPageSize(pageSize);
+        response.setTotalElements(totalElements);
+        return response;
+    }
 }

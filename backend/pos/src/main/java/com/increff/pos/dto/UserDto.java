@@ -8,6 +8,9 @@ import com.increff.pos.model.data.UserData;
 import com.increff.pos.model.form.UserForm;
 import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -21,14 +24,19 @@ public class UserDto extends AbstractDto {
     public UserData createUser(UserForm form) {
         checkValid(form);
 
-        UserEntity user = userApi.signup(form.getEmail());
+        UserEntity user = userApi.signup(form.getEmail(), form.getPassword());
         return ConversionUtil.userEntityToData(user);
     }
 
-    public UserData login(UserForm form) {
-        checkValid(form);
+    @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
+    public UserData getCurrentUser() {
 
-        UserEntity user = userApi.login(form.getEmail());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        String email = authentication.getName();
+
+        UserEntity user = userApi.getByEmail(email);
+
         return ConversionUtil.userEntityToData(user);
     }
 

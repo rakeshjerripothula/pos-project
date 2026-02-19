@@ -1,6 +1,6 @@
 package com.increff.pos.entity;
 
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

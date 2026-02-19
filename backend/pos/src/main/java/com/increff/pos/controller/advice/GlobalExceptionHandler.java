@@ -1,4 +1,4 @@
-package com.increff.pos.advice;
+package com.increff.pos.controller.advice;
 
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
@@ -16,6 +16,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,7 +45,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorData> handleValidation(MethodArgumentNotValidException e) {
-        ErrorData errorData = new ErrorData(ApiStatus.BAD_DATA.name(), "Validation failed");
+        ErrorData errorData = new ErrorData(ApiStatus.BAD_REQUEST.name(), "Validation failed");
 
         e.getBindingResult().getAllErrors().forEach(error -> {
             String field = ((FieldError) error).getField();
@@ -56,7 +58,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ErrorData> handleConstraintViolation(ConstraintViolationException e) {
-        ErrorData errorData = new ErrorData(ApiStatus.BAD_DATA.name(), "Validation failed");
+        ErrorData errorData = new ErrorData(ApiStatus.BAD_REQUEST.name(), "Validation failed");
 
         e.getConstraintViolations().forEach(violation -> {
             String field = violation.getPropertyPath().toString();
@@ -65,6 +67,17 @@ public class GlobalExceptionHandler {
         });
 
         return new ResponseEntity<>(errorData, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
+    public ResponseEntity<ErrorData> handleAuthorizationDenied(Exception ex) {
+
+        ErrorData errorData = new ErrorData(
+                ApiStatus.FORBIDDEN.name(),
+                "You are not allowed to perform this action"
+        );
+
+        return new ResponseEntity<>(errorData, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -116,9 +129,7 @@ public class GlobalExceptionHandler {
         String filename = TsvErrorExportUtil.generateErrorFilename(module);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(
-                MediaType.parseMediaType("text/tab-separated-values")
-        );
+        headers.setContentType(MediaType.parseMediaType("text/tab-separated-values"));
         headers.setContentDispositionFormData("attachment", filename);
         headers.setContentLength(errorData.length);
 
@@ -161,7 +172,7 @@ public class GlobalExceptionHandler {
 
     private HttpStatus mapStatus(ApiStatus status) {
         return switch (status) {
-            case BAD_DATA, BAD_REQUEST -> HttpStatus.BAD_REQUEST;
+            case BAD_REQUEST -> HttpStatus.BAD_REQUEST;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case CONFLICT -> HttpStatus.CONFLICT;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;

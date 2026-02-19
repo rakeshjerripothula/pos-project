@@ -16,6 +16,7 @@ import com.increff.pos.util.PdfUtil;
 import com.increff.pos.util.ValidationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.ZonedDateTime;
@@ -32,6 +33,7 @@ public class OrderDto extends AbstractDto {
     @Autowired
     private InvoiceClient invoiceClient;
 
+    @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public OrderPageData getOrders(OrderPageForm form) {
 
         ZonedDateTime start = null;
@@ -47,7 +49,7 @@ public class OrderDto extends AbstractDto {
             }
         } catch (Exception e) {
             throw new ApiException(
-                    ApiStatus.BAD_DATA, "Invalid date format. Please use ISO date format (e.g., 2023-01-01T00:00:00Z)",
+                    ApiStatus.BAD_REQUEST, "Invalid date format. Please use ISO date format (e.g., 2023-01-01T00:00:00Z)",
                     "dates", "Invalid date format"
             );
         }
@@ -62,20 +64,18 @@ public class OrderDto extends AbstractDto {
 
         List<OrderData> orders = pageResult.getContent().stream().map(ConversionUtil::orderEntityToData).toList();
 
-        OrderPageData response = new OrderPageData();
-        response.setContent(orders);
-        response.setPage(page);
-        response.setPageSize(pageSize);
-        response.setTotalElements(pageResult.getTotalElements());
-
+        OrderPageData response = ConversionUtil.orderPageEntityToResponse(orders, page, pageSize,
+                                                                                    pageResult.getTotalElements());
         return response;
     }
 
+    @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public List<OrderItemData> getOrderItems(Integer orderId) {
         validateOrderId(orderId);
         return orderFlow.getOrderItems(orderId);
     }
 
+    @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public OrderData create(OrderForm form) {
         checkValid(form);
 
@@ -85,13 +85,15 @@ public class OrderDto extends AbstractDto {
         return ConversionUtil.orderEntityToData(orderFlow.createOrder(items));
     }
 
+    @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public OrderData cancel(Integer orderId) {
         if (Objects.isNull(orderId)) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Order ID is required", "orderId", "Order ID is required");
+            throw new ApiException(ApiStatus.BAD_REQUEST, "Order ID is required", "orderId", "Order ID is required");
         }
         return ConversionUtil.orderEntityToData(orderFlow.cancelOrder(orderId));
     }
 
+    @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public InvoiceSummaryData generateInvoice(Integer orderId) {
 
         InvoiceForm form = orderFlow.buildInvoiceForm(orderId);
@@ -102,13 +104,14 @@ public class OrderDto extends AbstractDto {
 
         InvoiceEntity invoice = orderFlow.saveInvoice(orderId, filePath);
 
-        return ConversionUtil.convertInvoiceEntityToSummary(invoice);
+        return ConversionUtil.invoiceEntityToSummaryData(invoice);
     }
 
+    @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public byte[] downloadInvoice(Integer orderId) {
 
         if (orderId == null) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Order ID is required", "orderId", "Order ID is required");
+            throw new ApiException(ApiStatus.BAD_REQUEST, "Order ID is required", "orderId", "Order ID is required");
         }
 
         return orderFlow.downloadInvoice(orderId);
@@ -116,7 +119,7 @@ public class OrderDto extends AbstractDto {
 
     private void validateOrderId(Integer orderId) {
         if (Objects.isNull(orderId)) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Order ID is required", "orderId", "Order ID is required");
+            throw new ApiException(ApiStatus.BAD_REQUEST, "Order ID is required", "orderId", "Order ID is required");
         }
     }
 

@@ -177,7 +177,7 @@ class InventoryApiTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryApi.bulkUpsert(inventories));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Quantity cannot be negative", exception.getMessage());
         verify(inventoryDao, never()).findByProductIds(any());
         verify(inventoryDao, never()).saveAll(any());

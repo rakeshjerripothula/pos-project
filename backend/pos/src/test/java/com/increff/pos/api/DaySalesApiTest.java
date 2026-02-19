@@ -4,7 +4,6 @@ import com.increff.pos.dao.DaySalesDao;
 import com.increff.pos.dao.ReportDao;
 import com.increff.pos.entity.DaySalesEntity;
 import com.increff.pos.model.internal.DaySalesAggregate;
-import com.increff.pos.util.ConversionUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -46,14 +45,14 @@ class DaySalesApiTest {
         expectedEntity.setInvoicedOrdersCount(10);
         expectedEntity.setInvoicedItemsCount(50);
 
-        when(reportDao.getDaySalesAggregate(any(), any())).thenReturn(aggregate);
+        when(reportDao.selectDaySalesByDate(any(), any())).thenReturn(aggregate);
         when(daySalesDao.save(any(DaySalesEntity.class))).thenReturn(expectedEntity);
 
         // Act
         daySalesApi.calculateForDate(date);
 
         // Assert
-        verify(reportDao).getDaySalesAggregate(any(), any());
+        verify(reportDao).selectDaySalesByDate(any(), any());
         verify(daySalesDao).save(any(DaySalesEntity.class));
     }
 
@@ -74,7 +73,7 @@ class DaySalesApiTest {
 
         Page<DaySalesEntity> expectedPage = new PageImpl<>(List.of(entity1, entity2));
 
-        when(daySalesDao.findByDateRange(startDate, endDate, pageable)).thenReturn(expectedPage);
+        when(daySalesDao.selectByDateRange(startDate, endDate, pageable)).thenReturn(expectedPage);
 
         // Act
         Page<DaySalesEntity> result = daySalesApi.findByDateRange(startDate, endDate, pageable);
@@ -83,7 +82,7 @@ class DaySalesApiTest {
         assertEquals(2, result.getContent().size());
         assertEquals(BigDecimal.valueOf(1000.0), result.getContent().get(0).getTotalRevenue());
         assertEquals(BigDecimal.valueOf(1500.0), result.getContent().get(1).getTotalRevenue());
-        verify(daySalesDao).findByDateRange(startDate, endDate, pageable);
+        verify(daySalesDao).selectByDateRange(startDate, endDate, pageable);
     }
 
     @Test
@@ -102,7 +101,7 @@ class DaySalesApiTest {
 
         List<DaySalesEntity> expectedList = List.of(entity1, entity2);
 
-        when(daySalesDao.findAllByDateRange(startDate, endDate)).thenReturn(expectedList);
+        when(daySalesDao.selectAllByDateRange(startDate, endDate)).thenReturn(expectedList);
 
         // Act
         List<DaySalesEntity> result = daySalesApi.findAllByDateRange(startDate, endDate);
@@ -111,6 +110,6 @@ class DaySalesApiTest {
         assertEquals(2, result.size());
         assertEquals(BigDecimal.valueOf(1000.0), result.get(0).getTotalRevenue());
         assertEquals(BigDecimal.valueOf(1500.0), result.get(1).getTotalRevenue());
-        verify(daySalesDao).findAllByDateRange(startDate, endDate);
+        verify(daySalesDao).selectAllByDateRange(startDate, endDate);
     }
 }

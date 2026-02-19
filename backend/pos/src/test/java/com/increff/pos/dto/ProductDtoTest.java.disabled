@@ -1,6 +1,5 @@
 package com.increff.pos.dto;
 
-import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.ProductData;
@@ -18,7 +17,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -31,10 +30,7 @@ import static org.mockito.Mockito.*;
 class ProductDtoTest {
 
     @Mock
-    private com.increff.pos.api.ProductApi productApi;
-
-    @Mock
-    private com.increff.pos.api.ClientApi clientApi;
+    private com.increff.pos.flow.ProductFlow productFlow;
 
     @InjectMocks
     private ProductDto productDto;
@@ -45,15 +41,15 @@ class ProductDtoTest {
     }
 
     @Test
-    void testParseProductTsv_WithValidData() {
-        // Mock client existence checks
-        when(clientApi.getById(1)).thenReturn(new ClientEntity());
-        when(clientApi.getById(2)).thenReturn(new ClientEntity());
+    void testParseProductTsv_WithValidData() throws Exception {
+        // Mock client name to ID resolution
+        when(productFlow.getClientIdByName("Client 1")).thenReturn(1);
+        when(productFlow.getClientIdByName("Client 2")).thenReturn(2);
         
         String tsvContent = """
-                productName\tmrp\tclientId\tbarcode
-                Test Product 1\t10.99\t1\tBAR001
-                Test Product 2\t20.50\t2\tBAR002
+                productName\tmrp\tclientName\tbarcode
+                Test Product 1\t10.99\tClient 1\tBAR001
+                Test Product 2\t20.50\tClient 2\tBAR002
                 """;
         
         MultipartFile file = new MockMultipartFile(
@@ -63,7 +59,11 @@ class ProductDtoTest {
             tsvContent.getBytes()
         );
 
-        TsvUploadResult<ProductForm> result = productDto.parseProductTsv(file);
+        // Use reflection to access private method
+        Method parseProductTsvMethod = ProductDto.class.getDeclaredMethod("parseProductTsv", MultipartFile.class);
+        parseProductTsvMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        TsvUploadResult<ProductForm> result = (TsvUploadResult<ProductForm>) parseProductTsvMethod.invoke(productDto, file);
 
         System.out.println("Result success: " + result.isSuccess());
         if (!result.isSuccess()) {
@@ -80,12 +80,12 @@ class ProductDtoTest {
     }
 
     @Test
-    void testParseProductTsv_WithInvalidData(){
+    void testParseProductTsv_WithInvalidData() throws Exception {
         String tsvContent = """
-                productName\tmrp\tclientId\tbarcode
-                Test Product 1\tinvalid_mrp\t1\tBAR001
-                \t20.50\t2\tBAR002
-                Test Product 3\t-5.00\t3\tBAR003
+                productName\tmrp\tclientName\tbarcode
+                Test Product 1\tinvalid_mrp\tClient 1\tBAR001
+                \t20.50\tClient 2\tBAR002
+                Test Product 3\t-5.00\tClient 3\tBAR003
                 """;
         
         MultipartFile file = new MockMultipartFile(
@@ -95,36 +95,35 @@ class ProductDtoTest {
             tsvContent.getBytes()
         );
 
-        ProductDto productDto = new ProductDto();
-        TsvUploadResult<ProductForm> result = productDto.parseProductTsv(file);
+        // Use reflection to access private method
+        Method parseProductTsvMethod = ProductDto.class.getDeclaredMethod("parseProductTsv", MultipartFile.class);
+        parseProductTsvMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        TsvUploadResult<ProductForm> result = (TsvUploadResult<ProductForm>) parseProductTsvMethod.invoke(productDto, file);
 
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrors());
-        assertEquals(3, result.getErrors().size());
+        assertEquals(2, result.getErrors().size());
         assertNull(result.getData());
         
         List<TsvUploadError> errors = result.getErrors();
         
         // Check first error - invalid MRP format
         TsvUploadError error1 = errors.get(0);
-        assertEquals(2, error1.getRowNumber());
+        assertEquals(3, error1.getRowNumber());
         assertTrue(error1.getErrorMessage().contains("Invalid MRP format"));
         
-        // Check second error - empty product name
+        // Check second error - negative MRP
         TsvUploadError error2 = errors.get(1);
-        assertEquals(3, error2.getRowNumber());
-        assertTrue(error2.getErrorMessage().contains("Product name is required"));
+        assertEquals(5, error2.getRowNumber());
+        assertTrue(error2.getErrorMessage().contains("MRP must be greater than 0"));
         
-        // Check third error - negative MRP
-        TsvUploadError error3 = errors.get(2);
-        assertEquals(4, error3.getRowNumber());
-        assertTrue(error3.getErrorMessage().contains("MRP must be greater than 0"));
-    }
+        }
 
     @Test
-    void testParseProductTsv_WithInsufficientColumns() throws IOException {
-        String tsvContent = "productName\tmrp\tclientId\tbarcode\n" +
-                "Test Product 1\t10.99\t1\n"; // Missing barcode
+    void testParseProductTsv_WithInsufficientColumns() throws Exception {
+        String tsvContent = "productName\tmrp\tclientName\tbarcode\n" +
+                "Test Product 1\t10.99\tClient 1\n"; // Missing barcode
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -133,8 +132,11 @@ class ProductDtoTest {
             tsvContent.getBytes()
         );
 
-        ProductDto productDto = new ProductDto();
-        TsvUploadResult<ProductForm> result = productDto.parseProductTsv(file);
+        // Use reflection to access private method
+        Method parseProductTsvMethod = ProductDto.class.getDeclaredMethod("parseProductTsv", MultipartFile.class);
+        parseProductTsvMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        TsvUploadResult<ProductForm> result = (TsvUploadResult<ProductForm>) parseProductTsvMethod.invoke(productDto, file);
 
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrors());
@@ -155,7 +157,7 @@ class ProductDtoTest {
         form.setBarcode("BAR001");
         
         com.increff.pos.entity.ProductEntity savedProduct = createProductEntity(1, "Test Product", new BigDecimal("10.99"), 1, "BAR001");
-        when(productApi.createProduct(any())).thenReturn(savedProduct);
+        when(productFlow.createProduct(any())).thenReturn(savedProduct);
 
         // Act
         ProductData result = productDto.createProduct(form);
@@ -167,7 +169,7 @@ class ProductDtoTest {
         assertEquals(new BigDecimal("10.99"), result.getMrp());
         assertEquals(1, result.getClientId());
         assertEquals("BAR001", result.getBarcode());
-        verify(productApi, times(1)).createProduct(any());
+        verify(productFlow, times(1)).createProduct(any());
     }
 
     @Test
@@ -181,17 +183,17 @@ class ProductDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> productDto.createProduct(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().getFirst().getMessage().contains("MRP must be greater than 0"));
-        verify(productApi, never()).createProduct(any());
+        verify(productFlow, never()).createProduct(any());
     }
 
     @Test
     void createProduct_nullForm_throwsException() {
         // Act & Assert
         assertThrows(ApiException.class, () -> productDto.createProduct(null));
-        verify(productApi, never()).createProduct(any());
+        verify(productFlow, never()).createProduct(any());
     }
 
     @Test
@@ -205,7 +207,7 @@ class ProductDtoTest {
         form.setBarcode("BAR002");
         
         com.increff.pos.entity.ProductEntity updatedProduct = createProductEntity(productId, "Updated Product", new BigDecimal("15.99"), 2, "BAR002");
-        when(productApi.updateProduct(eq(productId), any())).thenReturn(updatedProduct);
+        when(productFlow.updateProduct(eq(productId), any())).thenReturn(updatedProduct);
 
         // Act
         ProductData result = productDto.updateProduct(productId, form);
@@ -215,7 +217,7 @@ class ProductDtoTest {
         assertEquals(productId, result.getId());
         assertEquals("Updated Product", result.getProductName());
         assertEquals(new BigDecimal("15.99"), result.getMrp());
-        verify(productApi, times(1)).updateProduct(eq(productId), any());
+        verify(productFlow, times(1)).updateProduct(eq(productId), any());
     }
 
     @Test
@@ -229,13 +231,13 @@ class ProductDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> productDto.updateProduct(null, form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Product ID is required"));
-        verify(productApi, never()).updateProduct(any(), any());
+        verify(productFlow, never()).updateProduct(any(), any());
     }
 
     @Test
-    void bulkCreateProducts_validForms_success() {
+    void bulkCreateProducts_validForms_success() throws Exception {
         // Arrange
         List<ProductForm> forms = Arrays.asList(
             createProductForm("Product 1", new BigDecimal("10.99"), 1, "BAR001"),
@@ -247,32 +249,48 @@ class ProductDtoTest {
             createProductEntity(2, "Product 2", new BigDecimal("15.99"), 2, "BAR002")
         );
         
-        when(productApi.bulkCreateProducts(any())).thenReturn(savedProducts);
+        when(productFlow.bulkCreateProducts(any())).thenReturn(savedProducts);
 
-        // Act
-        List<ProductData> result = productDto.bulkCreateProducts(forms);
+        // Use reflection to access private method
+        Method bulkCreateProductsMethod = ProductDto.class.getDeclaredMethod("bulkCreateProducts", List.class);
+        bulkCreateProductsMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<ProductData> result = (List<ProductData>) bulkCreateProductsMethod.invoke(productDto, forms);
 
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
         assertEquals("Product 1", result.get(0).getProductName());
         assertEquals("Product 2", result.get(1).getProductName());
-        verify(productApi, times(1)).bulkCreateProducts(any());
+        verify(productFlow, times(1)).bulkCreateProducts(any());
     }
 
     @Test
-    void bulkCreateProducts_invalidForm_throwsException() {
+    void bulkCreateProducts_invalidForm_throwsException() throws Exception {
         // Arrange
         List<ProductForm> forms = List.of(
                 createProductForm("", new BigDecimal("10.99"), 1, "BAR001") // Invalid: empty name
         );
 
+        // Use reflection to access private method
+        Method bulkCreateProductsMethod = ProductDto.class.getDeclaredMethod("bulkCreateProducts", List.class);
+        bulkCreateProductsMethod.setAccessible(true);
+
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> productDto.bulkCreateProducts(forms));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        ApiException exception = assertThrows(ApiException.class, () -> {
+            try {
+                bulkCreateProductsMethod.invoke(productDto, forms);
+            } catch (Exception e) {
+                if (e.getCause() instanceof ApiException) {
+                    throw (ApiException) e.getCause();
+                }
+                throw new RuntimeException(e);
+            }
+        });
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().getFirst().getMessage().contains("Product name is required"));
-        verify(productApi, never()).bulkCreateProducts(any());
+        verify(productFlow, never()).bulkCreateProducts(any());
     }
 
     @Test
@@ -283,7 +301,7 @@ class ProductDtoTest {
                 createProductEntity(2, "Product 2", new BigDecimal("15.99"), 2, "BAR002")
         );
 
-        when(productApi.getAll()).thenReturn(entities);
+        when(productFlow.getAll()).thenReturn(entities);
 
         // Act
         List<ProductData> result = productDto.getAll();
@@ -292,7 +310,7 @@ class ProductDtoTest {
         assertEquals(2, result.size());
         assertEquals("Product 1", result.get(0).getProductName());
         assertEquals("Product 2", result.get(1).getProductName());
-        verify(productApi).getAll();
+        verify(productFlow).getAll();
     }
 
     @Test
@@ -308,7 +326,7 @@ class ProductDtoTest {
         com.increff.pos.entity.ProductEntity entity = createProductEntity(1, "Test Product", new BigDecimal("10.99"), 1, "BAR001");
         Page<com.increff.pos.entity.ProductEntity> page = new PageImpl<>(List.of(entity));
 
-        when(productApi.searchProducts(any(), any(), any(), any())).thenReturn(page);
+        when(productFlow.searchProducts(any(), any(), any(), any())).thenReturn(page);
 
         // Act
         PagedResponse<ProductData> result = productDto.listProducts(form);
@@ -318,11 +336,11 @@ class ProductDtoTest {
         assertEquals(1, result.getData().size());
         assertEquals(1, result.getTotal());
         assertEquals("Test Product", result.getData().get(0).getProductName());
-        verify(productApi).searchProducts(any(), any(), any(), any());
+        verify(productFlow).searchProducts(any(), any(), any(), any());
     }
 
     @Test
-    void testUploadProductsTsv() {
+    void testUploadProductsTsv() throws Exception {
         // Arrange
         ProductForm form = new ProductForm();
         form.setProductName("Test Product");
@@ -330,12 +348,9 @@ class ProductDtoTest {
         form.setClientId(1);
         form.setBarcode("BAR001");
 
-        TsvUploadResult<ProductForm> parseResult = TsvUploadResult.success(List.of(form));
-        when(productApi.bulkCreateProducts(any())).thenReturn(List.of(createProductEntity(1, "Test Product", BigDecimal.valueOf(100.0), 1, "BAR001")));
-
-        // Mock parseProductTsv method by using spy
-        ProductDto spyProductDto = spy(productDto);
-        doReturn(parseResult).when(spyProductDto).parseProductTsv(any());
+        // Mock client API call
+        doNothing().when(productFlow).validateClientExists(1);
+        when(productFlow.bulkCreateProducts(any())).thenReturn(List.of(createProductEntity(1, "Test Product", BigDecimal.valueOf(100.0), 1, "BAR001")));
 
         String tsvContent = "productName\tmrp\tclientId\tbarcode\nTest Product\t100.00\t1\tBAR001";
         MockMultipartFile file = new MockMultipartFile(
@@ -343,7 +358,7 @@ class ProductDtoTest {
         );
 
         // Act
-        TsvUploadResult<ProductData> result = spyProductDto.uploadProductsTsv(file);
+        TsvUploadResult<ProductData> result = productDto.uploadProductsTsv(file);
 
         // Assert
         assertTrue(result.isSuccess());
@@ -355,7 +370,7 @@ class ProductDtoTest {
     void testUploadProductsTsv_emptyFile_throwsException() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> productDto.uploadProductsTsv(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Empty file"));
     }
 

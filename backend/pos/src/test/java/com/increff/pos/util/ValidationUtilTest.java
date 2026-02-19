@@ -67,7 +67,7 @@ class ValidationUtilTest {
         );
 
         // Assert
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Input cannot be null", exception.getMessage());
     }
 

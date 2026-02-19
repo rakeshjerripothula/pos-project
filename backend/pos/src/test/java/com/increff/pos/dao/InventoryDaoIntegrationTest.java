@@ -30,10 +30,11 @@ class InventoryDaoIntegrationTest {
     private ClientDao clientDao;
 
     private static int barcodeCounter = 1;
+    private static int clientCounter = 1;
 
     private ProductEntity createTestProduct() {
         ClientEntity client = new ClientEntity();
-        client.setClientName("Test Client " + System.currentTimeMillis());
+        client.setClientName("Test Client " + (clientCounter++));
         client.setEnabled(true);
         client = clientDao.save(client);
 
@@ -69,7 +70,7 @@ class InventoryDaoIntegrationTest {
         inventory.setQuantity(50);
         inventoryDao.save(inventory);
 
-        Optional<InventoryEntity> found = inventoryDao.findByProductId(product.getId());
+        Optional<InventoryEntity> found = inventoryDao.selectByProductId(product.getId());
 
         assertTrue(found.isPresent());
         assertEquals(product.getId(), found.get().getProductId());
@@ -91,7 +92,7 @@ class InventoryDaoIntegrationTest {
         inventory2.setQuantity(20);
         inventoryDao.save(inventory2);
 
-        List<InventoryEntity> found = inventoryDao.findByProductIds(List.of(product1.getId(), product2.getId()));
+        List<InventoryEntity> found = inventoryDao.selectByProductIds(List.of(product1.getId(), product2.getId()));
 
         assertEquals(2, found.size());
     }
@@ -132,7 +133,7 @@ class InventoryDaoIntegrationTest {
         disabledInventory.setQuantity(200);
         inventoryDao.save(disabledInventory);
 
-        List<InventoryEntity> found = inventoryDao.findAllForEnabledClients();
+        List<InventoryEntity> found = inventoryDao.selectAllForEnabledClients();
 
         assertEquals(1, found.size());
         assertEquals(enabledProduct.getId(), found.get(0).getProductId());

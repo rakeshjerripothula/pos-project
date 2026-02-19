@@ -14,14 +14,14 @@ public class UserController {
     @Autowired
     private UserDto userDto;
 
+    @GetMapping("/me")
+    public UserData getCurrentUser() {
+        return userDto.getCurrentUser();
+    }
+
     @PostMapping(path = "/signup")
     public UserData signup(@Valid @RequestBody UserForm form) {
         return userDto.createUser(form);
-    }
-
-    @PostMapping(path = "/login")
-    public UserData login(@Valid @RequestBody UserForm form) {
-        return userDto.login(form);
     }
 
 }

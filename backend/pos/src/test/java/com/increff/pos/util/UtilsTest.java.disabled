@@ -15,7 +15,7 @@ class UtilsTest {
         String input = "  TEST STRING  ";
         
         // Act
-        String result = Utils.normalize(input);
+        String result = TsvParseUtils.normalize(input);
         
         // Assert
         assertEquals("test string", result);
@@ -27,7 +27,7 @@ class UtilsTest {
         String input = "  ";
         
         // Act
-        String result = Utils.normalize(input);
+        String result = TsvParseUtils.normalize(input);
         
         // Assert
         assertEquals("", result);
@@ -39,7 +39,7 @@ class UtilsTest {
         String input = "HELLO";
         
         // Act
-        String result = Utils.normalize(input);
+        String result = TsvParseUtils.normalize(input);
         
         // Assert
         assertEquals("hello", result);
@@ -57,7 +57,7 @@ class UtilsTest {
         );
         
         // Act
-        List<String[]> result = Utils.parse(file);
+        List<String[]> result = TsvParseUtils.parse(file);
         
         // Assert
         assertEquals(2, result.size());
@@ -81,7 +81,7 @@ class UtilsTest {
         );
         
         // Act
-        List<String[]> result = Utils.parse(file);
+        List<String[]> result = TsvParseUtils.parse(file);
         
         // Assert
         assertEquals(0, result.size());
@@ -99,7 +99,7 @@ class UtilsTest {
         );
         
         // Act
-        List<String[]> result = Utils.parse(file);
+        List<String[]> result = TsvParseUtils.parse(file);
         
         // Assert
         assertEquals(2, result.size());
@@ -124,7 +124,7 @@ class UtilsTest {
         };
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> Utils.parse(file));
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> TsvParseUtils.parse(file));
         assertEquals("Failed to parse TSV file", exception.getMessage());
     }
 }

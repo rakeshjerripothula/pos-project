@@ -4,7 +4,7 @@ import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.entity.OrderEntity;
 import com.increff.pos.entity.OrderItemEntity;
 import com.increff.pos.entity.ProductEntity;
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -85,7 +85,7 @@ class OrderItemDaoIntegrationTest {
 
         orderItemDao.saveAll(List.of(item1, item2));
 
-        List<OrderItemEntity> found = orderItemDao.findByOrderId(order.getId());
+        List<OrderItemEntity> found = orderItemDao.selectByOrderId(order.getId());
         assertEquals(2, found.size());
     }
 
@@ -102,7 +102,7 @@ class OrderItemDaoIntegrationTest {
 
         orderItemDao.saveAll(List.of(item));
 
-        List<OrderItemEntity> found = orderItemDao.findByOrderId(order.getId());
+        List<OrderItemEntity> found = orderItemDao.selectByOrderId(order.getId());
 
         assertEquals(1, found.size());
         assertEquals(order.getId(), found.get(0).getOrderId());
@@ -113,7 +113,7 @@ class OrderItemDaoIntegrationTest {
 
     @Test
     void testSelectByOrderIdEmpty() {
-        List<OrderItemEntity> found = orderItemDao.findByOrderId(999);
+        List<OrderItemEntity> found = orderItemDao.selectByOrderId(999);
         assertTrue(found.isEmpty());
     }
 }

@@ -1,6 +1,6 @@
 package com.increff.pos.model;
 
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.model.form.*;
 import org.junit.jupiter.api.Test;
 

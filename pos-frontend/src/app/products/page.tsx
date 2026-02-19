@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { apiGet, apiPost, apiPut } from "@/lib/api";
+import { getCredentials, generateBasicAuthHeader } from "@/lib/auth";
 import { ProductData, InventoryData, ClientData, PagedResponse, ProductSearchForm } from "@/lib/types";
 import AddProductModal from "@/components/AddProductModal";
 import EditProductModal from "@/components/EditProductModal";
@@ -190,8 +191,17 @@ export default function ProductsPage() {
     const formData = new FormData();
     formData.append("file", file);
 
+    const credentials = getCredentials();
+    const headers: HeadersInit = {};
+
+    // Add Basic Auth header if credentials are available
+    if (credentials) {
+      headers["Authorization"] = generateBasicAuthHeader(credentials.email, credentials.password);
+    }
+
     const res = await fetch("http://localhost:8080/products/upload/tsv", {
       method: "POST",
+      headers,
       body: formData,
     });
 

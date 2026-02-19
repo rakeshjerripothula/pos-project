@@ -52,13 +52,13 @@ class DaySalesDaoIntegrationTest {
         daySales.setTotalRevenue(new BigDecimal("750.25"));
         daySalesDao.save(daySales);
 
-        Optional<DaySalesEntity> found = daySalesDao.findByDate(date);
+        Optional<DaySalesEntity> found = daySalesDao.selectByDate(date);
 
         assertTrue(found.isPresent());
         assertEquals(date, found.get().getDate());
         assertEquals(5, found.get().getInvoicedOrdersCount());
 
-        Optional<DaySalesEntity> notFound = daySalesDao.findByDate(LocalDate.of(2024, 1, 16));
+        Optional<DaySalesEntity> notFound = daySalesDao.selectByDate(LocalDate.of(2024, 1, 16));
         assertFalse(notFound.isPresent());
     }
 
@@ -88,7 +88,7 @@ class DaySalesDaoIntegrationTest {
         daySales3.setTotalRevenue(new BigDecimal("300.00"));
         daySalesDao.save(daySales3);
 
-        List<DaySalesEntity> found = daySalesDao.findAllByDateRange(startDate, endDate);
+        List<DaySalesEntity> found = daySalesDao.selectAllByDateRange(startDate, endDate);
 
         assertEquals(2, found.size());
         assertTrue(found.get(0).getDate().isAfter(found.get(1).getDate()) || 

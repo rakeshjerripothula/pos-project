@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.*;
 class ProductDtoComprehensiveTest {
 
     @Mock
-    private com.increff.pos.api.ProductApi productApi;
+    private com.increff.pos.flow.ProductFlow productFlow;
 
     @InjectMocks
     private ProductDto productDto;
@@ -41,8 +42,9 @@ class ProductDtoComprehensiveTest {
         form.setClientId(1);
         form.setBarcode("BAR001");
         
-        com.increff.pos.entity.ProductEntity savedProduct = createProductEntity(1, "Test Product", new BigDecimal("10.99"), 1, "BAR001");
-        when(productApi.createProduct(any())).thenReturn(savedProduct);
+        com.increff.pos.entity.ProductEntity savedProduct = createProductEntity(1, "Test Product",
+                new BigDecimal("10.99"), 1, "BAR001");
+        when(productFlow.createProduct(any())).thenReturn(savedProduct);
 
         // Act
         ProductData result = productDto.createProduct(form);
@@ -54,7 +56,7 @@ class ProductDtoComprehensiveTest {
         assertEquals(new BigDecimal("10.99"), result.getMrp());
         assertEquals(1, result.getClientId());
         assertEquals("BAR001", result.getBarcode());
-        verify(productApi, times(1)).createProduct(any());
+        verify(productFlow, times(1)).createProduct(any());
     }
 
     @Test
@@ -70,7 +72,7 @@ class ProductDtoComprehensiveTest {
         ApiException exception = assertThrows(ApiException.class, () -> productDto.createProduct(form));
 
         // Assert: top-level exception
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Input validation failed", exception.getMessage());
 
         // Assert: field-level validation error
@@ -82,15 +84,15 @@ class ProductDtoComprehensiveTest {
         assertEquals("MRP must be greater than 0", error.getMessage());
 
         // Assert: API not invoked
-        verify(productApi, never()).createProduct(any());
+        verify(productFlow, never()).createProduct(any());
     }
 
     @Test
     void createProduct_nullForm_throwsException() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> productDto.createProduct(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
-        verify(productApi, never()).createProduct(any());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
+        verify(productFlow, never()).createProduct(any());
     }
 
     @Test
@@ -104,7 +106,7 @@ class ProductDtoComprehensiveTest {
         form.setBarcode("BAR002");
         
         com.increff.pos.entity.ProductEntity updatedProduct = createProductEntity(productId, "Updated Product", new BigDecimal("15.99"), 2, "BAR002");
-        when(productApi.updateProduct(eq(productId), any())).thenReturn(updatedProduct);
+        when(productFlow.updateProduct(eq(productId), any())).thenReturn(updatedProduct);
 
         // Act
         ProductData result = productDto.updateProduct(productId, form);
@@ -114,7 +116,7 @@ class ProductDtoComprehensiveTest {
         assertEquals(productId, result.getId());
         assertEquals("Updated Product", result.getProductName());
         assertEquals(new BigDecimal("15.99"), result.getMrp());
-        verify(productApi, times(1)).updateProduct(eq(productId), any());
+        verify(productFlow, times(1)).updateProduct(eq(productId), any());
     }
 
     @Test
@@ -128,9 +130,9 @@ class ProductDtoComprehensiveTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> productDto.updateProduct(null, form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Product ID is required"));
-        verify(productApi, never()).updateProduct(any(), any());
+        verify(productFlow, never()).updateProduct(any(), any());
     }
 
     @Test
@@ -150,7 +152,7 @@ class ProductDtoComprehensiveTest {
         );
 
         // Assert: top-level exception
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Input validation failed", exception.getMessage());
 
         // Assert: field-level validation errors
@@ -162,12 +164,12 @@ class ProductDtoComprehensiveTest {
         assertEquals("Product name is required", error.getMessage());
 
         // Assert: API not invoked
-        verify(productApi, never()).updateProduct(any(), any());
+        verify(productFlow, never()).updateProduct(any(), any());
     }
 
 
     @Test
-    void bulkCreateProducts_validForms_success() {
+    void bulkCreateProducts_validForms_success() throws Exception {
         // Arrange
         List<ProductForm> forms = Arrays.asList(
             createProductForm("Product 1", new BigDecimal("10.99"), 1, "BAR001"),
@@ -179,34 +181,50 @@ class ProductDtoComprehensiveTest {
             createProductEntity(2, "Product 2", new BigDecimal("15.99"), 2, "BAR002")
         );
         
-        when(productApi.bulkCreateProducts(any())).thenReturn(savedProducts);
+        when(productFlow.bulkCreateProducts(any())).thenReturn(savedProducts);
 
-        // Act
-        List<ProductData> result = productDto.bulkCreateProducts(forms);
+        // Use reflection to access private method
+        Method bulkCreateProductsMethod = ProductDto.class.getDeclaredMethod("bulkCreateProducts", List.class);
+        bulkCreateProductsMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        List<ProductData> result = (List<ProductData>) bulkCreateProductsMethod.invoke(productDto, forms);
 
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
         assertEquals("Product 1", result.get(0).getProductName());
         assertEquals("Product 2", result.get(1).getProductName());
-        verify(productApi, times(1)).bulkCreateProducts(any());
+        verify(productFlow, times(1)).bulkCreateProducts(any());
     }
 
     @Test
-    void bulkCreateProducts_invalidForm_throwsException() {
+    void bulkCreateProducts_invalidForm_throwsException() throws Exception {
         // Arrange
         List<ProductForm> forms = List.of(
                 createProductForm("", new BigDecimal("10.99"), 1, "BAR001")
         );
 
+        // Use reflection to access private method
+        Method bulkCreateProductsMethod = ProductDto.class.getDeclaredMethod("bulkCreateProducts", List.class);
+        bulkCreateProductsMethod.setAccessible(true);
+
         // Act
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> productDto.bulkCreateProducts(forms)
+                () -> {
+                    try {
+                        bulkCreateProductsMethod.invoke(productDto, forms);
+                    } catch (Exception e) {
+                        if (e.getCause() instanceof ApiException) {
+                            throw (ApiException) e.getCause();
+                        }
+                        throw new RuntimeException(e);
+                    }
+                }
         );
 
         // Assert: top-level exception
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Input validation failed", exception.getMessage());
 
         // Assert: field-level validation error
@@ -218,7 +236,7 @@ class ProductDtoComprehensiveTest {
         assertEquals("Product name is required", error.getMessage());
 
         // Assert: API not invoked
-        verify(productApi, never()).bulkCreateProducts(any());
+        verify(productFlow, never()).bulkCreateProducts(any());
     }
 
     @Test
@@ -228,7 +246,7 @@ class ProductDtoComprehensiveTest {
             createProductEntity(1, "Product 1", new BigDecimal("10.99"), 1, "BAR001"),
             createProductEntity(2, "Product 2", new BigDecimal("15.99"), 2, "BAR002")
         );
-        when(productApi.getAll()).thenReturn(products);
+        when(productFlow.getAll()).thenReturn(products);
 
         // Act
         List<ProductData> result = productDto.getAll();
@@ -238,7 +256,7 @@ class ProductDtoComprehensiveTest {
         assertEquals(2, result.size());
         assertEquals("Product 1", result.get(0).getProductName());
         assertEquals("Product 2", result.get(1).getProductName());
-        verify(productApi, times(1)).getAll();
+        verify(productFlow, times(1)).getAll();
     }
 
     private com.increff.pos.entity.ProductEntity createProductEntity(Integer id, String name, BigDecimal mrp, Integer clientId, String barcode) {

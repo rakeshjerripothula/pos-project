@@ -31,6 +31,6 @@ public abstract class AbstractDto {
             error.setMessage(violation.getMessage());
             errorList.add(error);
         }
-        throw new ApiException(ApiStatus.BAD_DATA, "Input validation failed", errorList);
+        throw new ApiException(ApiStatus.BAD_REQUEST, "Input validation failed", errorList);
     }
 }

@@ -67,7 +67,7 @@ class InventoryDtoBusinessTest {
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.upsert(form));
 
         // Assert: top-level exception
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Input validation failed", exception.getMessage());
 
         // Assert: field-level validation errors
@@ -91,7 +91,7 @@ class InventoryDtoBusinessTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.upsert(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         verify(inventoryFlow, never()).upsert(any());
     }
@@ -100,7 +100,7 @@ class InventoryDtoBusinessTest {
     void upsert_nullForm_throwsException() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.upsert(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         verify(inventoryFlow, never()).upsert(any());
     }
 
@@ -117,7 +117,7 @@ class InventoryDtoBusinessTest {
             createInventoryData(2, 200, "Product 2")
         );
         
-        when(inventoryFlow.bulkUpsertAndGetData(any())).thenReturn(expectedData);
+        when(inventoryFlow.bulkUpsert(any())).thenReturn(expectedData);
 
         // Act
         List<InventoryData> result = inventoryDto.bulkUpsert(forms);
@@ -131,7 +131,7 @@ class InventoryDtoBusinessTest {
         assertEquals(2, result.get(1).getProductId());
         assertEquals(200, result.get(1).getQuantity());
         assertEquals("Product 2", result.get(1).getProductName());
-        verify(inventoryFlow, times(1)).bulkUpsertAndGetData(any());
+        verify(inventoryFlow, times(1)).bulkUpsert(any());
     }
 
     @Test
@@ -144,9 +144,9 @@ class InventoryDtoBusinessTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.bulkUpsert(forms));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Duplicate productId"));
-        verify(inventoryFlow, never()).bulkUpsertAndGetData(any());
+        verify(inventoryFlow, never()).bulkUpsert(any());
     }
 
     @Test
@@ -158,9 +158,9 @@ class InventoryDtoBusinessTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.bulkUpsert(forms));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
-        verify(inventoryFlow, never()).bulkUpsertAndGetData(any());
+        verify(inventoryFlow, never()).bulkUpsert(any());
     }
 
     @Test
@@ -171,7 +171,7 @@ class InventoryDtoBusinessTest {
             createInventoryData(2, 200, "Product 2")
         );
         
-        when(inventoryFlow.listAllForEnabledClientsWithData()).thenReturn(expectedData);
+        when(inventoryFlow.getAllForEnabledClients()).thenReturn(expectedData);
 
         // Act
         List<InventoryData> result = inventoryDto.getAll();
@@ -181,13 +181,13 @@ class InventoryDtoBusinessTest {
         assertEquals(2, result.size());
         assertEquals("Product 1", result.get(0).getProductName());
         assertEquals("Product 2", result.get(1).getProductName());
-        verify(inventoryFlow, times(1)).listAllForEnabledClientsWithData();
+        verify(inventoryFlow, times(1)).getAllForEnabledClients();
     }
 
     @Test
     void getAll_emptyList_success() {
         // Arrange
-        when(inventoryFlow.listAllForEnabledClientsWithData()).thenReturn(Arrays.asList());
+        when(inventoryFlow.getAllForEnabledClients()).thenReturn(Arrays.asList());
 
         // Act
         List<InventoryData> result = inventoryDto.getAll();
@@ -195,7 +195,7 @@ class InventoryDtoBusinessTest {
         // Assert
         assertNotNull(result);
         assertEquals(0, result.size());
-        verify(inventoryFlow, times(1)).listAllForEnabledClientsWithData();
+        verify(inventoryFlow, times(1)).getAllForEnabledClients();
     }
 
     private com.increff.pos.entity.InventoryEntity createInventoryEntity(Integer productId, Integer quantity) {

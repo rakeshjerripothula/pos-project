@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { apiGet, apiPost } from "@/lib/api";
+import { getCredentials, generateBasicAuthHeader } from "@/lib/auth";
 import { InventoryData, ProductData, PagedResponse, InventorySearchForm } from "@/lib/types";
 import AddInventoryModal from "@/components/AddInventoryModal";
 import AuthGuard, { isOperator } from "@/components/AuthGuard";
@@ -165,8 +166,17 @@ export default function InventoryPage() {
     const formData = new FormData();
     formData.append("file", file);
 
+    const credentials = getCredentials();
+    const headers: HeadersInit = {};
+
+    // Add Basic Auth header if credentials are available
+    if (credentials) {
+      headers["Authorization"] = generateBasicAuthHeader(credentials.email, credentials.password);
+    }
+
     const res = await fetch("http://localhost:8080/inventory/upload/tsv", {
       method: "POST",
+      headers,
       body: formData,
     });
 

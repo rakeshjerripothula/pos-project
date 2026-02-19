@@ -26,15 +26,15 @@ public class DaySalesEntity extends AbstractEntity {
     )
     private Integer id;
 
-    @Column(name = "date", nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     private LocalDate date;
 
-    @Column(name = "invoiced_orders_count", nullable = false)
+    @Column(nullable = false)
     private Integer invoicedOrdersCount;
 
-    @Column(name = "invoiced_items_count", nullable = false)
+    @Column(nullable = false)
     private Integer invoicedItemsCount;
 
-    @Column(name = "total_revenue", precision = 15, scale = 2, nullable = false)
+    @Column(precision = 15, scale = 2, nullable = false)
     private BigDecimal totalRevenue;
 }

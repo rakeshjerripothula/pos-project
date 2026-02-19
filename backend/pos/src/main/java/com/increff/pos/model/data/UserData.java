@@ -1,6 +1,6 @@
 package com.increff.pos.model.data;
 
-import com.increff.pos.domain.UserRole;
+import com.increff.pos.model.domain.UserRole;
 import lombok.Getter;
 import lombok.Setter;
 

@@ -8,7 +8,8 @@ import lombok.Setter;
 @Entity
 @Table(
         name = "client",
-        uniqueConstraints = @UniqueConstraint(name = "uk_client_client_name", columnNames = {"client_name"})
+        uniqueConstraints = @UniqueConstraint(name = "uk_client_client_name", columnNames = {"client_name"}),
+        indexes = @Index(name = "idx_client_enabled", columnList = "enabled")
 )
 @Setter
 @Getter

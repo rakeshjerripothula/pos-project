@@ -1,7 +1,6 @@
 package com.increff.pos.exception;
 
 public enum ApiStatus {
-    BAD_DATA,
     NOT_FOUND,
     CONFLICT,
     BAD_REQUEST,

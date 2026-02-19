@@ -28,8 +28,7 @@ public final class ValidationUtil {
     public static <T> Set<ConstraintViolation<T>> validate(T obj) {
         if (obj == null) {
             throw new ApiException(
-                ApiStatus.BAD_DATA,
-                "Input cannot be null"
+                ApiStatus.BAD_REQUEST, "Input cannot be null"
             );
         }
         return validator.validate(obj);
@@ -39,10 +38,8 @@ public final class ValidationUtil {
         if (Objects.nonNull(startDate) && Objects.nonNull(endDate)) {
             if (startDate.isAfter(endDate)) {
                 throw new ApiException(
-                    ApiStatus.BAD_DATA,
-                    "Start date cannot be after end date",
-                    "dates",
-                    "Start date cannot be after end date"
+                    ApiStatus.BAD_REQUEST, "Start date cannot be after end date",
+                    "dates", "Start date cannot be after end date"
                 );
             }
         }
@@ -52,10 +49,8 @@ public final class ValidationUtil {
         if (Objects.nonNull(startDate) && Objects.nonNull(endDate)) {
             if (startDate.isAfter(endDate)) {
                 throw new ApiException(
-                    ApiStatus.BAD_DATA,
-                    "Start date cannot be after end date",
-                    "dates",
-                    "Start date cannot be after end date"
+                    ApiStatus.BAD_REQUEST, "Start date cannot be after end date",
+                    "dates", "Start date cannot be after end date"
                 );
             }
         }

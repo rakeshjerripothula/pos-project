@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.ZonedDateTime;
@@ -31,6 +32,7 @@ public class ReportDto extends AbstractDto{
     @Autowired
     private DaySalesApi daySalesApi;
 
+    @PreAuthorize("hasRole('SUPERVISOR')")
     public DaySalesPageData getDaySales(DaySalesReportForm form) {
         checkValid(form);
 
@@ -57,6 +59,7 @@ public class ReportDto extends AbstractDto{
         return response;
     }
 
+    @PreAuthorize("hasRole('SUPERVISOR')")
     public SalesReportPageData getSalesReport(SalesReportForm form) {
         checkValid(form);
 
@@ -81,6 +84,7 @@ public class ReportDto extends AbstractDto{
         return response;
     }
 
+    @PreAuthorize("hasRole('SUPERVISOR')")
     public List<SalesReportRowData> getAllSalesReportForExport(SalesReportForm form) {
         checkValid(form);
 
@@ -94,6 +98,7 @@ public class ReportDto extends AbstractDto{
         return allRows.stream().map(ConversionUtil::salesReportRowToData).toList();
     }
 
+    @PreAuthorize("hasRole('SUPERVISOR')")
     public List<DaySalesData> getAllDaySalesForExport(DaySalesReportForm form) {
         checkValid(form);
 

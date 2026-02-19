@@ -3,10 +3,8 @@ package com.increff.pos.dao;
 import com.increff.pos.entity.DaySalesEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.*;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
@@ -16,97 +14,85 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class DaySalesDao {
+public class DaySalesDao extends AbstractDao<DaySalesEntity>{
 
     @PersistenceContext
     private EntityManager em;
 
-    public DaySalesEntity save(DaySalesEntity entity) {
-        if (entity.getId() == null) {
-            em.persist(entity);
-            return entity;
-        }
-        return em.merge(entity);
+    public DaySalesDao() {
+        super(DaySalesEntity.class);
     }
 
-    public Optional<DaySalesEntity> findByDate(LocalDate date) {
+    @Override
+    protected boolean isNew(DaySalesEntity entity) {
+        return entity.getId() == null;
+    }
 
+    public Optional<DaySalesEntity> selectByDate(LocalDate date) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<DaySalesEntity> cq = cb.createQuery(DaySalesEntity.class);
-
         Root<DaySalesEntity> root = cq.from(DaySalesEntity.class);
 
         cq.select(root).where(cb.equal(root.get("date"), date));
 
-        List<DaySalesEntity> result = em.createQuery(cq).getResultList();
-
-        return result.isEmpty() ? Optional.empty() : Optional.of(result.getFirst());
+        return em.createQuery(cq).getResultList().stream().findFirst();
     }
 
-    public Page<DaySalesEntity> findByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
-
+    public Page<DaySalesEntity> selectByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
 
-        CriteriaQuery<DaySalesEntity> cq = cb.createQuery(DaySalesEntity.class);
-        Root<DaySalesEntity> root = cq.from(DaySalesEntity.class);
+        CriteriaQuery<DaySalesEntity> dataQuery = buildDateRangeQuery(cb, startDate, endDate);
 
-        List<Predicate> predicates = new ArrayList<>();
+        CriteriaQuery<Long> countQuery = buildDateRangeCountQuery(cb, startDate, endDate);
 
-        if (startDate != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.get("date"), startDate));
-        }
-
-        if (endDate != null) {
-            predicates.add(cb.lessThanOrEqualTo(root.get("date"), endDate));
-        }
-
-        cq.select(root).where(predicates.toArray(new Predicate[0])).orderBy(cb.desc(root.get("date")));
-
-        TypedQuery<DaySalesEntity> query = em.createQuery(cq);
-
-        query.setFirstResult((int) pageable.getOffset());
-        query.setMaxResults(pageable.getPageSize());
-
-        List<DaySalesEntity> content = query.getResultList();
-
-        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
-        Root<DaySalesEntity> countRoot = countQuery.from(DaySalesEntity.class);
-
-        List<Predicate> countPredicates = new ArrayList<>();
-
-        if (startDate != null) {
-            countPredicates.add(cb.greaterThanOrEqualTo(countRoot.get("date"), startDate));
-        }
-
-        if (endDate != null) {
-            countPredicates.add(cb.lessThanOrEqualTo(countRoot.get("date"), endDate));
-        }
-
-        countQuery.select(cb.count(countRoot)).where(countPredicates.toArray(new Predicate[0]));
-
-        Long total = em.createQuery(countQuery).getSingleResult();
-
-        return new PageImpl<>(content, pageable, total);
+        return executePagedQuery(dataQuery, countQuery, pageable);
     }
 
-    public List<DaySalesEntity> findAllByDateRange(LocalDate startDate, LocalDate endDate) {
-
+    public List<DaySalesEntity> selectAllByDateRange(LocalDate startDate, LocalDate endDate) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<DaySalesEntity> cq = cb.createQuery(DaySalesEntity.class);
-        Root<DaySalesEntity> root = cq.from(DaySalesEntity.class);
-
-        List<Predicate> predicates = new ArrayList<>();
-
-        if (startDate != null) {
-            predicates.add(cb.greaterThanOrEqualTo(root.get("date"), startDate));
-        }
-
-        if (endDate != null) {
-            predicates.add(cb.lessThanOrEqualTo(root.get("date"), endDate));
-        }
-
-        cq.select(root).where(predicates.toArray(new Predicate[0])).orderBy(cb.desc(root.get("date")));
-
+        CriteriaQuery<DaySalesEntity> cq = buildDateRangeQuery(cb, startDate, endDate);
         return em.createQuery(cq).getResultList();
     }
+
+    private CriteriaQuery<DaySalesEntity> buildDateRangeQuery(CriteriaBuilder cb, LocalDate startDate,
+                                                              LocalDate endDate) {
+
+        CriteriaQuery<DaySalesEntity> cq = cb.createQuery(DaySalesEntity.class);
+        Root<DaySalesEntity> root = cq.from(DaySalesEntity.class);
+
+        List<Predicate> predicates = buildDatePredicates(cb, root, startDate, endDate);
+
+        cq.select(root).where(predicates.toArray(new Predicate[0])).orderBy(cb.desc(root.get("date")));
+
+        return cq;
+    }
+
+    private CriteriaQuery<Long> buildDateRangeCountQuery(CriteriaBuilder cb, LocalDate startDate, LocalDate endDate) {
+
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<DaySalesEntity> root = cq.from(DaySalesEntity.class);
+
+        List<Predicate> predicates = buildDatePredicates(cb, root, startDate, endDate);
+
+        cq.select(cb.count(root)).where(predicates.toArray(new Predicate[0]));
+
+        return cq;
+    }
+
+    private List<Predicate> buildDatePredicates(CriteriaBuilder cb, Root<DaySalesEntity> root, LocalDate startDate,
+                                                LocalDate endDate) {
+
+        List<Predicate> predicates = new ArrayList<>();
+
+        if (startDate != null) {
+            predicates.add(cb.greaterThanOrEqualTo(root.get("date"), startDate));
+        }
+
+        if (endDate != null) {
+            predicates.add(cb.lessThanOrEqualTo(root.get("date"), endDate));
+        }
+
+        return predicates;
+    }
+
 }

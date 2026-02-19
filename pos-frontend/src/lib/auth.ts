@@ -1,26 +1,61 @@
 "use client";
 
-// AuthUser interface for stored auth metadata
-export interface AuthUser {
-  userId: number;
-  email: string;
-  role: "OPERATOR" | "SUPERVISOR";
-  lastCheckedTime: number;
-}
-
-// User interface for backward compatibility
+// User interface
 export interface User {
   id: number;
   email: string;
   role: "OPERATOR" | "SUPERVISOR";
 }
 
-// Storage key
-const AUTH_KEY = "pos_auth";
+// Storage key for credentials
+const CREDENTIALS_KEY = "pos_credentials";
 
 // Global flag to prevent multiple auth checks (persists across component mounts)
 let authCheckInProgress = false;
 let authCheckComplete = false;
+
+/**
+ * Generate Basic Auth header value from email and password
+ */
+export function generateBasicAuthHeader(email: string, password: string): string {
+  const credentials = btoa(`${email}:${password}`);
+  return `Basic ${credentials}`;
+}
+
+/**
+ * Get stored credentials from sessionStorage
+ */
+export function getCredentials(): { email: string; password: string } | null {
+  if (typeof window === "undefined" || !window.sessionStorage) {
+    return null;
+  }
+
+  try {
+    const raw = sessionStorage.getItem(CREDENTIALS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as { email: string; password: string };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Store credentials in sessionStorage
+ */
+export function saveCredentials(email: string, password: string): void {
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    sessionStorage.setItem(CREDENTIALS_KEY, JSON.stringify({ email, password }));
+  }
+}
+
+/**
+ * Clear stored credentials (on logout or auth failure)
+ */
+export function clearCredentials(): void {
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    sessionStorage.removeItem(CREDENTIALS_KEY);
+  }
+}
 
 /**
  * Check if an auth check is already in progress
@@ -60,94 +95,34 @@ export function wasAuthCheckCompleted(): boolean {
 }
 
 /**
- * Save auth with metadata (called after successful signup/login)
+ * Check if user is logged in (has valid credentials)
  */
-export function saveAuth(user: { id: number; email: string; role: "OPERATOR" | "SUPERVISOR" }): void {
-  if (typeof window !== "undefined") {
-    const authData: AuthUser = {
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      lastCheckedTime: Date.now(),
-    };
-    localStorage.setItem(AUTH_KEY, JSON.stringify(authData));
-  }
-}
-
-/**
- * Get stored auth metadata
- */
-export function getAuth(): AuthUser | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = localStorage.getItem(AUTH_KEY);
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw) as AuthUser;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Check if auth is fresh (within 5-minute window)
- */
-export function isAuthFresh(): boolean {
-  const auth = getAuth();
-  if (!auth) return false;
-  return Date.now() - auth.lastCheckedTime < 5 * 60 * 1000;
-}
-
-/**
- * Clear all auth data (on logout or auth failure)
- */
-export function clearAuth(): void {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(AUTH_KEY);
-  }
-}
-
-/**
- * Update lastCheckedTime to keep auth fresh (called after /auth/check)
- */
-export function updateAuthTimestamp(): void {
-  const auth = getAuth();
-  if (auth) {
-    saveAuth({ id: auth.userId, email: auth.email, role: auth.role });
-  }
-}
-
-// ===== Backward Compatibility Functions =====
-
-/**
- * Get user from auth storage (for backward compatibility)
- */
-export function getUser(): User | null {
-  const auth = getAuth();
-  if (!auth) return null;
-  return {
-    id: auth.userId,
-    email: auth.email,
-    role: auth.role,
-  };
+export function isLoggedIn(): boolean {
+  return getCredentials() !== null;
 }
 
 /**
  * Clear all auth data (on logout)
  */
 export function clearAllAuth(): void {
-  clearAuth();
+  clearCredentials();
+}
+
+// ===== Backward Compatibility Functions =====
+
+/**
+ * Get user from credentials (needs to call /users/me to get user info)
+ * Returns null if no credentials - caller should handle by calling /users/me
+ */
+export function getUser(): null {
+  // We no longer store user in localStorage - credentials are enough
+  // Return null and let the caller fetch user info from /users/me if needed
+  return null;
 }
 
 /**
- * Save user (wrapper around saveAuth for backward compatibility)
+ * Save user (no-op now - we don't store user in localStorage)
  */
-export function saveUser(user: User): void {
-  saveAuth({ id: user.id, email: user.email, role: user.role });
+export function saveUser(_user: User): void {
+  // No longer needed - credentials are stored in sessionStorage
 }
-

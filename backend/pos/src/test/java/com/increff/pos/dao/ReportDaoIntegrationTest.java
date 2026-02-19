@@ -1,6 +1,6 @@
 package com.increff.pos.dao;
 
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.entity.OrderEntity;
 import com.increff.pos.entity.OrderItemEntity;
@@ -79,7 +79,7 @@ class ReportDaoIntegrationTest {
         ZonedDateTime endDate = ZonedDateTime.now().plusDays(1);
         Pageable pageable = PageRequest.of(0, 10);
 
-        Page<SalesReportRow> report = reportDao.getSalesReport(startDate, endDate, null, pageable);
+        Page<SalesReportRow> report = reportDao.selectByFiltersSalesPage(startDate, endDate, null, pageable);
 
         assertEquals(1, report.getTotalElements());
         assertEquals(1, report.getContent().size());
@@ -101,7 +101,7 @@ class ReportDaoIntegrationTest {
         List<ClientEntity> clients = clientDao.selectAll();
         Integer clientId = clients.get(0).getId();
 
-        Page<SalesReportRow> report = reportDao.getSalesReport(startDate, endDate, clientId, pageable);
+        Page<SalesReportRow> report = reportDao.selectByFiltersSalesPage(startDate, endDate, clientId, pageable);
 
         assertEquals(1, report.getTotalElements());
         assertEquals(1, report.getContent().size());
@@ -119,7 +119,7 @@ class ReportDaoIntegrationTest {
         ZonedDateTime startDate = ZonedDateTime.now().minusDays(1);
         ZonedDateTime endDate = ZonedDateTime.now().plusDays(1);
 
-        List<SalesReportRow> report = reportDao.getAllSalesReport(startDate, endDate, null);
+        List<SalesReportRow> report = reportDao.selectAllSalesReport(startDate, endDate, null);
 
         assertEquals(1, report.size());
 
@@ -136,7 +136,7 @@ class ReportDaoIntegrationTest {
         ZonedDateTime utcStart = ZonedDateTime.now().minusDays(1);
         ZonedDateTime utcEnd = ZonedDateTime.now().plusDays(1);
 
-        DaySalesAggregate aggregate = reportDao.getDaySalesAggregate(utcStart, utcEnd);
+        DaySalesAggregate aggregate = reportDao.selectDaySalesByDate(utcStart, utcEnd);
 
         assertNotNull(aggregate);
         assertEquals(1L, aggregate.getInvoicedOrdersCount());

@@ -20,11 +20,11 @@ public class ReportApi {
 
     public Page<SalesReportRow> getSalesReport(ZonedDateTime startDate, ZonedDateTime endDate, Integer clientId,
             Pageable pageable) {
-        return reportDao.getSalesReport(startDate, endDate, clientId, pageable);
+        return reportDao.selectByFiltersSalesPage(startDate, endDate, clientId, pageable);
     }
 
     public List<SalesReportRow> getAllSalesReport(ZonedDateTime startDate, ZonedDateTime endDate, Integer clientId) {
-        return reportDao.getAllSalesReport(startDate, endDate, clientId);
+        return reportDao.selectAllSalesReport(startDate, endDate, clientId);
     }
 }
 

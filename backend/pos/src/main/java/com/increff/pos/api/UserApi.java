@@ -1,12 +1,13 @@
 package com.increff.pos.api;
 
 import com.increff.pos.dao.UserDao;
-import com.increff.pos.domain.UserRole;
+import com.increff.pos.model.domain.UserRole;
 import com.increff.pos.entity.UserEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,9 @@ public class UserApi {
     @Autowired
     private UserDao userDao;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     private final Set<String> supervisorEmails;
 
     public UserApi(@Value("${app.supervisor.emails:}") String supervisorEmailsStr) {
@@ -31,13 +35,14 @@ public class UserApi {
                 .map(String::toLowerCase).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
     }
 
-    public UserEntity signup(String email) {
+    public UserEntity signup(String email, String rawPassword) {
+
         String normalizedEmail = normalizeEmail(email);
 
-        userDao.findByEmail(normalizedEmail).ifPresent(u -> {
+        userDao.selectByEmail(normalizedEmail).ifPresent(u -> {
             throw new ApiException(
-                    ApiStatus.CONFLICT, "User with this email already exists", "email",
-                    "User with this email already exists"
+                    ApiStatus.CONFLICT, "User with this email already exists",
+                    "email", "User with this email already exists"
             );
         });
 
@@ -45,21 +50,25 @@ public class UserApi {
         user.setEmail(normalizedEmail);
         user.setRole(determineRole(normalizedEmail));
 
-        userDao.insert(user);
+        String hashedPassword = passwordEncoder.encode(rawPassword);
+        user.setPassword(hashedPassword);
+
+        userDao.save(user);
         return user;
     }
 
-    public UserEntity login(String email) {
-        String normalizedEmail = normalizeEmail(email);
-        return userDao.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "User not found", "email", "User not found"));
-    }
-
     public UserEntity getById(Integer userId) {
-        return userDao.findById(userId)
+        return userDao.selectById(userId)
                 .orElseThrow(() -> new ApiException(
                         ApiStatus.NOT_FOUND, "User not found: " + userId, "userId", "User not found"
                 ));
+    }
+
+    public UserEntity getByEmail(String email) {
+        String normalizedEmail = normalizeEmail(email);
+
+        return userDao.selectByEmail(normalizedEmail)
+                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "User not found", "email", "User not found"));
     }
 
     private UserRole determineRole(String email) {

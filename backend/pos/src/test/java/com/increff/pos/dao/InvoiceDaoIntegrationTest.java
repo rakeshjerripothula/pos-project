@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -25,11 +27,11 @@ class InvoiceDaoIntegrationTest {
 
         invoiceDao.save(invoice);
 
-        InvoiceEntity found = invoiceDao.selectByOrderId(123);
+        Optional<InvoiceEntity> found = invoiceDao.selectByOrderId(123);
         
         assertNotNull(found);
-        assertEquals(123, found.getOrderId());
-        assertEquals("/invoices/invoice-123.pdf", found.getFilePath());
+        assertEquals(123, found.get().getOrderId());
+        assertEquals("/invoices/invoice-123.pdf", found.get().getFilePath());
     }
 
     @Test
@@ -40,13 +42,13 @@ class InvoiceDaoIntegrationTest {
 
         invoiceDao.save(invoice);
 
-        InvoiceEntity found = invoiceDao.selectByOrderId(456);
+        Optional<InvoiceEntity> found = invoiceDao.selectByOrderId(456);
 
         assertNotNull(found);
-        assertEquals(456, found.getOrderId());
-        assertEquals("/invoices/invoice-456.pdf", found.getFilePath());
+        assertEquals(456, found.get().getOrderId());
+        assertEquals("/invoices/invoice-456.pdf", found.get().getFilePath());
 
-        InvoiceEntity notFound = invoiceDao.selectByOrderId(999);
-        assertNull(notFound);
+        Optional<InvoiceEntity> notFound = invoiceDao.selectByOrderId(999);
+        assertFalse(notFound.isPresent());
     }
 }

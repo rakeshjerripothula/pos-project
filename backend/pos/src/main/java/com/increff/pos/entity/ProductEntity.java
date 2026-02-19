@@ -29,7 +29,6 @@ public class ProductEntity extends AbstractEntity {
     @Column(nullable = false)
     private String productName;
 
-
     @Column(precision = 12, scale = 2, nullable = false)
     private BigDecimal mrp;
 

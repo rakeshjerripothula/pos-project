@@ -2,27 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  getAuth, 
-  isAuthFresh, 
-  isAuthCheckInProgress,
-  setAuthCheckStarted,
-  setAuthCheckComplete,
-  updateAuthTimestamp, 
-  clearAuth,
-  User 
+import {
+  getCredentials,
+  clearCredentials,
+  clearAllAuth,
+  User,
 } from "@/lib/auth";
 
-interface AuthCheckResponse {
-  id: number;
-  email: string;
-  role: "OPERATOR" | "SUPERVISOR";
-}
-
-// Event name for user updates
+// Events
 const USER_UPDATE_EVENT = "pos-user-update";
+const AUTH_FAILURE_EVENT = "pos-auth-failure";
 
-// User role type
+// Roles
 export type UserRole = "OPERATOR" | "SUPERVISOR";
 
 interface AuthGuardProps {
@@ -30,34 +21,69 @@ interface AuthGuardProps {
   requiredRole?: UserRole;
 }
 
-// Helper functions for role checking
+// Storage key
+const USER_INFO_KEY = "pos_user_info";
+
+/* =========================
+   Storage Helpers
+========================= */
+
+function getUserInfo(): User | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = sessionStorage.getItem(USER_INFO_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveUserInfo(user: User): void {
+  if (typeof window !== "undefined") {
+    sessionStorage.setItem(USER_INFO_KEY, JSON.stringify(user));
+  }
+}
+
+function clearUserInfo(): void {
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem(USER_INFO_KEY);
+  }
+}
+
+/* =========================
+   Role Helpers
+========================= */
+
 export function isOperator(): boolean {
-  if (typeof window === "undefined") return false;
-  const auth = getAuth();
-  return auth?.role === "OPERATOR";
+  return getUserInfo()?.role === "OPERATOR";
 }
 
 export function isSupervisor(): boolean {
-  if (typeof window === "undefined") return false;
-  const auth = getAuth();
-  return auth?.role === "SUPERVISOR";
+  return getUserInfo()?.role === "SUPERVISOR";
 }
 
-export function canAccess(requiredRole: UserRole): boolean {
-  if (requiredRole === "SUPERVISOR") {
-    return isSupervisor();
-  }
-  return true; // Both OPERATOR and SUPERVISOR can access OPERATOR-level pages
+function isAccessDenied(user: User, requiredRole?: UserRole): boolean {
+  return (
+    requiredRole === "SUPERVISOR" &&
+    user.role === "OPERATOR"
+  );
 }
 
-export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
+/* =========================
+   AuthGuard Component
+========================= */
+
+export default function AuthGuard({
+  children,
+  requiredRole,
+}: AuthGuardProps) {
   const router = useRouter();
+
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [accessDenied, setAccessDenied] = useState(false);
 
-  // Dispatch event to notify components that user is set
   function notifyUserUpdate(user: User | null) {
     if (typeof window !== "undefined") {
       (window as any).__CURRENT_USER__ = user;
@@ -65,116 +91,158 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
     }
   }
 
-  useEffect(() => {
-    // Prevent multiple auth checks
-    if (isAuthCheckInProgress()) {
-      return;
-    }
+  /* =========================
+     Initial Auth Check
+  ========================= */
 
+  useEffect(() => {
     async function checkAuth() {
-      setAuthCheckStarted();
-      
-      const auth = getAuth();
-      
-      if (!auth) {
-        // No auth cached, redirect to login
-        setAuthCheckComplete();
+      const credentials = getCredentials();
+
+      if (!credentials) {
+        clearAllAuth();
         notifyUserUpdate(null);
         router.replace("/login");
         return;
       }
 
-      // Check if auth is fresh (within 5-minute window)
-      if (isAuthFresh()) {
-        // Within 5-minute window, use cached user
-        const user: User = {
-          id: auth.userId,
-          email: auth.email,
-          role: auth.role,
-        };
-        setCurrentUser(user);
-        setIsAuthenticated(true);
-        
-        // Check role-based access
-        if (requiredRole && user.role === "OPERATOR" && requiredRole === "SUPERVISOR") {
+      const cachedUser = getUserInfo();
+
+      // Use cached user immediately
+      if (cachedUser) {
+        setCurrentUser(cachedUser);
+
+        if (isAccessDenied(cachedUser, requiredRole)) {
           setAccessDenied(true);
           setIsLoading(false);
-          setAuthCheckComplete();
-          notifyUserUpdate(user);
+          notifyUserUpdate(cachedUser);
           return;
         }
-        
+
         setIsLoading(false);
-        setAuthCheckComplete();
-        notifyUserUpdate(user);
+        notifyUserUpdate(cachedUser);
+
+        // Background verification
+        verifyCredentials(credentials);
         return;
       }
 
-      // Auth expired, need to verify with backend
+      // Fetch /users/me if no cache
       try {
-        const res = await fetch(`http://localhost:8080/auth/check?userId=${auth.userId}`);
-        
-        if (!res.ok) {
-          // Auth check failed, clear auth and redirect to login
-          clearAuth();
-          setAuthCheckComplete();
-          notifyUserUpdate(null);
-          router.replace("/login");
+        const authHeader = `Basic ${btoa(
+          `${credentials.email}:${credentials.password}`
+        )}`;
+
+        const res = await fetch("http://localhost:8080/users/me", {
+          method: "GET",
+          headers: {
+            Authorization: authHeader,
+          },
+        });
+
+        if (res.status === 401) {
+          window.dispatchEvent(new Event(AUTH_FAILURE_EVENT));
           return;
         }
 
-        const verifiedUser: AuthCheckResponse = await res.json();
-        
-        // Update cached auth with fresh timestamp
-        updateAuthTimestamp();
-        
-        // Update user data with fresh data from backend
-        const user: User = {
-          id: verifiedUser.id,
-          email: verifiedUser.email,
-          role: verifiedUser.role,
-        };
-        
+        if (!res.ok) {
+          setIsLoading(false);
+          return;
+        }
+
+        const user: User = await res.json();
+        saveUserInfo(user);
         setCurrentUser(user);
-        setIsAuthenticated(true);
-        setAuthCheckComplete();
         notifyUserUpdate(user);
-      } catch (error) {
-        // Network error - still allow access if user exists in cache
-        console.warn("Auth check failed, using cached user:", error);
-        const user: User = {
-          id: auth.userId,
-          email: auth.email,
-          role: auth.role,
-        };
-        setCurrentUser(user);
-        setIsAuthenticated(true);
-        setAuthCheckComplete();
-        notifyUserUpdate(user);
-      } finally {
+
+        if (isAccessDenied(user, requiredRole)) {
+          setAccessDenied(true);
+        }
+
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Auth check failed:", err);
         setIsLoading(false);
       }
     }
 
     checkAuth();
+  }, [router, requiredRole]);
+
+  /* =========================
+     Background Verification
+  ========================= */
+
+  async function verifyCredentials(credentials: {
+    email: string;
+    password: string;
+  }) {
+    try {
+      const authHeader = `Basic ${btoa(
+        `${credentials.email}:${credentials.password}`
+      )}`;
+
+      const res = await fetch("http://localhost:8080/users/me", {
+        method: "GET",
+        headers: {
+          Authorization: authHeader,
+        },
+      });
+
+      if (res.status === 401) {
+        window.dispatchEvent(new Event(AUTH_FAILURE_EVENT));
+        return;
+      }
+
+      if (res.ok) {
+        const user: User = await res.json();
+        saveUserInfo(user);
+        setCurrentUser(user);
+        notifyUserUpdate(user);
+      }
+    } catch (err) {
+      console.warn("Background auth verification failed:", err);
+    }
+  }
+
+  /* =========================
+     Global Auth Failure
+  ========================= */
+
+  useEffect(() => {
+    const handleAuthFailure = () => {
+      clearAllAuth();
+      notifyUserUpdate(null);
+      router.replace("/login");
+    };
+
+    window.addEventListener(AUTH_FAILURE_EVENT, handleAuthFailure);
+    return () => {
+      window.removeEventListener(AUTH_FAILURE_EVENT, handleAuthFailure);
+    };
   }, [router]);
+
+  /* =========================
+     Render States
+  ========================= */
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
         <div className="text-center">
           <div className="w-10 h-10 mx-auto mb-4 border-3 border-slate-200 rounded-full border-t-blue-500 animate-spin" />
-          <p className="text-sm text-slate-500">Verifying authentication...</p>
+          <p className="text-sm text-slate-500">
+            Verifying authentication...
+          </p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  if (!currentUser) {
     return null;
   }
 
-  // Show access denied page for OPERATORs trying to access SUPERVISOR-only pages
   if (accessDenied) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-6">
@@ -186,11 +254,11 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
             Access Denied
           </h1>
           <p className="mb-6 text-slate-500">
-            You do not have permission to access this page. Please contact your administrator if you believe this is an error.
+            You do not have permission to access this page.
           </p>
           <button
             onClick={() => router.replace("/orders")}
-            className="px-6 py-2.5 text-white bg-blue-500 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors cursor-pointer"
+            className="px-6 py-2.5 text-white bg-blue-500 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
           >
             Go to Orders
           </button>
@@ -201,4 +269,3 @@ export default function AuthGuard({ children, requiredRole }: AuthGuardProps) {
 
   return <>{children}</>;
 }
-

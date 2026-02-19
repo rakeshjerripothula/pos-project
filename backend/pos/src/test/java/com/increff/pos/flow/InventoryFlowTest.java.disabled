@@ -96,7 +96,7 @@ class InventoryFlowTest {
         InventoryEntity savedInventory = createInventoryEntity(1, 100);
         
         when(productApi.getProductById(1)).thenReturn(product);
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
+        when(clientApi.checkClientEnabled(1)).thenReturn(true);
         when(inventoryApi.upsertInventory(inventory)).thenReturn(savedInventory);
 
         // Act
@@ -108,7 +108,7 @@ class InventoryFlowTest {
         assertEquals(100, result.getQuantity());
         assertEquals("Product 1", result.getProductName());
         verify(productApi, times(1)).getProductById(1);
-        verify(clientApi, times(1)).isClientEnabled(1);
+        verify(clientApi, times(1)).checkClientEnabled(1);
         verify(inventoryApi, times(1)).upsertInventory(inventory);
     }
 
@@ -119,14 +119,14 @@ class InventoryFlowTest {
         ProductEntity product = createProductEntity(1, "Product 1", 1);
         
         when(productApi.getProductById(1)).thenReturn(product);
-        when(clientApi.isClientEnabled(1)).thenReturn(false);
+        when(clientApi.checkClientEnabled(1)).thenReturn(false);
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.upsert(inventory));
         assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Client is disabled", exception.getMessage());
         verify(productApi, times(1)).getProductById(1);
-        verify(clientApi, times(1)).isClientEnabled(1);
+        verify(clientApi, times(1)).checkClientEnabled(1);
         verify(inventoryApi, never()).upsertInventory(any());
     }
 
@@ -202,7 +202,7 @@ class InventoryFlowTest {
         );
         
         when(productApi.getByIds(Arrays.asList(1, 2))).thenReturn(Arrays.asList(productMap.get(1), productMap.get(2)));
-        when(clientApi.getDisabledClientIds(Arrays.asList(1, 2))).thenReturn(Collections.emptyList());
+        when(clientApi.getEnabledClientIds(Arrays.asList(1, 2), false)).thenReturn(Collections.emptyList());
         when(inventoryApi.bulkUpsert(inventories)).thenReturn(savedInventories);
 
         // Act
@@ -217,7 +217,7 @@ class InventoryFlowTest {
         assertEquals(200, result.get(1).getQuantity());
         assertEquals("Product 2", result.get(1).getProductName());
         verify(productApi, times(2)).getByIds(Arrays.asList(1, 2)); // Called twice: once in bulkUpsert, once in bulkUpsertAndGetData
-        verify(clientApi, times(1)).getDisabledClientIds(Arrays.asList(1, 2));
+        verify(clientApi, times(1)).getEnabledClientIds(Arrays.asList(1, 2), false);
         verify(inventoryApi, times(1)).bulkUpsert(inventories);
     }
 
@@ -229,14 +229,14 @@ class InventoryFlowTest {
         );
         
         when(productApi.getByIds(Arrays.asList(1))).thenReturn(Collections.emptyList());
-        when(clientApi.getDisabledClientIds(Collections.emptyList())).thenReturn(Collections.emptyList());
+        when(clientApi.getEnabledClientIds(Collections.emptyList(), false)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.bulkUpsertAndGetData(inventories));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertTrue(exception.getMessage().contains("Product not found: 1"));
         verify(productApi, times(1)).getByIds(Arrays.asList(1));
-        verify(clientApi, times(1)).getDisabledClientIds(Collections.emptyList());
+        verify(clientApi, times(1)).getEnabledClientIds(Collections.emptyList(), false);
         verify(inventoryApi, never()).bulkUpsert(any());
     }
 
@@ -251,14 +251,14 @@ class InventoryFlowTest {
         productMap.put(1, createProductEntity(1, "Product 1", 1));
         
         when(productApi.getByIds(Arrays.asList(1))).thenReturn(Arrays.asList(productMap.get(1)));
-        when(clientApi.getDisabledClientIds(Arrays.asList(1))).thenReturn(Arrays.asList(1));
+        when(clientApi.getEnabledClientIds(Arrays.asList(1), false)).thenReturn(Arrays.asList(1));
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryFlow.bulkUpsertAndGetData(inventories));
         assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Client is disabled", exception.getMessage());
         verify(productApi, times(1)).getByIds(Arrays.asList(1));
-        verify(clientApi, times(1)).getDisabledClientIds(Arrays.asList(1));
+        verify(clientApi, times(1)).getEnabledClientIds(Arrays.asList(1), false);
         verify(inventoryApi, never()).bulkUpsert(any());
     }
 
@@ -288,7 +288,7 @@ class InventoryFlowTest {
         assertEquals(200, result.get(1).getQuantity());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1, 2));
         verify(productApi, never()).getByIds(any());
-        verify(clientApi, never()).isClientEnabled(any());
+        verify(clientApi, never()).checkClientEnabled(any());
     }
 
     @Test
@@ -306,7 +306,7 @@ class InventoryFlowTest {
         assertTrue(result.isEmpty());
         verify(inventoryApi, times(1)).getByProductIds(Collections.emptyList());
         verify(productApi, never()).getByIds(any());
-        verify(clientApi, never()).isClientEnabled(any());
+        verify(clientApi, never()).checkClientEnabled(any());
     }
 
     @Test
@@ -318,7 +318,7 @@ class InventoryFlowTest {
         assertThrows(NullPointerException.class, () -> inventoryFlow.getInventoriesByProductIds(items));
         verify(inventoryApi, never()).getByProductIds(any());
         verify(productApi, never()).getByIds(any());
-        verify(clientApi, never()).isClientEnabled(any());
+        verify(clientApi, never()).checkClientEnabled(any());
     }
 
     @Test
@@ -336,7 +336,7 @@ class InventoryFlowTest {
         assertTrue(exception.getMessage().contains("Inventory not found for one or more products"));
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
         verify(productApi, never()).getByIds(any());
-        verify(clientApi, never()).isClientEnabled(any());
+        verify(clientApi, never()).checkClientEnabled(any());
     }
 
     @Test
@@ -362,7 +362,7 @@ class InventoryFlowTest {
         assertEquals(100, result.get(0).getQuantity());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
         verify(productApi, never()).getByIds(any());
-        verify(clientApi, never()).isClientEnabled(any());
+        verify(clientApi, never()).checkClientEnabled(any());
     }
 
     @Test
@@ -392,7 +392,7 @@ class InventoryFlowTest {
         assertEquals(200, result.get(1).getQuantity());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1, 2));
         verify(productApi, never()).getByIds(any());
-        verify(clientApi, never()).isClientEnabled(any());
+        verify(clientApi, never()).checkClientEnabled(any());
     }
 
     @Test
@@ -418,7 +418,7 @@ class InventoryFlowTest {
         assertEquals(100, result.get(0).getQuantity());
         verify(inventoryApi, times(1)).getByProductIds(Arrays.asList(1));
         verify(productApi, never()).getByIds(any());
-        verify(clientApi, never()).isClientEnabled(any());
+        verify(clientApi, never()).checkClientEnabled(any());
     }
 
     private InventoryEntity createInventoryEntity(Integer productId, Integer quantity) {

@@ -10,7 +10,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -25,68 +27,66 @@ public class ClientApi {
     }
 
     @Transactional(readOnly = true)
-    public ClientEntity getById(Integer clientId){
-        return clientDao.findById(clientId).orElseThrow(() -> new ApiException(
-                ApiStatus.NOT_FOUND,
-                "Client not found: " + clientId, "clientId", "Client not found: " + clientId)
-        );
+    public ClientEntity getById(Integer clientId) {
+        return clientDao.selectById(clientId)
+                .orElseThrow(() -> new ApiException(
+                        ApiStatus.NOT_FOUND, "Client not found: " + clientId, "clientId", "Client not found: " + clientId));
     }
 
     @Transactional(readOnly = true)
     public Page<ClientEntity> getClientsList(String clientName, Boolean enabled, Pageable pageable) {
-        return clientDao.searchClients(clientName, enabled, pageable);
+        return clientDao.selectByFilters(clientName, enabled, pageable);
     }
 
     public ClientEntity createClient(ClientEntity client) {
-
-        if (clientDao.existsByClientName(client.getClientName())) {
+        if (clientDao.selectByClientName(client.getClientName()).isPresent())
             throw new ApiException(ApiStatus.CONFLICT, "Client already exists", "clientName", "Client already exists");
-        }
-
         client.setEnabled(true);
         return clientDao.save(client);
-
     }
 
     public ClientEntity updateClient(Integer clientId, ClientEntity client) {
-
-        ClientEntity existing = getClientOrThrow(clientId);
-
-        if (clientDao.existsByClientNameAndIdNot(client.getClientName(), clientId)) {
+        ClientEntity existing = getById(clientId);
+        if (clientDao.selectByClientNameExcludingId(client.getClientName(), clientId).isPresent())
             throw new ApiException(ApiStatus.CONFLICT, "Client already exists", "clientName", "Client already exists");
-        }
-
         existing.setClientName(client.getClientName());
         return clientDao.save(existing);
     }
 
     public ClientEntity toggle(Integer clientId, Boolean enabled) {
-
-        ClientEntity client = getClientOrThrow(clientId);
-
+        ClientEntity client = getById(clientId);
         if (!client.getEnabled().equals(enabled)) {
             client.setEnabled(enabled);
-            client = clientDao.save(client);
+            return clientDao.save(client);
         }
-
         return client;
     }
 
-    public Boolean isClientEnabled(Integer clientId) {
-        return getClientOrThrow(clientId).getEnabled();
+    @Transactional(readOnly = true)
+    public void checkClientEnabled(Integer clientId) {
+        Boolean enabled = getById(clientId).getEnabled();
+        if (!enabled) {
+            throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
+        }
     }
 
-    public List<Integer> getDisabledClientIds(List<Integer> clientIds){
-        return clientDao.findDisabledClientIds(clientIds);
+    @Transactional(readOnly = true)
+    public List<Integer> getEnabledClientIds(List<Integer> clientIds, Boolean enabled) {
+        return clientDao.selectIdsByIdInAndEnabled(clientIds, enabled);
     }
 
+    @Transactional(readOnly = true)
     public List<Integer> getNonExistentClientIds(List<Integer> clientIds) {
-        return clientDao.findNonExistentClientIds(clientIds);
+        List<Integer> existingIds = clientDao.selectExistingIds(clientIds);
+        Set<Integer> existingSet = new HashSet<>(existingIds);
+        return clientIds.stream().filter(id -> !existingSet.contains(id)).toList();
     }
 
-    private ClientEntity getClientOrThrow(Integer clientId) {
-        return clientDao.findById(clientId).orElseThrow(() -> new ApiException(
-                ApiStatus.NOT_FOUND, "Client not found: " + clientId));
+    @Transactional(readOnly = true)
+    public Integer getClientIdByName(String clientName) {
+        return clientDao.selectByClientName(clientName)
+                .map(ClientEntity::getId)
+                .orElseThrow(() -> new ApiException(
+                        ApiStatus.NOT_FOUND, "Client not found: " + clientName, "clientName", "Client not found: " + clientName));
     }
-
 }

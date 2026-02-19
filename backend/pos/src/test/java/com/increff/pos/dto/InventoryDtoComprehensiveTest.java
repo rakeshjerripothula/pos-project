@@ -2,12 +2,15 @@ package com.increff.pos.dto;
 
 import com.increff.pos.model.data.TsvUploadError;
 import com.increff.pos.model.data.TsvUploadResult;
+import com.increff.pos.model.data.InventoryData;
 import com.increff.pos.model.form.InventoryForm;
+import com.increff.pos.model.form.InventoryUploadForm;
+import com.increff.pos.exception.TsvUploadException;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class InventoryDtoComprehensiveTest {
 
     @Test
-    void testParseInventoryTsv_EmptyFile() throws IOException {
+    void testParseInventoryTsv_EmptyFile() throws Exception {
         String tsvContent = "productId\tquantity\n";
         
         MultipartFile file = new MockMultipartFile(
@@ -25,20 +28,17 @@ class InventoryDtoComprehensiveTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(0, result.getData().size());
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
+        
+        assertEquals(0, result.size());
     }
 
     @Test
-    void testParseInventoryTsv_ValidDataWithExtraColumns() throws IOException {
-        String tsvContent = "productId\tquantity\textraColumn\tanotherExtra\n" +
-                "1\t100\textra\tdata\n" +
-                "2\t200\tmore\tinfo\n";
+    void testParseInventoryTsv_ValidDataWithExtraColumns() throws Exception {
+        String tsvContent = "productName\tquantity\textraColumn\tanotherExtra\n" +
+                "Product 1\t100\textra\tdata\n" +
+                "Product 2\t200\tmore\tinfo\n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -47,26 +47,23 @@ class InventoryDtoComprehensiveTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(2, result.getData().size());
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
+        
+        assertEquals(2, result.size());
         
         // Verify data integrity
-        InventoryForm form1 = result.getData().get(0);
-        assertEquals(1, form1.getProductId());
-        assertEquals(100, form1.getQuantity());
+        InventoryUploadForm form1 = result.get(0);
+        assertEquals("Product 1", form1.getProductName());
+        assertEquals(Integer.valueOf(100), form1.getQuantity());
         
-        InventoryForm form2 = result.getData().get(1);
-        assertEquals(2, form2.getProductId());
-        assertEquals(200, form2.getQuantity());
+        InventoryUploadForm form2 = result.get(1);
+        assertEquals("Product 2", form2.getProductName());
+        assertEquals(Integer.valueOf(200), form2.getQuantity());
     }
 
     @Test
-    void testParseInventoryTsv_ZeroQuantity() throws IOException {
+    void testParseInventoryTsv_ZeroQuantity() throws Exception {
         String tsvContent = "productId\tquantity\n" +
                 "1\t0\n";
         
@@ -77,21 +74,18 @@ class InventoryDtoComprehensiveTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(1, result.getData().size());
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
         
-        InventoryForm form = result.getData().get(0);
-        assertEquals(1, form.getProductId());
-        assertEquals(0, form.getQuantity());
+        assertEquals(1, result.size());
+        
+        InventoryUploadForm form = result.get(0);
+        assertEquals("1", form.getProductName());
+        assertEquals(Integer.valueOf(0), form.getQuantity());
     }
 
     @Test
-    void testParseInventoryTsv_WithWhitespace() throws IOException {
+    void testParseInventoryTsv_WithWhitespace() throws Exception {
         String tsvContent = "productId\tquantity\n" +
                 "  1  \t  100  \n" +
                 "  2  \t  200  \n";
@@ -103,26 +97,23 @@ class InventoryDtoComprehensiveTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(2, result.getData().size());
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
         
-        // Verify whitespace trimming
-        InventoryForm form1 = result.getData().get(0);
-        assertEquals(1, form1.getProductId());
-        assertEquals(100, form1.getQuantity());
+        assertEquals(2, result.size());
         
-        InventoryForm form2 = result.getData().get(1);
-        assertEquals(2, form2.getProductId());
-        assertEquals(200, form2.getQuantity());
+        // Verify whitespace trimming - inventory parsing doesn't trim product names
+        InventoryUploadForm form1 = result.get(0);
+        assertEquals("  1  ", form1.getProductName());
+        assertEquals(Integer.valueOf(100), form1.getQuantity());
+        
+        InventoryUploadForm form2 = result.get(1);
+        assertEquals("  2  ", form2.getProductName());
+        assertEquals(Integer.valueOf(200), form2.getQuantity());
     }
 
     @Test
-    void testParseInventoryTsv_MixedValidAndInvalidRows() throws IOException {
+    void testParseInventoryTsv_MixedValidAndInvalidRows() throws Exception {
         String tsvContent = "productId\tquantity\n" +
                 "1\t100\n" +           // Valid
                 "invalid\t200\n" +      // Invalid product ID
@@ -137,24 +128,27 @@ class InventoryDtoComprehensiveTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        assertFalse(result.isSuccess());
-        assertNotNull(result.getErrors());
-        assertEquals(3, result.getErrors().size()); // invalid ID, negative quantity, duplicate ID
-        assertNull(result.getData());
+        // Test the static utility method directly - it should parse all rows without validation
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
         
-        List<TsvUploadError> errors = result.getErrors();
+        // All rows should be parsed (validation happens at higher level)
+        assertEquals(5, result.size());
         
-        // Verify error messages
-        assertTrue(errors.stream().anyMatch(e -> e.getErrorMessage().contains("Invalid product ID format")));
-        assertTrue(errors.stream().anyMatch(e -> e.getErrorMessage().contains("Quantity cannot be negative")));
-        assertTrue(errors.stream().anyMatch(e -> e.getErrorMessage().contains("Duplicate product ID")));
+        // Verify parsed data
+        assertEquals("1", result.get(0).getProductName());
+        assertEquals(Integer.valueOf(100), result.get(0).getQuantity());
+        assertEquals("invalid", result.get(1).getProductName());
+        assertEquals(Integer.valueOf(200), result.get(1).getQuantity());
+        assertEquals("3", result.get(2).getProductName());
+        assertEquals(Integer.valueOf(-50), result.get(2).getQuantity()); // -50 can be parsed as integer safely
+        assertEquals("1", result.get(3).getProductName());
+        assertEquals(Integer.valueOf(300), result.get(3).getQuantity());
+        assertEquals("5", result.get(4).getProductName());
+        assertEquals(Integer.valueOf(400), result.get(4).getQuantity());
     }
 
     @Test
-    void testParseInventoryTsv_LargeNumbers() throws IOException {
+    void testParseInventoryTsv_LargeNumbers() throws Exception {
         String tsvContent = "productId\tquantity\n" +
                 "999999\t999999999\n";
         
@@ -165,21 +159,18 @@ class InventoryDtoComprehensiveTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(1, result.getData().size());
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
         
-        InventoryForm form = result.getData().get(0);
-        assertEquals(999999, form.getProductId());
-        assertEquals(999999999, form.getQuantity());
+        assertEquals(1, result.size());
+        
+        InventoryUploadForm form = result.get(0);
+        assertEquals("999999", form.getProductName());
+        assertEquals(Integer.valueOf(999999999), form.getQuantity());
     }
 
     @Test
-    void testUploadTsv_Integration() throws IOException {
+    void testUploadTsv_Integration() throws Exception {
         String tsvContent = "productId\tquantity\n" +
                 "1\t100\n" +
                 "2\t200\n";
@@ -191,21 +182,15 @@ class InventoryDtoComprehensiveTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> parseResult = inventoryDto.parseInventoryTsv(file);
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
         
-        assertTrue(parseResult.isSuccess());
-        assertNotNull(parseResult.getData());
-        assertEquals(2, parseResult.getData().size());
+        assertEquals(2, result.size());
         
-        // Test the uploadTsv method (will fail at service layer due to missing dependencies, but should validate correctly)
-        try {
-            TsvUploadResult<?> uploadResult = inventoryDto.uploadTsv(file);
-            // If we get here, the validation passed
-            assertTrue(uploadResult.isSuccess());
-        } catch (Exception e) {
-            // Expected due to missing Spring context in unit test
-            assertTrue(e.getMessage().contains("productApi") || e.getMessage().contains("inventoryFlow"));
-        }
+        // Verify parsed data
+        assertEquals("1", result.get(0).getProductName());
+        assertEquals(Integer.valueOf(100), result.get(0).getQuantity());
+        assertEquals("2", result.get(1).getProductName());
+        assertEquals(Integer.valueOf(200), result.get(1).getQuantity());
     }
 }

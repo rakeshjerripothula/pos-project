@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -50,7 +51,7 @@ class InvoiceApiTest {
         InvoiceEntity existingInvoice = new InvoiceEntity();
         existingInvoice.setOrderId(1);
 
-        when(invoiceDao.selectByOrderId(1)).thenReturn(existingInvoice);
+        when(invoiceDao.selectByOrderId(1)).thenReturn(Optional.of(existingInvoice));
 
         // Act
         boolean result = invoiceApi.existsForOrder(1);
@@ -63,7 +64,7 @@ class InvoiceApiTest {
     @Test
     void should_return_false_when_invoice_does_not_exist_for_order() {
         // Arrange
-        when(invoiceDao.selectByOrderId(1)).thenReturn(null);
+        when(invoiceDao.selectByOrderId(1)).thenReturn(Optional.empty());
 
         // Act
         boolean result = invoiceApi.existsForOrder(1);
@@ -80,7 +81,7 @@ class InvoiceApiTest {
         invoice.setOrderId(123);
         invoice.setFilePath("/path/to/invoice.pdf");
 
-        when(invoiceDao.selectByOrderId(123)).thenReturn(invoice);
+        when(invoiceDao.selectByOrderId(123)).thenReturn(Optional.of(invoice));
 
         // Act
         InvoiceEntity result = invoiceApi.getByOrderId(123);
@@ -94,7 +95,7 @@ class InvoiceApiTest {
     @Test
     void should_throw_exception_when_getting_invoice_by_nonexistent_order_id() {
         // Arrange
-        when(invoiceDao.selectByOrderId(999)).thenReturn(null);
+        when(invoiceDao.selectByOrderId(999)).thenReturn(Optional.empty());
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> invoiceApi.getByOrderId(999));
@@ -117,7 +118,7 @@ class InvoiceApiTest {
         Path tempFile = Paths.get(filePath);
         Files.write(tempFile, expectedBytes);
 
-        when(invoiceDao.selectByOrderId(1)).thenReturn(invoice);
+        when(invoiceDao.selectByOrderId(1)).thenReturn(Optional.of(invoice));
 
         try {
             // Act
@@ -139,7 +140,7 @@ class InvoiceApiTest {
         invoice.setOrderId(1);
         invoice.setFilePath("/nonexistent/path/invoice.pdf");
 
-        when(invoiceDao.selectByOrderId(1)).thenReturn(invoice);
+        when(invoiceDao.selectByOrderId(1)).thenReturn(Optional.of(invoice));
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> invoiceApi.download(1));

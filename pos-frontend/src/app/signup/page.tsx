@@ -8,7 +8,8 @@ import {
   isAuthCheckInProgress,
   setAuthCheckStarted,
   setAuthCheckComplete,
-  User 
+  User,
+  saveCredentials 
 } from "@/lib/auth";
 import toast from "react-hot-toast";
 
@@ -17,6 +18,8 @@ const USER_UPDATE_EVENT = "pos-user-update";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const initialized = useRef(false);
@@ -50,12 +53,25 @@ async function handleSignup(e: React.FormEvent) {
       return;
     }
 
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    // Validate password not empty
+    if (!password || password.trim().length === 0) {
+      toast.error("Password is required");
+      return;
+    }
+
     setLoading(true);
     setAuthCheckStarted();
 
     try {
       // Store email in lowercase and trimmed
       const trimmedEmail = email.trim().toLowerCase();
+      const trimmedPassword = password.trim();
 
       const res = await fetch("http://localhost:8080/users/signup", {
         method: "POST",
@@ -64,6 +80,7 @@ async function handleSignup(e: React.FormEvent) {
         },
         body: JSON.stringify({ 
           email: trimmedEmail, 
+          password: trimmedPassword,
         }),
       });
 
@@ -81,6 +98,8 @@ async function handleSignup(e: React.FormEvent) {
 
       const user: User = await res.json();
       saveUser(user);
+      // Save credentials for Basic Auth
+      saveCredentials(trimmedEmail, trimmedPassword);
       setAuthCheckComplete();
       
       // Notify Navbar and other components immediately
@@ -89,7 +108,12 @@ async function handleSignup(e: React.FormEvent) {
       router.replace("/orders");
     } catch (err: any) {
       setAuthCheckComplete();
-      toast.error(err.message || "Authentication failed. Please try again.");
+      // Handle network errors or other failures
+      if (err.message && err.message.includes("Failed to fetch")) {
+        toast.error("Unable to connect to server. Please ensure the backend is running.");
+      } else {
+        toast.error(err.message || "Signup failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -141,6 +165,44 @@ async function handleSignup(e: React.FormEvent) {
               />
             </div>
 
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="password"
+                className="text-base font-medium text-gray-700"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label
+                htmlFor="confirmPassword"
+                className="text-base font-medium text-gray-700"
+              >
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                disabled={loading}
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              />
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -153,19 +215,6 @@ async function handleSignup(e: React.FormEvent) {
               {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
-
-          {/* Role Info */}
-          <div className="mt-6 p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <p className="text-base text-slate-600">
-              <strong>Role Assignment:</strong>
-            </p>
-            <p className="text-base text-slate-600 mt-1">
-              Supervisor: <code className="px-2 py-0.5 bg-slate-200 rounded text-sm">admin@pos.com</code>
-            </p>
-            <p className="text-base text-slate-600 mt-1">
-              Operator: <em>Any other email</em>
-            </p>
-          </div>
 
           {/* Sign in link */}
           <div className="mt-5 text-center">

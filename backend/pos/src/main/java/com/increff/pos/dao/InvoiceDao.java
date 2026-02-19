@@ -7,21 +7,25 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Repository
-@Transactional
-public class InvoiceDao {
+public class InvoiceDao extends AbstractDao<InvoiceEntity> {
 
     @PersistenceContext
     private EntityManager em;
 
-    public InvoiceEntity save(InvoiceEntity invoice) {
-        em.persist(invoice);
-        return invoice;
+    public InvoiceDao() {
+        super(InvoiceEntity.class);
     }
 
-    public InvoiceEntity selectByOrderId(Integer orderId) {
+    @Override
+    protected boolean isNew(InvoiceEntity entity) {
+        return entity.getOrderId() == null;
+    }
+
+    public Optional<InvoiceEntity> selectByOrderId(Integer orderId) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<InvoiceEntity> cq = cb.createQuery(InvoiceEntity.class);
 
@@ -29,6 +33,6 @@ public class InvoiceDao {
 
         cq.select(root).where(cb.equal(root.get("orderId"), orderId));
 
-        return em.createQuery(cq).getResultStream().findFirst().orElse(null);
+        return em.createQuery(cq).getResultList().stream().findFirst();
     }
 }

@@ -11,19 +11,21 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public class OrderItemDao {
+public class OrderItemDao extends AbstractDao<OrderItemEntity>{
 
     @PersistenceContext
     private EntityManager em;
 
-    public List<OrderItemEntity> saveAll(List<OrderItemEntity> items) {
-        for (OrderItemEntity item : items) {
-            em.persist(item);
-        }
-        return items;
+    public OrderItemDao() {
+        super(OrderItemEntity.class);
     }
 
-    public List<OrderItemEntity> findByOrderId(Integer orderId) {
+    @Override
+    protected boolean isNew(OrderItemEntity entity) {
+        return entity.getId() == null;
+    }
+
+    public List<OrderItemEntity> selectByOrderId(Integer orderId) {
 
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<OrderItemEntity> cq = cb.createQuery(OrderItemEntity.class);

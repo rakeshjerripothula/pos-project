@@ -2,7 +2,7 @@ package com.increff.pos.flow;
 
 import com.increff.pos.api.*;
 import com.increff.pos.entity.*;
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,6 @@ import org.springframework.data.domain.PageImpl;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -90,7 +89,7 @@ class OrderFlowTest {
         order.setStatus(OrderStatus.CREATED);
 
         when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
+        when(clientApi.checkClientEnabled(1)).thenReturn(true);
         when(orderApi.create(any(OrderEntity.class))).thenReturn(order);
         
         when(inventoryFlow.getInventoriesByProductIds(any())).thenReturn(List.of(inventory1, inventory2));
@@ -103,7 +102,7 @@ class OrderFlowTest {
         assertEquals(1, result.getClientId());
         assertEquals(OrderStatus.CREATED, result.getStatus());
         verify(productApi, times(1)).getByIds(List.of(1, 2));
-        verify(clientApi).isClientEnabled(1);
+        verify(clientApi).checkClientEnabled(1);
         verify(inventoryFlow).getInventoriesByProductIds(any());
         verify(inventoryFlow).bulkUpsert(anyList());
         verify(orderApi).create(any(OrderEntity.class));
@@ -114,7 +113,7 @@ class OrderFlowTest {
     void should_throw_exception_when_creating_order_with_empty_items() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderFlow.createOrder(List.of()));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Order must contain at least one item", exception.getMessage());
         verifyNoInteractions(productApi, clientApi, inventoryApi, orderApi, orderItemApi);
     }
@@ -123,7 +122,7 @@ class OrderFlowTest {
     void should_throw_exception_when_creating_order_with_null_items() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderFlow.createOrder(null));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Order must contain at least one item", exception.getMessage());
         verifyNoInteractions(productApi, clientApi, inventoryApi, orderApi, orderItemApi);
     }
@@ -145,7 +144,7 @@ class OrderFlowTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderFlow.createOrder(List.of(item)));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertTrue(exception.getMessage().contains("Selling price cannot be greater than MRP"));
         verify(productApi, times(1)).getByIds(List.of(1));
         verifyNoInteractions(clientApi, inventoryApi, orderApi, orderItemApi);
@@ -198,7 +197,7 @@ class OrderFlowTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderFlow.createOrder(List.of(item1, item2)));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("All products in an order must belong to the same client", exception.getMessage());
         verify(productApi, times(1)).getByIds(List.of(1, 2));
         verifyNoInteractions(clientApi, inventoryApi, orderApi, orderItemApi);
@@ -219,14 +218,14 @@ class OrderFlowTest {
         product.setProductName("Product 1");
 
         when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.isClientEnabled(1)).thenReturn(false);
+        when(clientApi.checkClientEnabled(1)).thenReturn(false);
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderFlow.createOrder(List.of(item)));
         assertEquals(ApiStatus.FORBIDDEN, exception.getStatus());
         assertEquals("Client is disabled", exception.getMessage());
         verify(productApi, times(1)).getByIds(List.of(1));
-        verify(clientApi).isClientEnabled(1);
+        verify(clientApi).checkClientEnabled(1);
         verifyNoInteractions(inventoryApi, orderApi, orderItemApi);
     }
 
@@ -249,7 +248,7 @@ class OrderFlowTest {
         inventory.setQuantity(5); // Less than required
 
         when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
+        when(clientApi.checkClientEnabled(1)).thenReturn(true);
         
         OrderEntity order = new OrderEntity();
         order.setId(1);
@@ -262,7 +261,7 @@ class OrderFlowTest {
         assertEquals(ApiStatus.CONFLICT, exception.getStatus());
         assertEquals("Insufficient inventory for product: Product 1", exception.getMessage());
         verify(productApi, times(1)).getByIds(List.of(1));
-        verify(clientApi).isClientEnabled(1);
+        verify(clientApi).checkClientEnabled(1);
         verify(orderApi).create(any(OrderEntity.class));
         verifyNoInteractions(orderItemApi);
     }
@@ -282,7 +281,7 @@ class OrderFlowTest {
         product.setProductName("Product 1");
 
         when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
+        when(clientApi.checkClientEnabled(1)).thenReturn(true);
         when(inventoryFlow.getInventoriesByProductIds(any())).thenThrow(new ApiException(ApiStatus.NOT_FOUND, "Inventory not found for one or more products"));
 
         OrderEntity order = new OrderEntity();
@@ -294,7 +293,7 @@ class OrderFlowTest {
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("Inventory not found for one or more products", exception.getMessage());
         verify(productApi, times(1)).getByIds(List.of(1));
-        verify(clientApi).isClientEnabled(1);
+        verify(clientApi).checkClientEnabled(1);
         verify(inventoryFlow).getInventoriesByProductIds(any());
         verify(orderApi).create(any(OrderEntity.class));
         verifyNoInteractions(orderItemApi);
@@ -320,7 +319,7 @@ class OrderFlowTest {
     void should_throw_exception_when_getting_order_by_null_id() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderFlow.getById(null));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Order ID is required", exception.getMessage());
         verifyNoInteractions(orderApi);
     }
@@ -482,7 +481,7 @@ class OrderFlowTest {
         order.setId(1);
 
         when(productApi.getByIds(List.of(1, 2))).thenReturn(List.of(product1, product2));
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
+        when(clientApi.checkClientEnabled(1)).thenReturn(true);
         when(orderApi.create(any(OrderEntity.class))).thenReturn(order);
         
         when(inventoryFlow.getInventoriesByProductIds(any())).thenReturn(List.of(inventory1, inventory2));
@@ -495,7 +494,7 @@ class OrderFlowTest {
         assertEquals(8, inventory1.getQuantity()); // 10 - 2
         assertEquals(2, inventory2.getQuantity()); // 5 - 3
         verify(productApi, times(1)).getByIds(List.of(1, 2));
-        verify(clientApi).isClientEnabled(1);
+        verify(clientApi).checkClientEnabled(1);
         verify(orderApi).create(any(OrderEntity.class));
         verify(orderItemApi).createAll(anyList());
         verify(inventoryFlow).bulkUpsert(anyList());
@@ -530,7 +529,7 @@ class OrderFlowTest {
         order.setId(1);
 
         when(productApi.getByIds(List.of(1))).thenReturn(List.of(product));
-        when(clientApi.isClientEnabled(1)).thenReturn(true);
+        when(clientApi.checkClientEnabled(1)).thenReturn(true);
         when(orderApi.create(any(OrderEntity.class))).thenReturn(order);
         
         when(inventoryFlow.getInventoriesByProductIds(any())).thenReturn(List.of(inventory));
@@ -542,7 +541,7 @@ class OrderFlowTest {
         assertEquals(1, result.getId());
         assertEquals(7, inventory.getQuantity()); // 10 - (2 + 1)
         verify(productApi, times(1)).getByIds(List.of(1)); // Should be called with distinct product IDs
-        verify(clientApi).isClientEnabled(1);
+        verify(clientApi).checkClientEnabled(1);
         verify(inventoryFlow).getInventoriesByProductIds(any());
         verify(inventoryFlow).bulkUpsert(anyList());
         verify(orderApi).create(any(OrderEntity.class));
@@ -682,7 +681,7 @@ class OrderFlowTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderFlow.buildInvoiceForm(orderId));
-        assertEquals(ApiStatus.BAD_DATA, exception.getStatus());
+        assertEquals(ApiStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Order has no items", exception.getMessage());
         verify(orderApi).getById(orderId);
         verify(orderItemApi).getByOrderId(orderId);

@@ -2,7 +2,7 @@ package com.increff.pos.dao;
 
 import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.entity.OrderEntity;
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,9 +28,11 @@ class OrderDaoIntegrationTest {
     @Autowired
     private ClientDao clientDao;
 
+    private static int clientCounter = 1;
+
     private ClientEntity createTestClient() {
         ClientEntity client = new ClientEntity();
-        client.setClientName("Test Client " + System.currentTimeMillis());
+        client.setClientName("Test Client " + (clientCounter++));
         client.setEnabled(true);
         return clientDao.save(client);
     }
@@ -59,7 +61,7 @@ class OrderDaoIntegrationTest {
         order.setStatus(OrderStatus.INVOICED);
         OrderEntity saved = orderDao.save(order);
 
-        Optional<OrderEntity> found = orderDao.findById(saved.getId());
+        Optional<OrderEntity> found = orderDao.selectById(saved.getId());
 
         assertTrue(found.isPresent());
         assertEquals(saved.getId(), found.get().getId());
@@ -82,7 +84,7 @@ class OrderDaoIntegrationTest {
         orderDao.save(order2);
 
         Pageable pageable = PageRequest.of(0, 10);
-        Page<OrderEntity> page = orderDao.search(null, null, null, null, pageable);
+        Page<OrderEntity> page = orderDao.selectByFilters(null, null, null, null, pageable);
 
         assertEquals(2, page.getTotalElements());
         assertEquals(2, page.getContent().size());
@@ -103,7 +105,7 @@ class OrderDaoIntegrationTest {
         orderDao.save(invoicedOrder);
 
         Pageable pageable = PageRequest.of(0, 10);
-        Page<OrderEntity> page = orderDao.search(OrderStatus.CREATED, null, null, null, pageable);
+        Page<OrderEntity> page = orderDao.selectByFilters(OrderStatus.CREATED, null, null, null, pageable);
 
         assertEquals(1, page.getTotalElements());
         assertEquals(OrderStatus.CREATED, page.getContent().get(0).getStatus());
@@ -127,7 +129,7 @@ class OrderDaoIntegrationTest {
         orderDao.save(order2);
 
         Pageable pageable = PageRequest.of(0, 10);
-        Page<OrderEntity> page = orderDao.search(null, client1.getId(), null, null, pageable);
+        Page<OrderEntity> page = orderDao.selectByFilters(null, client1.getId(), null, null, pageable);
 
         assertEquals(1, page.getTotalElements());
         assertEquals(client1.getId(), page.getContent().get(0).getClientId());
@@ -147,7 +149,7 @@ class OrderDaoIntegrationTest {
         orderDao.save(order);
 
         Pageable pageable = PageRequest.of(0, 10);
-        Page<OrderEntity> page = orderDao.search(null, null, yesterday, tomorrow, pageable);
+        Page<OrderEntity> page = orderDao.selectByFilters(null, null, yesterday, tomorrow, pageable);
 
         assertEquals(1, page.getTotalElements());
     }

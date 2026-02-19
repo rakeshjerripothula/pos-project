@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { apiGet, apiPost } from "@/lib/api";
+import { getCredentials, generateBasicAuthHeader } from "@/lib/auth";
 import { OrderPageData, OrderItemData, OrderStatus, ClientData } from "@/lib/types";
 import { utcToIst } from "@/lib/utils";
 import AuthGuard from "@/components/AuthGuard";
@@ -134,15 +135,20 @@ export default function OrdersPage() {
 
   async function downloadInvoice(orderId: number) {
     try {
-      const userStr = sessionStorage.getItem("pos_user");
-      const userId = userStr ? JSON.parse(userStr).id.toString() : "";
+      const credentials = getCredentials();
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      // Add Basic Auth header if credentials are available
+      if (credentials) {
+        headers["Authorization"] = generateBasicAuthHeader(credentials.email, credentials.password);
+      }
 
       const response = await fetch(
         `http://localhost:8080/orders/${orderId}/invoice/download`,
         {
-          headers: {
-            "X-User-Id": userId,
-          },
+          headers,
         }
       );
 

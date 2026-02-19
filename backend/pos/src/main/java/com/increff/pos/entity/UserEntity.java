@@ -1,6 +1,6 @@
 package com.increff.pos.entity;
 
-import com.increff.pos.domain.UserRole;
+import com.increff.pos.model.domain.UserRole;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,7 +8,8 @@ import lombok.Setter;
 @Entity
 @Table(
         name = "`user`",
-        uniqueConstraints = @UniqueConstraint(name = "uk_user_email", columnNames = {"email"})
+        uniqueConstraints = @UniqueConstraint(name = "uk_user_email", columnNames = {"email"}),
+        indexes = {@Index(name = "idx_user_role", columnList = "role")}
 )
 @Getter
 @Setter
@@ -28,4 +29,7 @@ public class UserEntity extends AbstractEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserRole role;
+
+    @Column(nullable = false)
+    private String password;
 }

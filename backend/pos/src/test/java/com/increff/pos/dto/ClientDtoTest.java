@@ -69,7 +69,7 @@ class ClientDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> clientDto.createClient(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().get(0).getMessage().contains("Client name cannot be empty"));
         verify(clientApi, never()).createClient(any());
@@ -115,7 +115,7 @@ class ClientDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> clientDto.updateClient(null, form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Client ID is required"));
         verify(clientApi, never()).updateClient(any(), any());
     }
@@ -129,7 +129,7 @@ class ClientDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> clientDto.updateClient(clientId, form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().get(0).getMessage().contains("Client name cannot be empty"));
         verify(clientApi, never()).updateClient(any(), any());
@@ -167,7 +167,7 @@ class ClientDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> clientDto.toggleClient(null, form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Client ID is required"));
         verify(clientApi, never()).toggle(any(), any());
     }

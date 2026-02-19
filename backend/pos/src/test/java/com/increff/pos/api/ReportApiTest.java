@@ -41,7 +41,7 @@ class ReportApiTest {
 
         Page<SalesReportRow> expectedPage = new PageImpl<>(List.of(row1, row2));
 
-        when(reportDao.getSalesReport(startDate, endDate, clientId, pageable)).thenReturn(expectedPage);
+        when(reportDao.selectByFiltersSalesPage(startDate, endDate, clientId, pageable)).thenReturn(expectedPage);
 
         // Act
         Page<SalesReportRow> result = reportApi.getSalesReport(startDate, endDate, clientId, pageable);
@@ -54,7 +54,7 @@ class ReportApiTest {
         assertEquals("Product B", result.getContent().get(1).getProductName());
         assertEquals(5, result.getContent().get(1).getQuantitySold());
         assertEquals(new BigDecimal("500.00"), result.getContent().get(1).getRevenue());
-        verify(reportDao).getSalesReport(startDate, endDate, clientId, pageable);
+        verify(reportDao).selectByFiltersSalesPage(startDate, endDate, clientId, pageable);
     }
 
     @Test
@@ -69,7 +69,7 @@ class ReportApiTest {
 
         List<SalesReportRow> expectedList = List.of(row1, row2);
 
-        when(reportDao.getAllSalesReport(startDate, endDate, clientId)).thenReturn(expectedList);
+        when(reportDao.selectAllSalesReport(startDate, endDate, clientId)).thenReturn(expectedList);
 
         // Act
         List<SalesReportRow> result = reportApi.getAllSalesReport(startDate, endDate, clientId);
@@ -82,6 +82,6 @@ class ReportApiTest {
         assertEquals("Product D", result.get(1).getProductName());
         assertEquals(8, result.get(1).getQuantitySold());
         assertEquals(new BigDecimal("800.00"), result.get(1).getRevenue());
-        verify(reportDao).getAllSalesReport(startDate, endDate, clientId);
+        verify(reportDao).selectAllSalesReport(startDate, endDate, clientId);
     }
 }

@@ -1,4 +1,4 @@
-package com.increff.pos.domain;
+package com.increff.pos.model.domain;
 
 public enum OrderStatus {
     CREATED,

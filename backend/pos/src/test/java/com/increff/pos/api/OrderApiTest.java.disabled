@@ -2,7 +2,7 @@ package com.increff.pos.api;
 
 import com.increff.pos.dao.OrderDao;
 import com.increff.pos.entity.OrderEntity;
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.exception.ApiException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,7 +61,7 @@ class OrderApiTest {
         order.setClientId(1);
         order.setStatus(OrderStatus.CREATED);
 
-        when(orderDao.findById(1)).thenReturn(Optional.of(order));
+        when(orderDao.selectById(1)).thenReturn(Optional.of(order));
 
         // Act
         OrderEntity result = orderApi.getById(1);
@@ -70,19 +70,19 @@ class OrderApiTest {
         assertEquals(1, result.getId());
         assertEquals(1, result.getClientId());
         assertEquals(OrderStatus.CREATED, result.getStatus());
-        verify(orderDao).findById(1);
+        verify(orderDao).selectById(1);
     }
 
     @Test
     void should_throw_exception_when_getting_order_by_id_not_found() {
         // Arrange
-        when(orderDao.findById(1)).thenReturn(Optional.empty());
+        when(orderDao.selectById(1)).thenReturn(Optional.empty());
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderApi.getById(1));
         assertEquals("Order not found", exception.getMessage());
         assertEquals("Order not found: 1", exception.getErrors().get(0).getMessage());
-        verify(orderDao).findById(1);
+        verify(orderDao).selectById(1);
     }
 
     @Test

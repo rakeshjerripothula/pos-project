@@ -1,12 +1,18 @@
 package com.increff.pos.dto;
 
 import com.increff.pos.model.data.TsvUploadResult;
+import com.increff.pos.model.data.InventoryData;
+import com.increff.pos.model.data.ProductData;
 import com.increff.pos.model.form.InventoryForm;
 import com.increff.pos.model.form.ProductForm;
+import com.increff.pos.model.form.ProductUploadForm;
+import com.increff.pos.model.form.InventoryUploadForm;
 import com.increff.pos.api.ClientApi;
+import com.increff.pos.flow.ProductFlow;
+import com.increff.pos.flow.InventoryFlow;
 import com.increff.pos.entity.ClientEntity;
+import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
-import com.increff.pos.exception.ApiStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -15,7 +21,8 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,6 +32,12 @@ class HeaderRequirementTest {
 
     @Mock
     private ClientApi clientApi;
+    
+    @Mock
+    private ProductFlow productFlow;
+    
+    @Mock
+    private InventoryFlow inventoryFlow;
     
     @InjectMocks
     private ProductDto productDto;
@@ -42,13 +55,17 @@ class HeaderRequirementTest {
         } catch (ApiException e) {
             // Should not happen in setup
         }
+        
+        // Mock productFlow to return client IDs for names
+        when(clientApi.getClientIdByName("Client 1")).thenReturn(1);
+        when(clientApi.getClientIdByName("Client 2")).thenReturn(2);
     }
 
     @Test
-    void testProductTsv_WithoutHeader() {
+    void testProductTsv_WithoutHeader() throws Exception {
         // TSV without header - first row is treated as data
-        String tsvContent = "Test Product 1\t10.99\t1\tBAR001\n" +
-                "Test Product 2\t20.50\t2\tBAR002\n";
+        String tsvContent = "Test Product 1\t10.99\tClient 1\tBAR001\n" +
+                "Test Product 2\t20.50\tClient 2\tBAR002\n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -57,27 +74,26 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        TsvUploadResult<ProductForm> result = productDto.parseProductTsv(file);
-
-        // First row "Test Product 1\t10.99\t1\tBAR001" is skipped as header
-        // Only second row is processed as data
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(1, result.getData().size()); // Only 1 row processed (header skipped)
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<ProductUploadForm> result = com.increff.pos.util.TsvParseUtils.parseProductTsv(file);
         
-        ProductForm form = result.getData().get(0);
-        assertEquals("Test Product 2", form.getProductName());
-        assertEquals("20.50", form.getMrp().toString()); // This is the second row from original
-        assertEquals(2, form.getClientId());
-        assertEquals("BAR002", form.getBarcode());
+        // First row is skipped as header, only second row processed
+        assertEquals(1, result.size()); // Only 1 row processed (header skipped)
+        
+        ProductUploadForm form = result.get(0);
+        assertEquals("test product 2", form.getProductName());
+        assertEquals("20.50", form.getMrp().toString());
+        assertEquals("client 2", form.getClientName());
+        assertEquals("bar002", form.getBarcode());
     }
 
     @Test
-    void testInventoryTsv_WithoutHeader() throws IOException {
+    void testInventoryTsv_WithoutHeader() throws Exception {
         // TSV without header - first row is treated as data
-        String tsvContent = "1\t100\n" +
-                "2\t200\n";
+        String tsvContent = """
+                Product 1\t100
+                Product 2\t200
+                """;
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -86,26 +102,23 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        // First row "1\t100" is skipped as header
-        // Only second row is processed as data
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(1, result.getData().size()); // Only 1 row processed (header skipped)
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
         
-        InventoryForm form = result.getData().get(0);
-        assertEquals(2, form.getProductId());
-        assertEquals(200, form.getQuantity());
+        // First row is skipped as header, only second row processed
+        assertEquals(1, result.size()); // Only 1 row processed (header skipped)
+        
+        InventoryUploadForm form = result.get(0);
+        assertEquals("Product 2", form.getProductName());
+        assertEquals(Integer.valueOf(200), form.getQuantity());
     }
 
     @Test
-    void testProductTsv_WithHeader() throws IOException {
+    void testProductTsv_WithHeader() throws Exception {
         // TSV with proper header
-        String tsvContent = "productName\tmrp\tclientId\tbarcode\n" +
-                "Test Product 1\t10.99\t1\tBAR001\n" +
-                "Test Product 2\t20.50\t2\tBAR002\n";
+        String tsvContent = "productName\tmrp\tclientName\tbarcode\n" +
+                "Test Product 1\t10.99\tClient 1\tBAR001\n" +
+                "Test Product 2\t20.50\tClient 2\tBAR002\n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -114,20 +127,30 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        TsvUploadResult<ProductForm> result = productDto.parseProductTsv(file);
-
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(2, result.getData().size()); // Both data rows processed
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<ProductUploadForm> result = com.increff.pos.util.TsvParseUtils.parseProductTsv(file);
+        
+        assertEquals(2, result.size()); // Both data rows processed
+        
+        ProductUploadForm form1 = result.get(0);
+        assertEquals("test product 1", form1.getProductName());
+        assertEquals("10.99", form1.getMrp().toString());
+        assertEquals("client 1", form1.getClientName());
+        assertEquals("bar001", form1.getBarcode());
+        
+        ProductUploadForm form2 = result.get(1);
+        assertEquals("test product 2", form2.getProductName());
+        assertEquals("20.50", form2.getMrp().toString());
+        assertEquals("client 2", form2.getClientName());
+        assertEquals("bar002", form2.getBarcode());
     }
 
     @Test
-    void testInventoryTsv_WithHeader() throws IOException {
+    void testInventoryTsv_WithHeader() throws Exception {
         // TSV with proper header
-        String tsvContent = "productId\tquantity\n" +
-                "1\t100\n" +
-                "2\t200\n";
+        String tsvContent = "productName\tquantity\n" +
+                "Product 1\t100\n" +
+                "Product 2\t200\n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -136,16 +159,22 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(2, result.getData().size()); // Both data rows processed
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
+        
+        assertEquals(2, result.size()); // Both data rows processed
+        
+        InventoryUploadForm form1 = result.get(0);
+        assertEquals("Product 1", form1.getProductName());
+        assertEquals(Integer.valueOf(100), form1.getQuantity());
+        
+        InventoryUploadForm form2 = result.get(1);
+        assertEquals("Product 2", form2.getProductName());
+        assertEquals(Integer.valueOf(200), form2.getQuantity());
     }
 
     @Test
-    void testEmptyTsv_WithHeaderOnly() throws IOException {
+    void testEmptyTsv_WithHeaderOnly() throws Exception {
         // TSV with only header
         String tsvContent = "productId\tquantity\n";
         
@@ -156,11 +185,17 @@ class HeaderRequirementTest {
             tsvContent.getBytes()
         );
 
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
-
-        assertTrue(result.isSuccess());
-        assertNotNull(result.getData());
-        assertEquals(0, result.getData().size()); // No data rows
-        assertNull(result.getErrors());
+        // Test the static utility method directly
+        List<InventoryUploadForm> result = com.increff.pos.util.TsvParseUtils.parseInventoryTsv(file);
+        
+        assertEquals(0, result.size()); // No data rows
+    }
+    
+    private ProductEntity createMockProduct(Integer id) {
+        ProductEntity product = new ProductEntity();
+        product.setId(id);
+        product.setProductName("Product " + id);
+        product.setClientId(1);
+        return product;
     }
 }

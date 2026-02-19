@@ -1,6 +1,6 @@
 package com.increff.pos.dto;
 
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.entity.InvoiceEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.model.data.InvoiceData;
@@ -81,7 +81,7 @@ class OrderDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderDto.create(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().get(0).getMessage().contains("Order must contain at least one item"));
         verify(orderFlow, never()).createOrder(any());
@@ -115,7 +115,7 @@ class OrderDtoTest {
     void cancel_invalidId_throwsException() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderDto.cancel(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Order ID is required"));
         verify(orderFlow, never()).cancelOrder(any());
     }
@@ -146,7 +146,7 @@ class OrderDtoTest {
     void getOrderItems_invalidId_throwsException() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderDto.getOrderItems(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Order ID is required"));
         verify(orderItemApi, never()).getByOrderId(any());
     }
@@ -186,7 +186,7 @@ class OrderDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderDto.getOrders(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Invalid date format"));
         verify(orderFlow, never()).searchOrders(any(), any(), any(), any(), anyInt(), anyInt());
     }
@@ -218,7 +218,7 @@ class OrderDtoTest {
     void testGetOrderItems_nullOrderId_throwsException() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderDto.getOrderItems(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Order ID is required"));
         verify(orderFlow, never()).getOrderItems(any());
     }
@@ -269,7 +269,7 @@ class OrderDtoTest {
     void testDownloadInvoice_nullOrderId_throwsException() {
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> orderDto.downloadInvoice(null));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Order ID is required"));
         verify(orderFlow, never()).downloadInvoice(any());
     }

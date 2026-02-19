@@ -19,6 +19,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
@@ -40,11 +41,11 @@ class InventoryDtoTest {
     }
 
     @Test
-    void testParseInventoryTsv_WithValidData() throws IOException {
+    void testParseInventoryTsv_WithValidData() throws Exception {
         String tsvContent = """
-                productId\tquantity
-                1\t100
-                2\t200
+                productName\tquantity
+                Product 1\t100
+                Product 2\t200
                 """;
         
         MultipartFile file = new MockMultipartFile(
@@ -54,8 +55,11 @@ class InventoryDtoTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
+        // Use reflection to access private method
+        Method parseInventoryTsvMethod = InventoryDto.class.getDeclaredMethod("parseInventoryTsv", MultipartFile.class);
+        parseInventoryTsvMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        TsvUploadResult<InventoryForm> result = (TsvUploadResult<InventoryForm>) parseInventoryTsvMethod.invoke(inventoryDto, file);
 
         assertTrue(result.isSuccess());
         assertNotNull(result.getData());
@@ -64,12 +68,12 @@ class InventoryDtoTest {
     }
 
     @Test
-    void testParseInventoryTsv_WithInvalidData() throws IOException {
+    void testParseInventoryTsv_WithInvalidData() throws Exception {
         String tsvContent = """
-                productId\tquantity
-                invalid_id\t100
-                2\t-50
-                1\t200
+                productName\tquantity
+                \t100
+                Product 2\t-50
+                Product 1\t200
                 """;
         
         MultipartFile file = new MockMultipartFile(
@@ -79,8 +83,11 @@ class InventoryDtoTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
+        // Use reflection to access private method
+        Method parseInventoryTsvMethod = InventoryDto.class.getDeclaredMethod("parseInventoryTsv", MultipartFile.class);
+        parseInventoryTsvMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        TsvUploadResult<InventoryForm> result = (TsvUploadResult<InventoryForm>) parseInventoryTsvMethod.invoke(inventoryDto, file);
 
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrors());
@@ -89,10 +96,10 @@ class InventoryDtoTest {
         
         List<TsvUploadError> errors = result.getErrors();
         
-        // Check first error - invalid product ID format
+        // Check first error - empty product name
         TsvUploadError error1 = errors.get(0);
         assertEquals(2, error1.getRowNumber());
-        assertTrue(error1.getErrorMessage().contains("Invalid product ID format"));
+        assertTrue(error1.getErrorMessage().contains("Product name is required"));
         
         // Check second error - negative quantity
         TsvUploadError error2 = errors.get(1);
@@ -101,12 +108,12 @@ class InventoryDtoTest {
     }
 
     @Test
-    void testParseInventoryTsv_WithDuplicateProductIds() throws IOException {
+    void testParseInventoryTsv_WithDuplicateProductIds() throws Exception {
         String tsvContent = """
-                productId\tquantity
-                1\t100
-                2\t200
-                1\t300
+                productName\tquantity
+                Product 1\t100
+                Product 2\t200
+                Product 1\t300
                 """;
         
         MultipartFile file = new MockMultipartFile(
@@ -116,8 +123,11 @@ class InventoryDtoTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
+        // Use reflection to access private method
+        Method parseInventoryTsvMethod = InventoryDto.class.getDeclaredMethod("parseInventoryTsv", MultipartFile.class);
+        parseInventoryTsvMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        TsvUploadResult<InventoryForm> result = (TsvUploadResult<InventoryForm>) parseInventoryTsvMethod.invoke(inventoryDto, file);
 
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrors());
@@ -125,14 +135,14 @@ class InventoryDtoTest {
         
         TsvUploadError error = result.getErrors().get(0);
         assertEquals(4, error.getRowNumber());
-        assertTrue(error.getErrorMessage().contains("Duplicate product ID"));
+        assertTrue(error.getErrorMessage().contains("Duplicate product"));
     }
 
     @Test
-    void testParseInventoryTsv_WithInsufficientColumns() throws IOException {
+    void testParseInventoryTsv_WithInsufficientColumns() throws Exception {
         String tsvContent = """
-                productId\tquantity
-                1
+                productName\tquantity
+                Product 1
                 """;
         
         MultipartFile file = new MockMultipartFile(
@@ -142,8 +152,11 @@ class InventoryDtoTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
+        // Use reflection to access private method
+        Method parseInventoryTsvMethod = InventoryDto.class.getDeclaredMethod("parseInventoryTsv", MultipartFile.class);
+        parseInventoryTsvMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        TsvUploadResult<InventoryForm> result = (TsvUploadResult<InventoryForm>) parseInventoryTsvMethod.invoke(inventoryDto, file);
 
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrors());
@@ -155,10 +168,10 @@ class InventoryDtoTest {
     }
 
     @Test
-    void testParseInventoryTsv_WithZeroProductId() throws IOException {
+    void testParseInventoryTsv_WithZeroProductId() throws Exception {
         String tsvContent = """
-                productId\tquantity
-                0\t100
+                productName\tquantity
+                \t100
                 """;
         
         MultipartFile file = new MockMultipartFile(
@@ -168,8 +181,11 @@ class InventoryDtoTest {
             tsvContent.getBytes()
         );
 
-        InventoryDto inventoryDto = new InventoryDto();
-        TsvUploadResult<InventoryForm> result = inventoryDto.parseInventoryTsv(file);
+        // Use reflection to access private method
+        Method parseInventoryTsvMethod = InventoryDto.class.getDeclaredMethod("parseInventoryTsv", MultipartFile.class);
+        parseInventoryTsvMethod.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        TsvUploadResult<InventoryForm> result = (TsvUploadResult<InventoryForm>) parseInventoryTsvMethod.invoke(inventoryDto, file);
 
         assertFalse(result.isSuccess());
         assertNotNull(result.getErrors());
@@ -177,7 +193,7 @@ class InventoryDtoTest {
         
         TsvUploadError error = result.getErrors().getFirst();
         assertEquals(2, error.getRowNumber());
-        assertTrue(error.getErrorMessage().contains("Product ID must be greater than 0"));
+        assertTrue(error.getErrorMessage().contains("Product name is required"));
     }
 
     @Test
@@ -214,7 +230,7 @@ class InventoryDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.upsert(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().get(0).getMessage().contains("Product ID is required"));
         verify(inventoryFlow, never()).upsert(any());
@@ -240,7 +256,7 @@ class InventoryDtoTest {
             createInventoryData(2, 200, "Product 2")
         );
         
-        when(inventoryFlow.bulkUpsertAndGetData(any())).thenReturn(expectedData);
+        when(inventoryFlow.bulkUpsert(any())).thenReturn(expectedData);
 
         // Act
         List<InventoryData> result = inventoryDto.bulkUpsert(forms);
@@ -251,7 +267,7 @@ class InventoryDtoTest {
         assertEquals(1, result.get(0).getProductId());
         assertEquals(100, result.get(0).getQuantity());
         assertEquals("Product 1", result.get(0).getProductName());
-        verify(inventoryFlow, times(1)).bulkUpsertAndGetData(any());
+        verify(inventoryFlow, times(1)).bulkUpsert(any());
     }
 
     @Test
@@ -264,9 +280,9 @@ class InventoryDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.bulkUpsert(forms));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Duplicate productId"));
-        verify(inventoryFlow, never()).bulkUpsertAndGetData(any());
+        verify(inventoryFlow, never()).bulkUpsert(any());
     }
 
     @Test
@@ -277,7 +293,7 @@ class InventoryDtoTest {
                 createInventoryData(2, 200, "Product 2")
         );
 
-        when(inventoryFlow.listAllForEnabledClientsWithData()).thenReturn(expectedData);
+        when(inventoryFlow.getAllForEnabledClients()).thenReturn(expectedData);
 
         // Act
         List<InventoryData> result = inventoryDto.getAll();
@@ -287,7 +303,7 @@ class InventoryDtoTest {
         assertEquals(1, result.get(0).getProductId());
         assertEquals(100, result.get(0).getQuantity());
         assertEquals("Product 1", result.get(0).getProductName());
-        verify(inventoryFlow).listAllForEnabledClientsWithData();
+        verify(inventoryFlow).getAllForEnabledClients();
     }
 
     @Test
@@ -316,7 +332,7 @@ class InventoryDtoTest {
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> inventoryDto.upsert(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertEquals("quantity", exception.getErrors().get(0).getField());
         assertEquals("Quantity cannot be negative", exception.getErrors().get(0).getMessage());
@@ -349,25 +365,21 @@ class InventoryDtoTest {
     }
 
     @Test
-    void testUploadTsv() {
+    void testUploadTsv() throws Exception {
         // Arrange
         InventoryForm form = createInventoryForm(1, 100);
-        TsvUploadResult<InventoryForm> parseResult = TsvUploadResult.success(List.of(form));
         List<InventoryData> expectedData = Arrays.asList(createInventoryData(1, 100, "Product 1"));
 
-        when(inventoryFlow.bulkUpsertAndGetData(any())).thenReturn(expectedData);
+        when(inventoryFlow.bulkUpsert(any())).thenReturn(expectedData);
+        when(inventoryFlow.getProductIdByName("Product 1")).thenReturn(1);
 
-        // Mock parseInventoryTsv method by using spy
-        InventoryDto spyInventoryDto = spy(inventoryDto);
-        doReturn(parseResult).when(spyInventoryDto).parseInventoryTsv(any());
-
-        String tsvContent = "productId\tquantity\n1\t100";
+        String tsvContent = "productName\tquantity\nProduct 1\t100";
         MockMultipartFile file = new MockMultipartFile(
                 "file", "inventory.tsv", "text/tab-separated-values", tsvContent.getBytes()
         );
 
         // Act
-        TsvUploadResult<InventoryData> result = spyInventoryDto.uploadTsv(file);
+        TsvUploadResult<InventoryData> result = inventoryDto.uploadTsv(file);
 
         // Assert
         assertTrue(result.isSuccess());
@@ -377,24 +389,16 @@ class InventoryDtoTest {
     }
 
     @Test
-    void testUploadTsv_parseFailure_returnsFailure() {
+    void testUploadTsv_parseFailure_returnsFailure() throws Exception {
         // Arrange
-        TsvUploadResult<InventoryForm> parseResult = TsvUploadResult.failure(
-                Arrays.asList(new TsvUploadError(1, new String[]{"invalid"}, "Invalid data"))
-        );
-
-        // Mock parseInventoryTsv method by using spy
-        InventoryDto spyInventoryDto = spy(inventoryDto);
-        doReturn(parseResult).when(spyInventoryDto).parseInventoryTsv(any());
-
-        String tsvContent = "productId\tquantity\ninvalid\t100";
+        String tsvContent = "productName\tquantity\n\t100";
         MockMultipartFile file = new MockMultipartFile(
                 "file", "inventory.tsv", "text/tab-separated-values", tsvContent.getBytes()
         );
 
         // Act & Assert
-        assertThrows(com.increff.pos.exception.TsvUploadException.class, () -> spyInventoryDto.uploadTsv(file));
-        verify(inventoryFlow, never()).bulkUpsertAndGetData(any());
+        assertThrows(com.increff.pos.exception.TsvUploadException.class, () -> inventoryDto.uploadTsv(file));
+        verify(inventoryFlow, never()).bulkUpsert(any());
     }
 
     private com.increff.pos.entity.InventoryEntity createInventoryEntity(Integer productId, Integer quantity) {

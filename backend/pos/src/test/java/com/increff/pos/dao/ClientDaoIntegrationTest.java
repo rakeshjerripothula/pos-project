@@ -4,9 +4,6 @@ import com.increff.pos.entity.ClientEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,7 +40,7 @@ class ClientDaoIntegrationTest {
         client.setEnabled(true);
         ClientEntity saved = clientDao.save(client);
 
-        Optional<ClientEntity> found = clientDao.findById(saved.getId());
+        Optional<ClientEntity> found = clientDao.selectById(saved.getId());
 
         assertTrue(found.isPresent());
         assertEquals(saved.getId(), found.get().getId());
@@ -75,10 +72,10 @@ class ClientDaoIntegrationTest {
         client.setEnabled(true);
         clientDao.save(client);
 
-        boolean exists = clientDao.existsByClientName("Unique Client");
+        boolean exists = clientDao.selectByClientName("Unique Client").isPresent();
         assertTrue(exists);
 
-        boolean notExists = clientDao.existsByClientName("Non Existent");
+        boolean notExists = clientDao.selectByClientName("Non Existent").isPresent();
         assertFalse(notExists);
     }
 

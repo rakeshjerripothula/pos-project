@@ -2,7 +2,7 @@ package com.increff.pos.flow;
 
 import com.increff.pos.api.*;
 import com.increff.pos.entity.*;
-import com.increff.pos.domain.OrderStatus;
+import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.OrderItemData;
@@ -74,7 +74,7 @@ public class OrderFlow {
         validateOrderTotalGreaterThanZero(aggregatedItems);
 
         Integer clientId = validateAndGetClientId(productMap);
-        validateClientEnabled(clientId);
+        clientApi.checkClientEnabled(clientId);
 
         OrderEntity savedOrder = createOrderEntity(clientId);
         List<OrderItemEntity> persistedItems = processOrderItems(aggregatedItems, savedOrder.getId(), productMap);
@@ -94,7 +94,7 @@ public class OrderFlow {
 
     private void validateOrderItems(List<OrderItemEntity> items) {
         if (Objects.isNull(items) || items.isEmpty()) {
-            throw new ApiException(ApiStatus.BAD_DATA,
+            throw new ApiException(ApiStatus.BAD_REQUEST,
                     "Order must contain at least one item", "items", "Order must contain at least one item");
         }
     }
@@ -105,7 +105,7 @@ public class OrderFlow {
             ProductEntity product = productMap.get(item.getProductId());
             if (item.getSellingPrice().compareTo(product.getMrp()) > 0) {
                 throw new ApiException(
-                        ApiStatus.BAD_DATA,
+                        ApiStatus.BAD_REQUEST,
                         "Selling price cannot be greater than MRP for product: " + product.getProductName(),
                         "sellingPrice", "Selling price cannot be greater than MRP"
                 );
@@ -113,12 +113,11 @@ public class OrderFlow {
         }
     }
 
-
     private List<OrderItemEntity> aggregateOrderItems(List<OrderItemEntity> items) {
 
-        Map<Integer, OrderItemEntity> aggregated = items.stream()
+        Map<String, OrderItemEntity> aggregated = items.stream()
                 .collect(Collectors.toMap(
-                        OrderItemEntity::getProductId,
+                        item -> buildKey(item.getProductId(), item.getSellingPrice()),
                         item -> {
                             OrderItemEntity copy = new OrderItemEntity();
                             copy.setProductId(item.getProductId());
@@ -131,15 +130,18 @@ public class OrderFlow {
                             return existing;
                         }
                 ));
-
         return new ArrayList<>(aggregated.values());
+    }
+
+    private String buildKey(Integer productId, BigDecimal sellingPrice) {
+        return productId + "_" + sellingPrice;
     }
 
     private void validateOrderTotalGreaterThanZero(List<OrderItemEntity> items) {
         BigDecimal orderTotal = calculateOrderTotal(items);
         if (orderTotal.compareTo(BigDecimal.ZERO) <= 0) {
             throw new ApiException(
-                    ApiStatus.BAD_DATA, "Order total must be greater than 0",
+                    ApiStatus.BAD_REQUEST, "Order total must be greater than 0",
                     "orderTotal", "Order total must be greater than 0"
             );
         }
@@ -157,18 +159,12 @@ public class OrderFlow {
                 clientId = product.getClientId();
             } else if (!clientId.equals(product.getClientId())) {
                 throw new ApiException(
-                        ApiStatus.BAD_DATA, "All products in an order must belong to the same client",
+                        ApiStatus.BAD_REQUEST, "All products in an order must belong to the same client",
                         "clientId", "All products in an order must belong to the same client"
                 );
             }
         }
         return clientId;
-    }
-
-    private void validateClientEnabled(Integer clientId) {
-        if (!clientApi.isClientEnabled(clientId)) {
-            throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
-        }
     }
 
     private OrderEntity createOrderEntity(Integer clientId) {
@@ -189,7 +185,8 @@ public class OrderFlow {
 
     private void validateAndUpdateInventory(List<OrderItemEntity> items, Map<Integer, ProductEntity> productMap) {
 
-        List<InventoryEntity> inventories = inventoryFlow.getInventoriesByProductIds(items);
+        List<Integer> productIds = items.stream().map(OrderItemEntity::getProductId).distinct().toList();
+        List<InventoryEntity> inventories = inventoryFlow.getInventoriesByProductIds(productIds);
 
         Map<Integer, InventoryEntity> inventoryMap = inventories.stream()
                 .collect(Collectors.toMap(InventoryEntity::getProductId, i -> i));
@@ -221,7 +218,7 @@ public class OrderFlow {
 
         OrderEntity order = orderApi.getById(orderId);
 
-        if (!order.getStatus().equals(OrderStatus.CREATED)) {
+        if (order.getStatus().equals(OrderStatus.INVOICED)) {
             throw new ApiException(
                 ApiStatus.BAD_REQUEST, "INVOICED order cannot be cancelled", "status",
                 "INVOICED order cannot be cancelled"
@@ -229,24 +226,17 @@ public class OrderFlow {
         }
 
         List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
-        
-        List<InventoryEntity> inventories = inventoryFlow.getInventoriesByProductIds(items);
+
+        List<Integer> productIds = items.stream().map(OrderItemEntity::getProductId).distinct().toList();
+
+        List<InventoryEntity> inventories = inventoryFlow.getInventoriesByProductIds(productIds);
         Map<Integer, InventoryEntity> inventoryMap = inventories.stream()
                 .collect(Collectors.toMap(InventoryEntity::getProductId, inventory -> inventory));
-
-        Map<Integer, ProductEntity> productMap = getProductMap(items);
 
         List<InventoryEntity> updatedInventories = new ArrayList<>();
         
         for (OrderItemEntity item : items) {
             InventoryEntity inventory = inventoryMap.get(item.getProductId());
-            if (Objects.isNull(inventory)) {
-                throw new ApiException(
-                    ApiStatus.NOT_FOUND, "Inventory not found for product: " + productMap.get(item.getProductId()),
-                    "productId", "Inventory not found for product: " + productMap.get(item.getProductId())
-                );
-            }
-            
             int availableQty = inventory.getQuantity();
             inventory.setQuantity(availableQty + item.getQuantity());
             updatedInventories.add(inventory);
@@ -260,7 +250,7 @@ public class OrderFlow {
 
     public OrderEntity getById(Integer orderId) {
         if (Objects.isNull(orderId)) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Order ID is required", "orderId", "Order ID is required");
+            throw new ApiException(ApiStatus.BAD_REQUEST, "Order ID is required", "orderId", "Order ID is required");
         }
         return orderApi.getById(orderId);
     }
@@ -277,7 +267,7 @@ public class OrderFlow {
         List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
 
         if (items.isEmpty()) {
-            throw new ApiException(ApiStatus.BAD_DATA, "Order has no items");
+            throw new ApiException(ApiStatus.BAD_REQUEST, "Order has no items");
         }
 
         Map<Integer, ProductEntity> productMap = getProductMap(items);

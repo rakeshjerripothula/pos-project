@@ -16,10 +16,10 @@ public abstract class AbstractEntity {
     @Column(nullable = false)
     private Long version;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(nullable = false, updatable = false)
     private ZonedDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(nullable = false)
     private ZonedDateTime updatedAt;
 
     @PrePersist

@@ -1,4 +1,4 @@
-package com.increff.pos.service;
+package com.increff.pos.schedulers;
 
 import com.increff.pos.api.DaySalesApi;
 import org.junit.jupiter.api.Test;

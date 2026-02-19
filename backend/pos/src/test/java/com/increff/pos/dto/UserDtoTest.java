@@ -1,6 +1,6 @@
 package com.increff.pos.dto;
 
-import com.increff.pos.domain.UserRole;
+import com.increff.pos.model.domain.UserRole;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.model.data.UserData;
 import com.increff.pos.model.form.UserForm;
@@ -32,9 +32,10 @@ class UserDtoTest {
         // Arrange
         UserForm form = new UserForm();
         form.setEmail("test@example.com");
-        
+        form.setPassword("password123");
+
         com.increff.pos.entity.UserEntity savedUser = createUserEntity(1, "test@example.com", UserRole.OPERATOR);
-        when(userApi.signup(any())).thenReturn(savedUser);
+        when(userApi.signup(any(), any())).thenReturn(savedUser);
 
         // Act
         UserData result = userDto.createUser(form);
@@ -44,7 +45,7 @@ class UserDtoTest {
         assertEquals(1, result.getId());
         assertEquals("test@example.com", result.getEmail());
         assertEquals(UserRole.OPERATOR, result.getRole());
-        verify(userApi, times(1)).signup(any());
+        verify(userApi, times(1)).signup("test@example.com", "password123");
     }
 
     @Test
@@ -52,65 +53,75 @@ class UserDtoTest {
         // Arrange
         UserForm form = new UserForm();
         form.setEmail("invalid-email"); // Invalid email format
+        form.setPassword("password123");
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> userDto.createUser(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.hasErrors());
         assertTrue(exception.getErrors().get(0).getMessage().contains("Invalid email format"));
-        verify(userApi, never()).signup(any());
+        verify(userApi, never()).signup(any(), any());
     }
 
     @Test
     void createUser_nullForm_throwsException() {
         // Act & Assert
         assertThrows(ApiException.class, () -> userDto.createUser(null));
-        verify(userApi, never()).signup(any());
+        verify(userApi, never()).signup(any(), any());
     }
 
     @Test
-    void login_validForm_success() {
+    void createUser_nullEmail_throwsException() {
+        // Arrange
+        UserForm form = new UserForm();
+        form.setEmail(null);
+        form.setPassword("password123");
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> userDto.createUser(form));
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
+        assertTrue(exception.hasErrors());
+        verify(userApi, never()).signup(any(), any());
+    }
+
+    @Test
+    void createUser_nullPassword_throwsException() {
         // Arrange
         UserForm form = new UserForm();
         form.setEmail("test@example.com");
-        
-        com.increff.pos.entity.UserEntity loggedInUser = createUserEntity(1, "test@example.com", UserRole.OPERATOR);
-        when(userApi.login(any())).thenReturn(loggedInUser);
+        form.setPassword(null);
+
+        // Act & Assert
+        ApiException exception = assertThrows(ApiException.class, () -> userDto.createUser(form));
+        assertEquals("BAD_REQUEST", exception.getStatus().name());
+        assertTrue(exception.hasErrors());
+        verify(userApi, never()).signup(any(), any());
+    }
+
+    @Test
+    void createUser_supervisorEmail_success() {
+        // Arrange
+        UserForm form = new UserForm();
+        form.setEmail("supervisor@example.com");
+        form.setPassword("password123");
+
+        com.increff.pos.entity.UserEntity savedUser = createUserEntity(1, "supervisor@example.com", UserRole.SUPERVISOR);
+        when(userApi.signup(any(), any())).thenReturn(savedUser);
 
         // Act
-        UserData result = userDto.login(form);
+        UserData result = userDto.createUser(form);
 
         // Assert
         assertNotNull(result);
         assertEquals(1, result.getId());
-        assertEquals("test@example.com", result.getEmail());
-        assertEquals(UserRole.OPERATOR, result.getRole());
-        verify(userApi, times(1)).login(any());
+        assertEquals("supervisor@example.com", result.getEmail());
+        assertEquals(UserRole.SUPERVISOR, result.getRole());
+        verify(userApi, times(1)).signup("supervisor@example.com", "password123");
     }
 
-    @Test
-    void login_invalidEmail_throwsException() {
-        // Arrange
-        UserForm form = new UserForm();
-        form.setEmail(""); // Empty email
 
-        // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> userDto.login(form));
-        assertEquals("BAD_DATA", exception.getStatus().name());
-        assertTrue(exception.hasErrors());
-        assertTrue(exception.getErrors().get(0).getMessage().contains("Email is required"));
-        verify(userApi, never()).login(any());
-    }
 
-    @Test
-    void login_nullForm_throwsException() {
-        // Act & Assert
-        assertThrows(ApiException.class, () -> userDto.login(null));
-        verify(userApi, never()).login(any());
-    }
 
-    
-    
     private com.increff.pos.entity.UserEntity createUserEntity(Integer id, String email, UserRole role) {
         com.increff.pos.entity.UserEntity user = new com.increff.pos.entity.UserEntity();
         user.setId(id);

@@ -5,10 +5,8 @@ import com.increff.pos.dao.ReportDao;
 import com.increff.pos.entity.DaySalesEntity;
 import com.increff.pos.model.internal.DaySalesAggregate;
 import com.increff.pos.util.ConversionUtil;
-import com.increff.pos.util.ValidationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +37,7 @@ public class DaySalesApi {
         ZonedDateTime utcStart = istStart.withZoneSameInstant(utc);
         ZonedDateTime utcEnd = istEnd.withZoneSameInstant(utc);
 
-        DaySalesAggregate aggregate = reportDao.getDaySalesAggregate(utcStart, utcEnd);
+        DaySalesAggregate aggregate = reportDao.selectDaySalesByDate(utcStart, utcEnd);
 
         DaySalesEntity entity = ConversionUtil.daySalesAggregateToEntity(date, aggregate);
         daySalesDao.save(entity);
@@ -48,11 +46,11 @@ public class DaySalesApi {
     @Transactional(readOnly = true)
     public Page<DaySalesEntity> findByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
 
-        return daySalesDao.findByDateRange(startDate, endDate, pageable);
+        return daySalesDao.selectByDateRange(startDate, endDate, pageable);
     }
 
     public List<DaySalesEntity> findAllByDateRange(LocalDate startDate, LocalDate endDate) {
 
-        return daySalesDao.findAllByDateRange(startDate, endDate);
+        return daySalesDao.selectAllByDateRange(startDate, endDate);
     }
 }

@@ -20,6 +20,6 @@ public class OrderItemApi {
     }
 
     public List<OrderItemEntity> getByOrderId(Integer orderId) {
-        return orderItemDao.findByOrderId(orderId);
+        return orderItemDao.selectByOrderId(orderId);
     }
 }

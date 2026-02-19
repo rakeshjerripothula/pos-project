@@ -10,9 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -91,7 +88,7 @@ class ClientApiTest {
         client.setId(1);
         client.setClientName("test client");
 
-        when(clientDao.findById(1)).thenReturn(Optional.of(client));
+        when(clientDao.selectById(1)).thenReturn(Optional.of(client));
 
         // Act
         ClientEntity result = clientApi.getById(1);
@@ -99,19 +96,19 @@ class ClientApiTest {
         // Assert
         assertEquals(1, result.getId());
         assertEquals("test client", result.getClientName());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
     }
 
     @Test
     void should_throw_exception_when_getting_client_by_id_not_found() {
         // Arrange
-        when(clientDao.findById(1)).thenReturn(Optional.empty());
+        when(clientDao.selectById(1)).thenReturn(Optional.empty());
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> clientApi.getById(1));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("Client not found: 1", exception.getMessage());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
     }
 
     @Test
@@ -125,7 +122,7 @@ class ClientApiTest {
         ClientEntity updateData = new ClientEntity();
         updateData.setClientName("new name");
 
-        when(clientDao.findById(1)).thenReturn(Optional.of(existingClient));
+        when(clientDao.selectById(1)).thenReturn(Optional.of(existingClient));
         when(clientDao.existsByClientNameAndIdNot("new name", 1)).thenReturn(false);
         when(clientDao.save(any(ClientEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -135,7 +132,7 @@ class ClientApiTest {
         // Assert
         assertEquals("new name", result.getClientName());
         assertTrue(result.getEnabled());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
         verify(clientDao).existsByClientNameAndIdNot("new name", 1);
         verify(clientDao).save(existingClient);
     }
@@ -146,13 +143,13 @@ class ClientApiTest {
         ClientEntity updateData = new ClientEntity();
         updateData.setClientName("new name");
 
-        when(clientDao.findById(1)).thenReturn(Optional.empty());
+        when(clientDao.selectById(1)).thenReturn(Optional.empty());
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> clientApi.updateClient(1, updateData));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("Client not found: 1", exception.getMessage());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
         verify(clientDao, never()).existsByClientNameAndIdNot(anyString(), anyInt());
         verify(clientDao, never()).save(any());
     }
@@ -167,14 +164,14 @@ class ClientApiTest {
         ClientEntity updateData = new ClientEntity();
         updateData.setClientName("existing name");
 
-        when(clientDao.findById(1)).thenReturn(Optional.of(existingClient));
+        when(clientDao.selectById(1)).thenReturn(Optional.of(existingClient));
         when(clientDao.existsByClientNameAndIdNot("existing name", 1)).thenReturn(true);
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> clientApi.updateClient(1, updateData));
         assertEquals(ApiStatus.CONFLICT, exception.getStatus());
         assertEquals("Client already exists", exception.getMessage());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
         verify(clientDao).existsByClientNameAndIdNot("existing name", 1);
         verify(clientDao, never()).save(any());
     }
@@ -187,7 +184,7 @@ class ClientApiTest {
         client.setClientName("test client");
         client.setEnabled(true);
 
-        when(clientDao.findById(1)).thenReturn(Optional.of(client));
+        when(clientDao.selectById(1)).thenReturn(Optional.of(client));
         when(clientDao.save(any(ClientEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -195,7 +192,7 @@ class ClientApiTest {
 
         // Assert
         assertFalse(result.getEnabled());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
         verify(clientDao).save(any(ClientEntity.class));
     }
 
@@ -207,26 +204,26 @@ class ClientApiTest {
         client.setClientName("test client");
         client.setEnabled(true);
 
-        when(clientDao.findById(1)).thenReturn(Optional.of(client));
+        when(clientDao.selectById(1)).thenReturn(Optional.of(client));
 
         // Act
         ClientEntity result = clientApi.toggle(1, true);
 
         // Assert
         assertTrue(result.getEnabled());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
     }
 
     @Test
     void should_throw_exception_when_toggling_client_not_found() {
         // Arrange
-        when(clientDao.findById(1)).thenReturn(Optional.empty());
+        when(clientDao.selectById(1)).thenReturn(Optional.empty());
 
         // Act & Assert
         ApiException exception = assertThrows(ApiException.class, () -> clientApi.toggle(1, true));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("Client not found: 1", exception.getMessage());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
     }
 
     @Test
@@ -236,14 +233,14 @@ class ClientApiTest {
         client.setId(1);
         client.setEnabled(true);
 
-        when(clientDao.findById(1)).thenReturn(Optional.of(client));
+        when(clientDao.selectById(1)).thenReturn(Optional.of(client));
 
         // Act
-        Boolean result = clientApi.isClientEnabled(1);
+        Boolean result = clientApi.checkClientEnabled(1);
 
         // Assert
         assertTrue(result);
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
     }
 
     @Test
@@ -253,26 +250,26 @@ class ClientApiTest {
         client.setId(1);
         client.setEnabled(false);
 
-        when(clientDao.findById(1)).thenReturn(Optional.of(client));
+        when(clientDao.selectById(1)).thenReturn(Optional.of(client));
 
         // Act
-        Boolean result = clientApi.isClientEnabled(1);
+        Boolean result = clientApi.checkClientEnabled(1);
 
         // Assert
         assertFalse(result);
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
     }
 
     @Test
     void should_throw_exception_when_checking_enabled_status_for_nonexistent_client() {
         // Arrange
-        when(clientDao.findById(1)).thenReturn(Optional.empty());
+        when(clientDao.selectById(1)).thenReturn(Optional.empty());
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> clientApi.isClientEnabled(1));
+        ApiException exception = assertThrows(ApiException.class, () -> clientApi.checkClientEnabled(1));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("Client not found: 1", exception.getMessage());
-        verify(clientDao).findById(1);
+        verify(clientDao).selectById(1);
     }
 
     @Test
@@ -281,14 +278,14 @@ class ClientApiTest {
         List<Integer> clientIds = List.of(1, 2, 3);
         List<Integer> disabledIds = List.of(2, 3);
 
-        when(clientDao.findDisabledClientIds(clientIds)).thenReturn(disabledIds);
+        when(clientDao.findIdsByIdInAndEnabled(clientIds, false)).thenReturn(disabledIds);
 
         // Act
-        List<Integer> result = clientApi.getDisabledClientIds(clientIds);
+        List<Integer> result = clientApi.getEnabledClientIds(clientIds, false);
 
         // Assert
         assertEquals(disabledIds, result);
-        verify(clientDao).findDisabledClientIds(clientIds);
+        verify(clientDao).findIdsByIdInAndEnabled(clientIds, false);
     }
 
     @Test
@@ -297,14 +294,14 @@ class ClientApiTest {
         List<Integer> clientIds = List.of();
         List<Integer> disabledIds = List.of();
 
-        when(clientDao.findDisabledClientIds(clientIds)).thenReturn(disabledIds);
+        when(clientDao.findIdsByIdInAndEnabled(clientIds, false)).thenReturn(disabledIds);
 
         // Act
-        List<Integer> result = clientApi.getDisabledClientIds(clientIds);
+        List<Integer> result = clientApi.getEnabledClientIds(clientIds, false);
 
         // Assert
         assertEquals(0, result.size());
-        verify(clientDao).findDisabledClientIds(clientIds);
+        verify(clientDao).findIdsByIdInAndEnabled(clientIds, false);
     }
 
     @Test
@@ -326,31 +323,32 @@ class ClientApiTest {
     void should_get_non_existent_client_ids() {
         // Arrange
         List<Integer> clientIds = List.of(1, 2, 3, 4);
-        List<Integer> nonExistentIds = List.of(2, 4);
+        List<Integer> existingIds = List.of(1, 3); // These exist
+        List<Integer> expectedNonExistent = List.of(2, 4); // These don't exist
 
-        when(clientDao.findNonExistentClientIds(clientIds)).thenReturn(nonExistentIds);
+        when(clientDao.findExistingClientIds(clientIds)).thenReturn(existingIds);
 
         // Act
         List<Integer> result = clientApi.getNonExistentClientIds(clientIds);
 
         // Assert
-        assertEquals(nonExistentIds, result);
-        verify(clientDao).findNonExistentClientIds(clientIds);
+        assertEquals(expectedNonExistent, result);
+        verify(clientDao).findExistingClientIds(clientIds);
     }
 
     @Test
     void should_get_non_existent_client_ids_when_all_exist() {
         // Arrange
         List<Integer> clientIds = List.of(1, 2, 3);
-        List<Integer> nonExistentIds = List.of();
+        List<Integer> existingIds = List.of(1, 2, 3); // All exist
 
-        when(clientDao.findNonExistentClientIds(clientIds)).thenReturn(nonExistentIds);
+        when(clientDao.findExistingClientIds(clientIds)).thenReturn(existingIds);
 
         // Act
         List<Integer> result = clientApi.getNonExistentClientIds(clientIds);
 
         // Assert
-        assertEquals(0, result.size());
-        verify(clientDao).findNonExistentClientIds(clientIds);
+        assertEquals(0, result.size()); // No non-existent IDs
+        verify(clientDao).findExistingClientIds(clientIds);
     }
 }

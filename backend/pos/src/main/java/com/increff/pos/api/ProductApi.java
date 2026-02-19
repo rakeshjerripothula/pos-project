@@ -10,8 +10,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
+
 @Service
 @Transactional
 public class ProductApi {
@@ -19,46 +20,31 @@ public class ProductApi {
     @Autowired
     private ProductDao productDao;
 
-    @Autowired
-    private ClientApi clientApi;
-
+    @Transactional(readOnly = true)
     public List<ProductEntity> getAll() {
         return productDao.selectAll();
     }
 
+    @Transactional(readOnly = true)
     public ProductEntity getProductById(Integer id) {
-        return productDao.findById(id)
-                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "Product not found", "id", "Product not found"));
+        return productDao.selectById(id).orElseThrow(() ->
+                new ApiException(ApiStatus.NOT_FOUND, "Product not found", "productId", "Product not found"));
+    }
+
+    public List<ProductEntity> getByIds(List<Integer> ids) {
+        return productDao.selectByIds(ids);
     }
 
     public ProductEntity createProduct(ProductEntity product) {
 
-        try {
-            if (!clientApi.isClientEnabled(product.getClientId())) {
-                throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
-            }
-        } catch (ApiException e) {
-            if (e.getStatus() == ApiStatus.NOT_FOUND) {
-                throw e; // Re-throw the NOT_FOUND error for non-existent client
-            }
-            throw e; // Re-throw other errors
-        }
-
-        if (productDao.existsByBarcode(product.getBarcode())) {
+        if (productDao.selectByBarcode(product.getBarcode()).isPresent()) {
             throw new ApiException(ApiStatus.CONFLICT, "Barcode already exists", "barcode", "Barcode already exists");
         }
 
-        if (productDao.existsByClientIdAndProductNameAndMrp(
-                product.getClientId(),
-                product.getProductName(),
-                product.getMrp())) {
-
-            throw new ApiException(
-                    ApiStatus.CONFLICT,
-                    "Product already exists for this client with same name and MRP",
-                    "product",
-                    "Duplicate product for client"
-            );
+        if (productDao.selectByClientIdAndProductNameAndMrp(product.getClientId(), product.getProductName(),
+                product.getMrp()).isPresent()) {
+            throw new ApiException(ApiStatus.CONFLICT, "Product already exists for this client with same name and MRP",
+                    "product", "Duplicate product for client");
         }
 
         return productDao.save(product);
@@ -66,119 +52,57 @@ public class ProductApi {
 
     public ProductEntity updateProduct(Integer productId, ProductEntity product) {
 
-        ProductEntity existing = productDao.findById(productId)
-                .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND,
-                        "Product not found",
-                        "productId",
-                        "Product not found"
-                ));
+        ProductEntity existing = productDao.selectById(productId).orElseThrow(() ->
+                new ApiException(ApiStatus.NOT_FOUND, "Product not found", "productId", "Product not found"));
 
         if (!existing.getClientId().equals(product.getClientId())) {
-            throw new ApiException(
-                    ApiStatus.BAD_REQUEST,
-                    "Client cannot be changed for product",
-                    "clientId",
-                    "Client change not allowed"
-            );
+            throw new ApiException(ApiStatus.BAD_REQUEST, "Client cannot be changed for product", "clientId",
+                    "Client change not allowed");
         }
 
-        Integer clientId = existing.getClientId();
-
-        try {
-            if (!clientApi.isClientEnabled(clientId)) {
-                throw new ApiException(ApiStatus.FORBIDDEN, "Client is disabled", "clientId", "Client is disabled");
-            }
-        } catch (ApiException e) {
-            if (e.getStatus() == ApiStatus.NOT_FOUND) {
-                throw e;
-            }
-            throw e; // Re-throw other errors
+        if (productDao.selectByBarcodeExcludingId(product.getBarcode(), productId).isPresent()) {
+            throw new ApiException(ApiStatus.CONFLICT, "Barcode already exists", "barcode", "Barcode already exists");
         }
 
-        String newName = product.getProductName();
-        BigDecimal newMrp = product.getMrp();
-        String newBarcode = product.getBarcode();
-
-        if (productDao.existsByBarcodeAndNotId(newBarcode, productId)) {
-            throw new ApiException(
-                    ApiStatus.CONFLICT,
-                    "Barcode already exists",
-                    "barcode",
-                    "Barcode already exists"
-            );
+        if (productDao.selectByClientIdAndProductNameAndMrpExcludingId(existing.getClientId(), product.getProductName(),
+                product.getMrp(), productId).isPresent()) {
+            throw new ApiException(ApiStatus.CONFLICT, "Product already exists for this client with same name and MRP",
+                    "product", "Duplicate product for client");
         }
 
-        if (productDao.existsByClientIdAndProductNameAndMrpAndNotId(
-                clientId,
-                newName,
-                newMrp,
-                productId)) {
-
-            throw new ApiException(
-                    ApiStatus.CONFLICT,
-                    "Product already exists for this client with same name and MRP",
-                    "product",
-                    "Duplicate product for client"
-            );
-        }
-
-        existing.setProductName(newName);
-        existing.setMrp(newMrp);
-        existing.setBarcode(newBarcode);
+        existing.setProductName(product.getProductName());
+        existing.setMrp(product.getMrp());
+        existing.setBarcode(product.getBarcode());
         existing.setImageUrl(product.getImageUrl());
 
         return productDao.save(existing);
     }
 
+    @Transactional(readOnly = true)
     public Page<ProductEntity> searchProducts(Integer clientId, String barcode, String productName, Pageable pageable) {
-        return productDao.searchProducts(clientId, barcode, productName, pageable);
+        return productDao.selectByFilters(clientId, barcode, productName, pageable);
     }
 
-    public List<ProductEntity> bulkCreateProducts(List<ProductEntity> products) {
+    public List<ProductEntity> getByNames(List<String> names) {
 
-        List<String> barcodes = products.stream().map(ProductEntity::getBarcode).toList();
+        List<ProductEntity> products = productDao.selectByNameIn(names);
 
-        List<Integer> clientIds = products.stream().map(ProductEntity::getClientId).distinct().toList();
-
-        List<String> existingBarcodes = productDao.findExistingBarcodes(barcodes);
-
-        if (!existingBarcodes.isEmpty()) {
-            throw new ApiException(
-                    ApiStatus.CONFLICT, "Duplicate barcodes: " + existingBarcodes, "barcode", "Duplicate barcodes found"
+        if (products.size() != names.size()) {
+            throw new ApiException(ApiStatus.NOT_FOUND, "One or more products not found", "productName",
+                    "One or more products not found"
             );
         }
 
-        List<String> existingClientNameMrpCombinations = productDao.findExistingClientNameMrpCombinations(products);
-
-        if (!existingClientNameMrpCombinations.isEmpty()) {
-            throw new ApiException(
-                    ApiStatus.CONFLICT, 
-                    "Duplicate product combinations (client-name-mrp): " + existingClientNameMrpCombinations, 
-                    "product", 
-                    "Duplicate product for client with same name and MRP"
-            );
-        }
-
-        List<Integer> nonExistentClients = clientApi.getNonExistentClientIds(clientIds);
-
-        if (!nonExistentClients.isEmpty()) {
-            throw new ApiException(
-                    ApiStatus.NOT_FOUND, "Clients not found: " + nonExistentClients, "clientId", "Some clients do not exist"
-            );
-        }
-
-        List<Integer> disabledClients = clientApi.getDisabledClientIds(clientIds);
-
-        if (!disabledClients.isEmpty()) {
-            throw new ApiException(
-                    ApiStatus.FORBIDDEN, "Disabled clients: " + disabledClients, "clientId", "Some clients are disabled"
-            );
-        }
-
-        return productDao.saveAll(products);
+        return products;
     }
 
-    public List<ProductEntity> getByIds(List<Integer> ids) {
-        return productDao.findAllById(ids);
+    public ProductEntity getByName(String name) {
+        ProductEntity product = productDao.selectByName(name);
+
+        if(Objects.isNull(product)) {
+                throw new ApiException(ApiStatus.NOT_FOUND, "Product not found: " + name, "productName",
+                    "Product not found: " + name);
+        }
+        return product;
     }
 }
