@@ -6,7 +6,8 @@ import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.*;
 import com.increff.pos.model.form.*;
 import com.increff.pos.model.internal.DaySalesAggregate;
-import com.increff.pos.model.internal.ProductUniquenessKey;
+import com.increff.pos.model.internal.InventoryUploadModel;
+import com.increff.pos.model.internal.ProductUploadModel;
 import com.increff.pos.model.internal.SalesReportRow;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -102,37 +103,30 @@ public final class ConversionUtil {
         return entity;
     }
 
+    public static ProductEntity convertProductUploadToEntity(ProductUploadModel upload, Integer clientId) {
+        ProductEntity entity = new ProductEntity();
+        entity.setClientId(clientId);
+        entity.setProductName(upload.getProductName());
+        entity.setBarcode(upload.getBarcode());
+        entity.setMrp(upload.getMrp());
+        entity.setImageUrl(upload.getImageUrl());
+        return entity;
+    }
+
+    public static ProductUploadModel convertProductUploadFormToUploadModel(ProductUploadForm form){
+        return map(form, ProductUploadModel.class);
+    }
+
     public static ProductData productEntityToData(ProductEntity entity) {
         return map(entity, ProductData.class);
     }
 
-    public static ProductForm convertUploadToProductForm(ProductUploadForm uploadForm, Integer clientId) {
-
-        ProductForm form = new ProductForm();
-
-        form.setProductName(normalize(uploadForm.getProductName()));
-
-        form.setMrp(uploadForm.getMrp());
-
-        form.setClientId(clientId);
-
-        form.setBarcode(normalize(uploadForm.getBarcode()));
-
-        form.setImageUrl(uploadForm.getImageUrl());
-
-        return form;
+    public static InventoryUploadModel inventoryUploadFormToModel(InventoryUploadForm uploadForm){
+        return map(uploadForm, InventoryUploadModel.class);
     }
 
     public static InventoryEntity inventoryFormToEntity(InventoryForm form) {
         return map(form, InventoryEntity.class);
-    }
-
-    public static InventoryEntity inventoryUploadFormToEntity(InventoryUploadForm form, Integer productId) {
-
-        InventoryEntity entity = new InventoryEntity();
-        entity.setProductId(productId);
-        entity.setQuantity(form.getQuantity());
-        return entity;
     }
 
     public static InventoryData inventoryEntityToData(InventoryEntity entity, ProductEntity product) {
@@ -154,7 +148,7 @@ public final class ConversionUtil {
         return map(entity, UserData.class);
     }
 
-    public static InvoiceItemForm orderItemEntityToInvoiceItemForm(
+    public static InvoiceItemData orderItemEntityToInvoiceItemForm(
             OrderItemEntity item, Map<Integer, ProductEntity> productMap
     ) {
         ProductEntity product = productMap.get(item.getProductId());
@@ -163,7 +157,7 @@ public final class ConversionUtil {
                     "Product not found: " + item.getProductId());
         }
 
-        InvoiceItemForm form = new InvoiceItemForm();
+        InvoiceItemData form = new InvoiceItemData();
         form.setProductName(product.getProductName());
         form.setQuantity(item.getQuantity());
         form.setSellingPrice(item.getSellingPrice());

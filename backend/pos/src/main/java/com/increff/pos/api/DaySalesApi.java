@@ -16,8 +16,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-@Transactional
 @Service
+@Transactional
 public class DaySalesApi {
 
     @Autowired
@@ -27,7 +27,6 @@ public class DaySalesApi {
     private ReportDao reportDao;
 
     public void calculateForDate(LocalDate date) {
-
         ZoneId ist = ZoneId.of("Asia/Kolkata");
         ZoneId utc = ZoneId.of("UTC");
 
@@ -45,12 +44,10 @@ public class DaySalesApi {
 
     @Transactional(readOnly = true)
     public Page<DaySalesEntity> findByDateRange(LocalDate startDate, LocalDate endDate, Pageable pageable) {
-
         return daySalesDao.selectByDateRange(startDate, endDate, pageable);
     }
 
     public List<DaySalesEntity> findAllByDateRange(LocalDate startDate, LocalDate endDate) {
-
         return daySalesDao.selectAllByDateRange(startDate, endDate);
     }
 }

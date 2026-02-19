@@ -10,8 +10,8 @@ import lombok.Setter;
 @Setter
 public class InventoryUploadForm {
 
-    @NotBlank(message = "Product name is required")
-    private String productName;
+    @NotBlank(message = "Barcode is required")
+    private String barcode;
 
     @NotNull(message = "Quantity is required")
     @Min(value = 0, message = "Quantity cannot be negative")

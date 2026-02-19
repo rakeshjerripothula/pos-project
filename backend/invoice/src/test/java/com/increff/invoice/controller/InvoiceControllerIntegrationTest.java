@@ -11,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,8 +35,7 @@ public class InvoiceControllerIntegrationTest {
         item.setLineTotal(new BigDecimal("100.00"));
 
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-001");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(1);
         form.setClientName("Test Client");
         form.setItems(Collections.singletonList(item));
         form.setTotalAmount(new BigDecimal("100.00"));

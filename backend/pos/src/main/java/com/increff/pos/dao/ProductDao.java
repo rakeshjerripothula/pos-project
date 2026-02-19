@@ -99,21 +99,6 @@ public class ProductDao extends AbstractDao<ProductEntity> {
         return result.isEmpty() ? null : result.getFirst();
     }
 
-    public List<ProductEntity> selectByNameIn(List<String> names) {
-        if (names == null || names.isEmpty()) return List.of();
-
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<ProductEntity> cq = cb.createQuery(ProductEntity.class);
-
-        Root<ProductEntity> root = cq.from(ProductEntity.class);
-
-        Predicate namePredicate = root.get("name").in(names);
-
-        cq.select(root).where(namePredicate);
-
-        return em.createQuery(cq).getResultList();
-    }
-
     public Page<ProductEntity> selectByFilters(Integer clientId, String barcode, String productName, Pageable pageable) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<ProductEntity> dataQuery = buildSelectQuery(cb, clientId, barcode, productName);

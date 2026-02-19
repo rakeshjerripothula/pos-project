@@ -2,14 +2,14 @@ package com.increff.pos.flow;
 
 import com.increff.pos.api.ClientApi;
 import com.increff.pos.api.InventoryApi;
+import com.increff.pos.api.ProductApi;
 import com.increff.pos.entity.InventoryEntity;
-import com.increff.pos.entity.OrderItemEntity;
 import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.InventoryData;
 import com.increff.pos.model.data.PagedResponse;
-import com.increff.pos.model.form.InventoryUploadForm;
+import com.increff.pos.model.internal.InventoryUploadModel;
 import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -29,10 +29,10 @@ public class InventoryFlow {
     private InventoryApi inventoryApi;
 
     @Autowired
-    private ProductFlow productFlow;
+    private ClientApi clientApi;
 
     @Autowired
-    private ClientApi clientApi;
+    private ProductApi productApi;
 
     public List<InventoryData> getAllForEnabledClients() {
         List<InventoryEntity> inventories = inventoryApi.getAllForEnabledClients();
@@ -60,31 +60,24 @@ public class InventoryFlow {
         return convertToData(saved);
     }
 
-    public List<InventoryEntity> getInventoriesByProductIds(List<Integer> productIds) {
-        List<InventoryEntity> inventories = inventoryApi.getByProductIds(productIds);
-        if (inventories.size() != productIds.size())
-            throw new ApiException(ApiStatus.NOT_FOUND, "Inventory not found for one or more products", "productId",
-                    "Inventory not found for one or more products");
-        return inventories;
-    }
+    @Transactional(rollbackFor = ApiException.class)
+    public InventoryData upsertFromUpload(InventoryUploadModel upload) {
 
-    public InventoryEntity validateForUpload(InventoryUploadForm form) {
-
-        String normalized = form.getProductName().trim().toLowerCase();
-
-        ProductEntity product = productFlow.getByName(normalized);
+        ProductEntity product = productApi.getCheckByBarcode(upload.getBarcode());
 
         clientApi.checkClientEnabled(product.getClientId());
 
         InventoryEntity entity = new InventoryEntity();
         entity.setProductId(product.getId());
-        entity.setQuantity(form.getQuantity());
+        entity.setQuantity(upload.getQuantity());
 
-        return entity;
+        InventoryEntity saved = inventoryApi.upsert(entity);
+
+        return ConversionUtil.inventoryEntityToData(saved, product);
     }
 
     private ProductEntity validateProductAndClient(Integer productId) {
-        ProductEntity product = productFlow.getProductById(productId);
+        ProductEntity product = productApi.getCheckProductById(productId);
         clientApi.checkClientEnabled(product.getClientId());
         return product;
     }
@@ -112,6 +105,6 @@ public class InventoryFlow {
 
     private Map<Integer, ProductEntity> buildProductMap(List<InventoryEntity> inventories) {
         List<Integer> productIds = inventories.stream().map(InventoryEntity::getProductId).distinct().toList();
-        return productFlow.getByIds(productIds).stream().collect(Collectors.toMap(ProductEntity::getId, p -> p));
+        return productApi.getByIds(productIds).stream().collect(Collectors.toMap(ProductEntity::getId, p -> p));
     }
 }

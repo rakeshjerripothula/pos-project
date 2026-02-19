@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,8 +30,7 @@ public class InvoiceDtoTest {
     @Test
     public void testGenerate() {
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-001");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(1);
         form.setClientName("Test Client");
         form.setItems(java.util.Collections.emptyList());
         form.setTotalAmount(BigDecimal.ZERO);
@@ -68,8 +66,7 @@ public class InvoiceDtoTest {
         item.setLineTotal(new BigDecimal("100.00"));
 
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-002");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(2);
         form.setClientName("Test Client");
         form.setItems(Collections.singletonList(item));
         form.setTotalAmount(new BigDecimal("100.00"));
@@ -86,8 +83,7 @@ public class InvoiceDtoTest {
     @Test
     public void testGenerateWithEmptyItemsList() {
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-003");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(3);
         form.setClientName("Test Client");
         form.setItems(Collections.emptyList());
         form.setTotalAmount(BigDecimal.ZERO);
@@ -104,8 +100,7 @@ public class InvoiceDtoTest {
     @Test
     public void testGenerateWithApiException() {
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-004");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(4);
         form.setClientName("Test Client");
         form.setItems(Collections.emptyList());
         form.setTotalAmount(BigDecimal.ZERO);
@@ -118,8 +113,7 @@ public class InvoiceDtoTest {
     @Test
     public void testGenerateWithNullBase64Response() {
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-005");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(5);
         form.setClientName("Test Client");
         form.setItems(Collections.emptyList());
         form.setTotalAmount(BigDecimal.ZERO);
@@ -134,8 +128,7 @@ public class InvoiceDtoTest {
     @Test
     public void testGenerateWithEmptyBase64Response() {
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-006");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(6);
         form.setClientName("Test Client");
         form.setItems(Collections.emptyList());
         form.setTotalAmount(BigDecimal.ZERO);

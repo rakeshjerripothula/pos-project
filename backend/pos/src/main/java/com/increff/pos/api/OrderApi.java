@@ -10,10 +10,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
 
 @Service
+@Transactional
 public class OrderApi {
 
     @Autowired
@@ -23,7 +25,6 @@ public class OrderApi {
                                     Integer page, Integer pageSize) {
 
         Pageable pageable = PageRequest.of(page, pageSize);
-
         return orderDao.selectByFilters(status, clientId, start, end, pageable);
     }
 
@@ -31,13 +32,14 @@ public class OrderApi {
         return orderDao.save(order);
     }
 
-    public OrderEntity getById(Integer orderId) {
+    public OrderEntity getCheckById(Integer orderId) {
         return orderDao.selectById(orderId)
                 .orElseThrow(() -> new ApiException(
                         ApiStatus.NOT_FOUND, "Order not found", "orderId", "Order not found: " + orderId));
     }
 
-    public OrderEntity update(OrderEntity order) {
+    public OrderEntity updateStatus(OrderEntity order, OrderStatus status) {
+        order.setStatus(status);
         return orderDao.save(order);
     }
 

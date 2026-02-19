@@ -1,6 +1,5 @@
 package com.increff.pos.dto;
 
-import com.increff.pos.entity.InventoryEntity;
 import com.increff.pos.flow.InventoryFlow;
 import com.increff.pos.model.data.InventoryData;
 import com.increff.pos.model.data.PagedResponse;
@@ -12,6 +11,7 @@ import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.exception.TsvUploadException;
 import com.increff.pos.model.form.InventorySearchForm;
 import com.increff.pos.model.form.InventoryUploadForm;
+import com.increff.pos.model.internal.InventoryUploadModel;
 import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -65,34 +65,33 @@ public class InventoryDto extends AbstractDto {
         if (file == null || file.isEmpty()) {
             throw new ApiException(ApiStatus.BAD_REQUEST, "Empty file");
         }
-        List<InventoryUploadForm> uploadForms = parseInventoryTsv(file);
-        TsvUploadResult<InventoryUploadForm> structuralResult = validateStructural(uploadForms);
-        if (!structuralResult.isSuccess()) {
-            throw new TsvUploadException(structuralResult.getErrors(), ApiStatus.BAD_REQUEST);
-        }
-        TsvUploadResult<InventoryEntity> businessResult = validateBusiness(structuralResult.getData());
-        if (!businessResult.isSuccess()) {
-            throw new TsvUploadException(businessResult.getErrors(), ApiStatus.BAD_REQUEST);
+
+        List<InventoryUploadForm> forms = parseInventoryTsv(file);
+
+        TsvUploadResult<InventoryUploadForm> structural = validateStructural(forms);
+
+        if (!structural.isSuccess()) {
+            throw new TsvUploadException(structural.getErrors(), ApiStatus.BAD_REQUEST);
         }
 
-        List<InventoryData> saved = inventoryFlow.bulkUpsert(businessResult.getData());
+        List<InventoryUploadModel> uploads = structural.getData().stream().map(ConversionUtil::inventoryUploadFormToModel).toList();
 
-        return TsvUploadResult.success(saved);
+        return processRowWise(uploads);
     }
 
 
     private TsvUploadResult<InventoryUploadForm> validateStructural(List<InventoryUploadForm> forms) {
 
         List<TsvUploadError> errors = new ArrayList<>();
-        Set<String> seenNames = new HashSet<>();
+        Set<String> seenBarcodes = new HashSet<>();
         for (int i = 0; i < forms.size(); i++) {
             InventoryUploadForm form = forms.get(i);
             int rowNumber = i + 2;
             try {
                 checkValid(form);
-                String normalized = form.getProductName().trim().toLowerCase();
-                if (!seenNames.add(normalized)) {
-                    throw new ApiException(ApiStatus.BAD_REQUEST, "Duplicate product in file");
+                String normalized = form.getBarcode().trim().toLowerCase();
+                if (!seenBarcodes.add(normalized)) {
+                    throw new ApiException(ApiStatus.BAD_REQUEST, "Duplicate barcode in file");
                 }
             } catch (Exception e) {
                 errors.add(new TsvUploadError(rowNumber, null, e.getMessage()));
@@ -104,24 +103,28 @@ public class InventoryDto extends AbstractDto {
         return TsvUploadResult.success(forms);
     }
 
-    private TsvUploadResult<InventoryEntity> validateBusiness(List<InventoryUploadForm> forms) {
+    private TsvUploadResult<InventoryData> processRowWise(List<InventoryUploadModel> uploads) {
 
         List<TsvUploadError> errors = new ArrayList<>();
-        List<InventoryEntity> validEntities = new ArrayList<>();
-        for (int i = 0; i < forms.size(); i++) {
-            InventoryUploadForm form = forms.get(i);
+        List<InventoryData> success = new ArrayList<>();
+        for (int i = 0; i < uploads.size(); i++) {
+            InventoryUploadModel upload = uploads.get(i);
             int rowNumber = i + 2;
             try {
-                InventoryEntity entity = inventoryFlow.validateForUpload(form);
-                validEntities.add(entity);
+                InventoryData data = inventoryFlow.upsertFromUpload(upload);
+
+                success.add(data);
+
             } catch (ApiException e) {
                 errors.add(new TsvUploadError(rowNumber, null, e.getMessage()));
             }
         }
+
         if (!errors.isEmpty()) {
             return TsvUploadResult.failure(errors);
         }
-        return TsvUploadResult.success(validEntities);
+
+        return TsvUploadResult.success(success);
     }
 
 }

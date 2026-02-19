@@ -52,15 +52,6 @@ public class ClientDao extends AbstractDao<ClientEntity> {
         return em.createQuery(cq).getResultList();
     }
 
-    public List<Integer> selectExistingIds(List<Integer> clientIds) {
-        if (clientIds == null || clientIds.isEmpty()) return List.of();
-        CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Integer> cq = cb.createQuery(Integer.class);
-        Root<ClientEntity> root = cq.from(ClientEntity.class);
-        cq.select(root.get("id")).where(root.get("id").in(clientIds));
-        return em.createQuery(cq).getResultList();
-    }
-
     public Optional<ClientEntity> selectByClientName(String clientName) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
@@ -96,7 +87,8 @@ public class ClientDao extends AbstractDao<ClientEntity> {
         return cq;
     }
 
-    private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<ClientEntity> root, String clientName, Boolean enabled) {
+    private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<ClientEntity> root, String clientName,
+                                            Boolean enabled) {
         List<Predicate> predicates = new ArrayList<>();
         if (clientName != null && !clientName.trim().isEmpty())
             predicates.add(cb.like(root.get("clientName"), clientName + "%"));

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 public class InvoiceApi {
 
     @Autowired
@@ -25,14 +26,14 @@ public class InvoiceApi {
     }
 
     @Transactional(readOnly = true)
-    public InvoiceEntity getByOrderId(Integer orderId) {
+    public InvoiceEntity getCheckByOrderId(Integer orderId) {
         return invoiceDao.selectByOrderId(orderId)
                 .orElseThrow(() -> new ApiException(ApiStatus.NOT_FOUND, "Invoice not found for order " + orderId));
     }
 
     @Transactional(readOnly = true)
     public byte[] download(Integer orderId) {
-        InvoiceEntity invoice = getByOrderId(orderId);
+        InvoiceEntity invoice = getCheckByOrderId(orderId);
         try {
             return java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(invoice.getFilePath()));
         } catch (Exception e) {

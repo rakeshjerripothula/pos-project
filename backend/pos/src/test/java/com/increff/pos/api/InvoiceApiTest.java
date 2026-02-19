@@ -84,7 +84,7 @@ class InvoiceApiTest {
         when(invoiceDao.selectByOrderId(123)).thenReturn(Optional.of(invoice));
 
         // Act
-        InvoiceEntity result = invoiceApi.getByOrderId(123);
+        InvoiceEntity result = invoiceApi.getCheckByOrderId(123);
 
         // Assert
         assertEquals(123, result.getOrderId());
@@ -98,7 +98,7 @@ class InvoiceApiTest {
         when(invoiceDao.selectByOrderId(999)).thenReturn(Optional.empty());
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> invoiceApi.getByOrderId(999));
+        ApiException exception = assertThrows(ApiException.class, () -> invoiceApi.getCheckByOrderId(999));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("Invoice not found for order 999", exception.getMessage());
         verify(invoiceDao).selectByOrderId(999);

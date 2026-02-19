@@ -7,7 +7,6 @@ import com.increff.invoice.model.internal.InvoiceModel;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,16 +23,14 @@ public class ConversionUtilTest {
         itemForm.setLineTotal(new BigDecimal("100.00"));
 
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-001");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(1);
         form.setClientName("Test Client");
         form.setTotalAmount(new BigDecimal("100.00"));
         form.setItems(Collections.singletonList(itemForm));
 
         InvoiceModel result = ConversionUtil.convertInvoiceFormToModel(form);
 
-        assertEquals("INV-001", result.getInvoiceNumber());
-        assertEquals(form.getInvoiceDate(), result.getInvoiceDate());
+        assertEquals("INV-1", result.getInvoiceNumber());
         assertEquals("Test Client", result.getClientName());
         assertEquals(new BigDecimal("100.00"), result.getTotalAmount());
         assertNotNull(result.getItems());
@@ -49,16 +46,14 @@ public class ConversionUtilTest {
     @Test
     public void testConvertInvoiceFormToModel_WithEmptyItems() {
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-002");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(2);
         form.setClientName("Test Client");
         form.setTotalAmount(BigDecimal.ZERO);
         form.setItems(Collections.emptyList());
 
         InvoiceModel result = ConversionUtil.convertInvoiceFormToModel(form);
 
-        assertEquals("INV-002", result.getInvoiceNumber());
-        assertEquals(form.getInvoiceDate(), result.getInvoiceDate());
+        assertEquals("INV-2", result.getInvoiceNumber());
         assertEquals("Test Client", result.getClientName());
         assertEquals(BigDecimal.ZERO, result.getTotalAmount());
         assertNotNull(result.getItems());
@@ -68,16 +63,14 @@ public class ConversionUtilTest {
     @Test
     public void testConvertInvoiceFormToModel_WithNullItems() {
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-003");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(3);
         form.setClientName("Test Client");
         form.setTotalAmount(new BigDecimal("200.00"));
         form.setItems(null);
 
         InvoiceModel result = ConversionUtil.convertInvoiceFormToModel(form);
 
-        assertEquals("INV-003", result.getInvoiceNumber());
-        assertEquals(form.getInvoiceDate(), result.getInvoiceDate());
+        assertEquals("INV-3", result.getInvoiceNumber());
         assertEquals("Test Client", result.getClientName());
         assertEquals(new BigDecimal("200.00"), result.getTotalAmount());
         assertNotNull(result.getItems());
@@ -99,15 +92,14 @@ public class ConversionUtilTest {
         item2.setLineTotal(new BigDecimal("60.00"));
 
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-004");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(4);
         form.setClientName("Test Client");
         form.setTotalAmount(new BigDecimal("70.00"));
         form.setItems(List.of(item1, item2));
 
         InvoiceModel result = ConversionUtil.convertInvoiceFormToModel(form);
 
-        assertEquals("INV-004", result.getInvoiceNumber());
+        assertEquals("INV-4", result.getInvoiceNumber());
         assertEquals(new BigDecimal("70.00"), result.getTotalAmount());
         assertNotNull(result.getItems());
         assertEquals(2, result.getItems().size());
@@ -210,15 +202,13 @@ public class ConversionUtilTest {
         itemForm.setLineTotal(new BigDecimal("999999999.99"));
 
         InvoiceForm form = new InvoiceForm();
-        form.setInvoiceNumber("INV-LARGE");
-        form.setInvoiceDate(ZonedDateTime.now());
+        form.setOrderId(99999999);
         form.setClientName("Wealthy Client");
         form.setTotalAmount(new BigDecimal("999999999.99"));
         form.setItems(Collections.singletonList(itemForm));
 
         InvoiceModel result = ConversionUtil.convertInvoiceFormToModel(form);
 
-        assertEquals("INV-LARGE", result.getInvoiceNumber());
         assertEquals(Integer.MAX_VALUE, result.getItems().get(0).getQuantity());
         assertEquals(new BigDecimal("999999999.99"), result.getItems().get(0).getSellingPrice());
         assertEquals(new BigDecimal("999999999.99"), result.getTotalAmount());

@@ -3,8 +3,8 @@ package com.increff.pos.util;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.form.InventoryUploadForm;
-import com.increff.pos.model.form.ProductForm;
 import com.increff.pos.model.form.ProductUploadForm;
+import org.jspecify.annotations.NonNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
@@ -31,25 +31,9 @@ public class TsvParseUtils {
 
         for (String[] r : rows) {
 
-            ProductUploadForm form = new ProductUploadForm();
+            ProductUploadForm form = getProductUploadForm(r);
 
-            form.setProductName(r.length > 0 ? r[0] : null);
-            form.setMrp(parseBigDecimalSafely(r.length > 1 ? r[1] : null));
-            form.setClientName(r.length > 2 ? r[2] : null);
-            form.setBarcode(r.length > 3 ? r[3] : null);
-            form.setImageUrl(r.length > 4 ? r[4] : null);
-
-            if(!Objects.isNull(form.getProductName())){
-                form.setProductName(normalize(form.getProductName()));
-            }
-
-            if(!Objects.isNull(form.getClientName())){
-                form.setClientName(normalize(form.getClientName()));
-            }
-
-            if(!Objects.isNull(form.getBarcode())){
-                form.setBarcode(normalize(form.getBarcode()));
-            }
+            normalizeProductUploadForm(form);
 
             forms.add(form);
         }
@@ -62,42 +46,69 @@ public class TsvParseUtils {
         List<String[]> rows = parse(file);
 
         if (rows.size() > 5000) {
-            throw new ApiException(
-                    ApiStatus.BAD_REQUEST,
-                    "Maximum 5000 rows allowed"
-            );
+            throw new ApiException(ApiStatus.BAD_REQUEST, "Maximum 5000 rows allowed");
         }
-
         List<InventoryUploadForm> forms = new ArrayList<>();
 
         for (String[] r : rows) {
 
-            InventoryUploadForm form = new InventoryUploadForm();
-
-            form.setProductName(r.length > 0 ? r[0] : null);
-
-            form.setQuantity(parseIntegerSafely(
-                    r.length > 1 ? r[1] : null
-            ));
-
+            InventoryUploadForm form = getInventoryUploadForm(r);
+            normalizeInventoryUploadForm(form);
             forms.add(form);
         }
 
         return forms;
     }
 
+    private static void normalizeInventoryUploadForm(InventoryUploadForm form) {
+        if(Objects.nonNull(form.getBarcode())){
+            form.setBarcode(normalize(form.getBarcode()));
+        }
+    }
+
+    private static @NonNull InventoryUploadForm getInventoryUploadForm(String[] r) {
+        InventoryUploadForm form = new InventoryUploadForm();
+
+        form.setBarcode(r.length > 0 ? r[0] : null);
+
+        form.setQuantity(parseIntegerSafely(r.length > 1 ? r[1] : null));
+        return form;
+    }
+
     private static List<String[]> parse(MultipartFile file) {
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(file.getInputStream()))) {
 
-            return br.lines()
-                    .skip(1) // skip header
-                    .map(line -> line.split("\t", -1))
-                    .toList();
+            return br.lines().skip(1).map(line -> line.split("\t", -1)).toList();
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to parse TSV file");
         }
+    }
+
+
+    private static void normalizeProductUploadForm(ProductUploadForm form) {
+        if(Objects.nonNull(form.getProductName())){
+            form.setProductName(normalize(form.getProductName()));
+        }
+
+        if(Objects.nonNull(form.getClientName())){
+            form.setClientName(normalize(form.getClientName()));
+        }
+
+        if(Objects.nonNull(form.getBarcode())){
+            form.setBarcode(normalize(form.getBarcode()));
+        }
+    }
+
+    private static @NonNull ProductUploadForm getProductUploadForm(String[] r) {
+        ProductUploadForm form = new ProductUploadForm();
+        form.setProductName(r.length > 0 ? r[0] : null);
+        form.setMrp(parseBigDecimalSafely(r.length > 1 ? r[1] : null));
+        form.setClientName(r.length > 2 ? r[2] : null);
+        form.setBarcode(r.length > 3 ? r[3] : null);
+        form.setImageUrl(r.length > 4 ? r[4] : null);
+        return form;
     }
 
     private static BigDecimal parseBigDecimalSafely(String value) {

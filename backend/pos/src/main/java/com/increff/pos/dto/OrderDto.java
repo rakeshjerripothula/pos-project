@@ -1,12 +1,14 @@
 package com.increff.pos.dto;
 
+import com.increff.pos.api.OrderApi;
 import com.increff.pos.client.InvoiceClient;
 import com.increff.pos.entity.InvoiceEntity;
 import com.increff.pos.entity.OrderEntity;
 import com.increff.pos.entity.OrderItemEntity;
 import com.increff.pos.flow.OrderFlow;
 import com.increff.pos.model.data.*;
-import com.increff.pos.model.form.InvoiceForm;
+import com.increff.pos.model.data.InvoiceClientForm;
+import com.increff.pos.model.form.InvoicePdfData;
 import com.increff.pos.model.form.OrderForm;
 import com.increff.pos.model.form.OrderPageForm;
 import com.increff.pos.exception.ApiException;
@@ -31,36 +33,21 @@ public class OrderDto extends AbstractDto {
     private OrderFlow orderFlow;
 
     @Autowired
+    private OrderApi orderApi;
+
+    @Autowired
     private InvoiceClient invoiceClient;
 
     @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public OrderPageData getOrders(OrderPageForm form) {
 
-        ZonedDateTime start = null;
-        ZonedDateTime end = null;
+        DateRange dateRange = parseAndCheckDateRange(form);
 
-        try {
-            if (!Objects.isNull(form.getStartDate())) {
-                start = ZonedDateTime.parse(form.getStartDate());
-            }
+        int page = Objects.nonNull(form.getPage()) ? form.getPage() : 0;
+        int pageSize = Objects.nonNull(form.getPageSize()) ? form.getPageSize() : 10;
 
-            if (!Objects.isNull(form.getEndDate())) {
-                end = ZonedDateTime.parse(form.getEndDate());
-            }
-        } catch (Exception e) {
-            throw new ApiException(
-                    ApiStatus.BAD_REQUEST, "Invalid date format. Please use ISO date format (e.g., 2023-01-01T00:00:00Z)",
-                    "dates", "Invalid date format"
-            );
-        }
-
-        ValidationUtil.validateOptionalDateRange(start, end);
-
-        int page = !Objects.isNull(form.getPage()) ? form.getPage() : 0;
-        int pageSize = !Objects.isNull(form.getPageSize()) ? form.getPageSize() : 10;
-
-        Page<OrderEntity> pageResult =
-                orderFlow.searchOrders(form.getStatus(), form.getClientId(), start, end, page, pageSize);
+        Page<OrderEntity> pageResult = orderApi.search(form.getStatus(), form.getClientId(), dateRange.start(),
+                dateRange.end(), page, pageSize);
 
         List<OrderData> orders = pageResult.getContent().stream().map(ConversionUtil::orderEntityToData).toList();
 
@@ -87,18 +74,16 @@ public class OrderDto extends AbstractDto {
 
     @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public OrderData cancel(Integer orderId) {
-        if (Objects.isNull(orderId)) {
-            throw new ApiException(ApiStatus.BAD_REQUEST, "Order ID is required", "orderId", "Order ID is required");
-        }
+        validateOrderId(orderId);
         return ConversionUtil.orderEntityToData(orderFlow.cancelOrder(orderId));
     }
 
     @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public InvoiceSummaryData generateInvoice(Integer orderId) {
 
-        InvoiceForm form = orderFlow.buildInvoiceForm(orderId);
+        InvoiceClientForm form = orderFlow.buildInvoiceForm(orderId);
 
-        InvoiceData data = invoiceClient.generate(form);
+        InvoicePdfData data = invoiceClient.generate(form);
 
         String filePath = PdfUtil.save(data.getBase64Pdf(), orderId);
 
@@ -109,11 +94,7 @@ public class OrderDto extends AbstractDto {
 
     @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public byte[] downloadInvoice(Integer orderId) {
-
-        if (orderId == null) {
-            throw new ApiException(ApiStatus.BAD_REQUEST, "Order ID is required", "orderId", "Order ID is required");
-        }
-
+        validateOrderId(orderId);
         return orderFlow.downloadInvoice(orderId);
     }
 
@@ -123,4 +104,29 @@ public class OrderDto extends AbstractDto {
         }
     }
 
+    private static DateRange parseAndCheckDateRange(OrderPageForm form) {
+        ZonedDateTime start = null;
+        ZonedDateTime end = null;
+
+        try {
+            if (Objects.nonNull(form.getStartDate())) {
+                start = ZonedDateTime.parse(form.getStartDate());
+            }
+
+            if (Objects.nonNull(form.getEndDate())) {
+                end = ZonedDateTime.parse(form.getEndDate());
+            }
+        } catch (Exception e) {
+            throw new ApiException(
+                    ApiStatus.BAD_REQUEST, "Invalid date format. Please use ISO date format (e.g., 2023-01-01T00:00:00Z)",
+                    "dates", "Invalid date format"
+            );
+        }
+
+        ValidationUtil.validateOptionalDateRange(start, end);
+        return new DateRange(start, end);
+    }
+
+    private record DateRange(ZonedDateTime start, ZonedDateTime end) {
+    }
 }

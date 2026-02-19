@@ -639,7 +639,7 @@ class OrderFlowTest {
         when(clientApi.getById(1)).thenReturn(client);
 
         // Act
-        com.increff.pos.model.form.InvoiceForm result = orderFlow.buildInvoiceForm(orderId);
+        com.increff.pos.model.data.InvoiceClientData result = orderFlow.buildInvoiceForm(orderId);
 
         // Assert
         assertNotNull(result);

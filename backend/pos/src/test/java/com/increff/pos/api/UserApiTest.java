@@ -174,7 +174,7 @@ class UserApiTest {
         when(userDao.selectById(1)).thenReturn(Optional.of(user));
 
         // Act
-        UserEntity result = userApi.getById(1);
+        UserEntity result = userApi.getCheckById(1);
 
         // Assert
         assertEquals(1, result.getId());
@@ -188,7 +188,7 @@ class UserApiTest {
         when(userDao.selectById(1)).thenReturn(Optional.empty());
 
         // Act & Assert
-        ApiException exception = assertThrows(ApiException.class, () -> userApi.getById(1));
+        ApiException exception = assertThrows(ApiException.class, () -> userApi.getCheckById(1));
         assertEquals(ApiStatus.NOT_FOUND, exception.getStatus());
         assertEquals("User not found: 1", exception.getMessage());
         verify(userDao).selectById(1);

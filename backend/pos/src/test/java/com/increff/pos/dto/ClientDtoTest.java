@@ -1,6 +1,5 @@
 package com.increff.pos.dto;
 
-import com.increff.pos.api.ClientApi;
 import com.increff.pos.entity.ClientEntity;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.model.data.ClientData;

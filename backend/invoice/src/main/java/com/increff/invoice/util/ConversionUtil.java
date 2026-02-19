@@ -5,6 +5,7 @@ import com.increff.invoice.model.form.InvoiceItemForm;
 import com.increff.invoice.model.internal.InvoiceItemModel;
 import com.increff.invoice.model.internal.InvoiceModel;
 
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
@@ -12,8 +13,8 @@ public class ConversionUtil {
 
     public static InvoiceModel convertInvoiceFormToModel(InvoiceForm form) {
         InvoiceModel model = new InvoiceModel();
-        model.setInvoiceNumber(form.getInvoiceNumber());
-        model.setInvoiceDate(form.getInvoiceDate());
+        model.setInvoiceNumber("INV-" + form.getOrderId());
+        model.setInvoiceDate(ZonedDateTime.now());
         model.setClientName(form.getClientName());
         model.setTotalAmount(form.getTotalAmount());
 

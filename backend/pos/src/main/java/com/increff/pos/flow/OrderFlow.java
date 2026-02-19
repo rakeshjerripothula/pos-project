@@ -6,20 +6,18 @@ import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.exception.ApiException;
 import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.OrderItemData;
-import com.increff.pos.model.form.InvoiceForm;
+import com.increff.pos.model.data.InvoiceClientForm;
 import com.increff.pos.util.ConversionUtil;
 import com.increff.pos.util.InvoiceConverter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZonedDateTime;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.increff.pos.util.ConversionUtil.createOrderItem;
@@ -41,15 +39,10 @@ public class OrderFlow {
     private ClientApi clientApi;
 
     @Autowired
-    private InventoryFlow inventoryFlow;
+    private InventoryApi inventoryApi;
 
     @Autowired
     private InvoiceApi invoiceApi;
-
-    public Page<OrderEntity> searchOrders(OrderStatus status, Integer clientId, ZonedDateTime start, ZonedDateTime end,
-            Integer page, Integer pageSize) {
-        return orderApi.search(status, clientId, start, end, page, pageSize);
-    }
 
     public List<OrderItemData> getOrderItems(Integer orderId) {
 
@@ -66,7 +59,6 @@ public class OrderFlow {
     }
 
     public OrderEntity createOrder(List<OrderItemEntity> items) {
-        validateOrderItems(items);
         List<OrderItemEntity> aggregatedItems = aggregateOrderItems(items);
         Map<Integer, ProductEntity> productMap = getProductMap(aggregatedItems);
 
@@ -87,16 +79,9 @@ public class OrderFlow {
     @Transactional(readOnly = true)
     public byte[] downloadInvoice(Integer orderId) {
 
-        orderApi.getById(orderId);
+        orderApi.getCheckById(orderId);
 
         return invoiceApi.download(orderId);
-    }
-
-    private void validateOrderItems(List<OrderItemEntity> items) {
-        if (Objects.isNull(items) || items.isEmpty()) {
-            throw new ApiException(ApiStatus.BAD_REQUEST,
-                    "Order must contain at least one item", "items", "Order must contain at least one item");
-        }
     }
 
     private void validateSellingPriceAgainstMrp(List<OrderItemEntity> items, Map<Integer, ProductEntity> productMap) {
@@ -115,26 +100,33 @@ public class OrderFlow {
 
     private List<OrderItemEntity> aggregateOrderItems(List<OrderItemEntity> items) {
 
-        Map<String, OrderItemEntity> aggregated = items.stream()
-                .collect(Collectors.toMap(
-                        item -> buildKey(item.getProductId(), item.getSellingPrice()),
-                        item -> {
-                            OrderItemEntity copy = new OrderItemEntity();
-                            copy.setProductId(item.getProductId());
-                            copy.setQuantity(item.getQuantity());
-                            copy.setSellingPrice(item.getSellingPrice());
-                            return copy;
-                        },
-                        (existing, incoming) -> {
-                            existing.setQuantity(existing.getQuantity() + incoming.getQuantity());
-                            return existing;
-                        }
-                ));
+        Map<String, OrderItemEntity> aggregated = new HashMap<>();
+
+        for (OrderItemEntity item : items) {
+            String key = buildKey(item.getProductId(), item.getSellingPrice());
+
+            OrderItemEntity existing = aggregated.get(key);
+
+            if (existing == null) {
+                aggregated.put(key, createOrderItemCopy(item));
+            } else {
+                existing.setQuantity(existing.getQuantity() + item.getQuantity());
+            }
+        }
+
         return new ArrayList<>(aggregated.values());
     }
 
     private String buildKey(Integer productId, BigDecimal sellingPrice) {
         return productId + "_" + sellingPrice;
+    }
+
+    private OrderItemEntity createOrderItemCopy(OrderItemEntity source) {
+        OrderItemEntity copy = new OrderItemEntity();
+        copy.setProductId(source.getProductId());
+        copy.setSellingPrice(source.getSellingPrice());
+        copy.setQuantity(source.getQuantity());
+        return copy;
     }
 
     private void validateOrderTotalGreaterThanZero(List<OrderItemEntity> items) {
@@ -177,46 +169,14 @@ public class OrderFlow {
     private List<OrderItemEntity> processOrderItems(List<OrderItemEntity> items, Integer orderId,
             Map<Integer, ProductEntity> productMap) {
 
-        validateAndUpdateInventory(items, productMap);
+        inventoryApi.validateAndUpdateInventory(items, productMap);
 
         return items.stream().map(item -> createOrderItem(item, orderId)).toList();
     }
 
-
-    private void validateAndUpdateInventory(List<OrderItemEntity> items, Map<Integer, ProductEntity> productMap) {
-
-        List<Integer> productIds = items.stream().map(OrderItemEntity::getProductId).distinct().toList();
-        List<InventoryEntity> inventories = inventoryFlow.getInventoriesByProductIds(productIds);
-
-        Map<Integer, InventoryEntity> inventoryMap = inventories.stream()
-                .collect(Collectors.toMap(InventoryEntity::getProductId, i -> i));
-
-        List<InventoryEntity> updated = new ArrayList<>();
-
-        for (OrderItemEntity item : items) {
-
-            InventoryEntity inventory = inventoryMap.get(item.getProductId());
-
-            ProductEntity product = productMap.get(item.getProductId());
-
-            if (inventory.getQuantity() < item.getQuantity()) {
-                throw new ApiException(
-                        ApiStatus.CONFLICT, "Insufficient inventory for product: " + product.getProductName(),
-                        "quantity", "Insufficient inventory"
-                );
-            }
-
-            inventory.setQuantity(inventory.getQuantity() - item.getQuantity());
-
-            updated.add(inventory);
-        }
-
-        inventoryFlow.bulkUpsert(updated);
-    }
-
     public OrderEntity cancelOrder(Integer orderId) {
 
-        OrderEntity order = orderApi.getById(orderId);
+        OrderEntity order = orderApi.getCheckById(orderId);
 
         if (order.getStatus().equals(OrderStatus.INVOICED)) {
             throw new ApiException(
@@ -227,38 +187,15 @@ public class OrderFlow {
 
         List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
 
-        List<Integer> productIds = items.stream().map(OrderItemEntity::getProductId).distinct().toList();
+        inventoryApi.restoreInventory(items);
 
-        List<InventoryEntity> inventories = inventoryFlow.getInventoriesByProductIds(productIds);
-        Map<Integer, InventoryEntity> inventoryMap = inventories.stream()
-                .collect(Collectors.toMap(InventoryEntity::getProductId, inventory -> inventory));
-
-        List<InventoryEntity> updatedInventories = new ArrayList<>();
-        
-        for (OrderItemEntity item : items) {
-            InventoryEntity inventory = inventoryMap.get(item.getProductId());
-            int availableQty = inventory.getQuantity();
-            inventory.setQuantity(availableQty + item.getQuantity());
-            updatedInventories.add(inventory);
-        }
-
-        inventoryFlow.bulkUpsert(updatedInventories);
-
-        order.setStatus(OrderStatus.CANCELLED);
-        return orderApi.update(order);
-    }
-
-    public OrderEntity getById(Integer orderId) {
-        if (Objects.isNull(orderId)) {
-            throw new ApiException(ApiStatus.BAD_REQUEST, "Order ID is required", "orderId", "Order ID is required");
-        }
-        return orderApi.getById(orderId);
+        return orderApi.updateStatus(order, OrderStatus.CANCELLED);
     }
 
     @Transactional(readOnly = true)
-    public InvoiceForm buildInvoiceForm(Integer orderId) {
+    public InvoiceClientForm buildInvoiceForm(Integer orderId) {
 
-        OrderEntity order = orderApi.getById(orderId);
+        OrderEntity order = orderApi.getCheckById(orderId);
 
         if (!order.getStatus().equals(OrderStatus.CREATED)) {
             throw new ApiException(ApiStatus.BAD_REQUEST, "Only CREATED orders can be invoiced");
@@ -266,46 +203,28 @@ public class OrderFlow {
 
         List<OrderItemEntity> items = orderItemApi.getByOrderId(orderId);
 
-        if (items.isEmpty()) {
-            throw new ApiException(ApiStatus.BAD_REQUEST, "Order has no items");
-        }
-
         Map<Integer, ProductEntity> productMap = getProductMap(items);
 
-        ClientEntity client = clientApi.getById(order.getClientId());
+        ClientEntity client = clientApi.getCheckById(order.getClientId());
 
         return InvoiceConverter.convert(order, items, productMap, client.getClientName());
     }
 
     public InvoiceEntity saveInvoice(Integer orderId, String filePath) {
 
-        if (invoiceApi.existsForOrder(orderId)) {
-            throw new ApiException(
-                    ApiStatus.BAD_REQUEST, "Invoice already exists for order " + orderId
-            );
-        }
-
-        OrderEntity order = orderApi.getById(orderId);
-
-        if (!order.getStatus().equals(OrderStatus.CREATED)) {
-            throw new ApiException(
-                    ApiStatus.BAD_REQUEST,
-                    "Invoice can only be generated for CREATED orders"
-            );
-        }
-
-        InvoiceEntity invoice = new InvoiceEntity();
-        invoice.setOrderId(orderId);
-        invoice.setFilePath(filePath);
-
-        invoiceApi.create(invoice);
-
-        order.setStatus(OrderStatus.INVOICED);
-        orderApi.update(order);
-
+        OrderEntity order = orderApi.getCheckById(orderId);
+        InvoiceEntity invoice = createInvoiceEntity(orderId, filePath);
+        orderApi.updateStatus(order, OrderStatus.INVOICED);
         return invoice;
     }
 
+    private InvoiceEntity createInvoiceEntity(Integer orderId, String filePath) {
+        InvoiceEntity invoice = new InvoiceEntity();
+        invoice.setOrderId(orderId);
+        invoice.setFilePath(filePath);
+        invoiceApi.create(invoice);
+        return invoice;
+    }
 
     private Map<Integer, ProductEntity> getProductMap(List<OrderItemEntity> items) {
 

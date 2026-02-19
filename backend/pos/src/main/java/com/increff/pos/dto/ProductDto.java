@@ -12,6 +12,7 @@ import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.exception.TsvUploadException;
 import com.increff.pos.model.form.ProductSearchForm;
 import com.increff.pos.model.form.ProductUploadForm;
+import com.increff.pos.model.internal.ProductUploadModel;
 import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -71,24 +72,18 @@ public class ProductDto extends AbstractDto {
             throw new ApiException(ApiStatus.BAD_REQUEST, "Empty file");
         }
 
-        List<ProductUploadForm> uploadForms = parseProductTsv(file);
+        List<ProductUploadForm> forms = parseProductTsv(file);
 
-        TsvUploadResult<ProductUploadForm> structuralResult = validateUploadForms(uploadForms);
+        TsvUploadResult<ProductUploadForm> structural = validateUploadForms(forms);
 
-        if (!structuralResult.isSuccess()) {
-            throw new TsvUploadException(structuralResult.getErrors(), ApiStatus.BAD_REQUEST);
+        if (!structural.isSuccess()) {
+            throw new TsvUploadException(structural.getErrors(), ApiStatus.BAD_REQUEST);
         }
 
-        TsvUploadResult<ProductEntity> businessResult = validateBusiness(structuralResult.getData());
+        List<ProductUploadModel> uploads = structural.getData().stream()
+                                                .map(ConversionUtil::convertProductUploadFormToUploadModel).toList();
 
-        if (!businessResult.isSuccess()) {
-            throw new TsvUploadException(businessResult.getErrors(), ApiStatus.BAD_REQUEST);
-        }
-
-        List<ProductData> saved = productFlow.createProducts(businessResult.getData()).stream()
-                                        .map(ConversionUtil::productEntityToData).toList();
-
-        return TsvUploadResult.success(saved);
+        return createRowWise(uploads);
     }
 
     private TsvUploadResult<ProductUploadForm> validateUploadForms( List<ProductUploadForm> forms) {
@@ -112,24 +107,31 @@ public class ProductDto extends AbstractDto {
         return TsvUploadResult.success(forms);
     }
 
-    private TsvUploadResult<ProductEntity> validateBusiness(List<ProductUploadForm> forms) {
+    private TsvUploadResult<ProductData> createRowWise(List<ProductUploadModel> uploads) {
+
         List<TsvUploadError> errors = new ArrayList<>();
-        List<ProductEntity> validEntities = new ArrayList<>();
+        List<ProductData> success = new ArrayList<>();
+
         Set<String> compositeSet = new HashSet<>();
-        for (int i = 0; i < forms.size(); i++) {
-            ProductUploadForm uploadForm = forms.get(i);
+
+        for (int i = 0; i < uploads.size(); i++) {
+
+            ProductUploadModel upload = uploads.get(i);
             int rowNumber = i + 2;
+
             try {
-                ProductEntity entity = productFlow.validateForUpload(uploadForm, compositeSet);
-                validEntities.add(entity);
+                ProductEntity entity = productFlow.createFromUpload(upload, compositeSet);
+                success.add(ConversionUtil.productEntityToData(entity));
             } catch (ApiException e) {
                 errors.add(new TsvUploadError(rowNumber, null, e.getMessage()));
             }
         }
+
         if (!errors.isEmpty()) {
             return TsvUploadResult.failure(errors);
         }
-        return TsvUploadResult.success(validEntities);
+
+        return TsvUploadResult.success(success);
     }
 
 }

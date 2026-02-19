@@ -2,8 +2,6 @@ package com.increff.pos.dto;
 
 import com.increff.pos.api.UserApi;
 import com.increff.pos.entity.UserEntity;
-import com.increff.pos.exception.ApiException;
-import com.increff.pos.exception.ApiStatus;
 import com.increff.pos.model.data.UserData;
 import com.increff.pos.model.form.UserForm;
 import com.increff.pos.util.ConversionUtil;
@@ -12,8 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-
-import java.util.Objects;
 
 @Service
 public class UserDto extends AbstractDto {
@@ -35,7 +31,7 @@ public class UserDto extends AbstractDto {
 
         String email = authentication.getName();
 
-        UserEntity user = userApi.getByEmail(email);
+        UserEntity user = userApi.getCheckByEmail(email);
 
         return ConversionUtil.userEntityToData(user);
     }

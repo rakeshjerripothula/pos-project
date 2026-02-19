@@ -57,14 +57,14 @@ public class UserApi {
         return user;
     }
 
-    public UserEntity getById(Integer userId) {
+    public UserEntity getCheckById(Integer userId) {
         return userDao.selectById(userId)
                 .orElseThrow(() -> new ApiException(
                         ApiStatus.NOT_FOUND, "User not found: " + userId, "userId", "User not found"
                 ));
     }
 
-    public UserEntity getByEmail(String email) {
+    public UserEntity getCheckByEmail(String email) {
         String normalizedEmail = normalizeEmail(email);
 
         return userDao.selectByEmail(normalizedEmail)

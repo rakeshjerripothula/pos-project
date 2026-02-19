@@ -7,5 +7,4 @@ import lombok.Setter;
 @Setter
 public class InvoiceData {
     private String base64Pdf;
-
 }

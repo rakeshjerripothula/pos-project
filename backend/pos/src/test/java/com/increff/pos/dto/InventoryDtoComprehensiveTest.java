@@ -36,9 +36,9 @@ class InventoryDtoComprehensiveTest {
 
     @Test
     void testParseInventoryTsv_ValidDataWithExtraColumns() throws Exception {
-        String tsvContent = "productName\tquantity\textraColumn\tanotherExtra\n" +
-                "Product 1\t100\textra\tdata\n" +
-                "Product 2\t200\tmore\tinfo\n";
+        String tsvContent = "barcode\tquantity\textraColumn\tanotherExtra\n" +
+                "BAR001\t100\textra\tdata\n" +
+                "BAR002\t200\tmore\tinfo\n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -54,18 +54,18 @@ class InventoryDtoComprehensiveTest {
         
         // Verify data integrity
         InventoryUploadForm form1 = result.get(0);
-        assertEquals("Product 1", form1.getProductName());
+        assertEquals("bar001", form1.getBarcode());
         assertEquals(Integer.valueOf(100), form1.getQuantity());
         
         InventoryUploadForm form2 = result.get(1);
-        assertEquals("Product 2", form2.getProductName());
+        assertEquals("bar002", form2.getBarcode());
         assertEquals(Integer.valueOf(200), form2.getQuantity());
     }
 
     @Test
     void testParseInventoryTsv_ZeroQuantity() throws Exception {
-        String tsvContent = "productId\tquantity\n" +
-                "1\t0\n";
+        String tsvContent = "barcode\tquantity\n" +
+                "BAR001\t0\n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -80,15 +80,15 @@ class InventoryDtoComprehensiveTest {
         assertEquals(1, result.size());
         
         InventoryUploadForm form = result.get(0);
-        assertEquals("1", form.getProductName());
+        assertEquals("bar001", form.getBarcode());
         assertEquals(Integer.valueOf(0), form.getQuantity());
     }
 
     @Test
     void testParseInventoryTsv_WithWhitespace() throws Exception {
-        String tsvContent = "productId\tquantity\n" +
-                "  1  \t  100  \n" +
-                "  2  \t  200  \n";
+        String tsvContent = "barcode\tquantity\n" +
+                "  BAR001  \t  100  \n" +
+                "  BAR002  \t  200  \n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -102,24 +102,24 @@ class InventoryDtoComprehensiveTest {
         
         assertEquals(2, result.size());
         
-        // Verify whitespace trimming - inventory parsing doesn't trim product names
+        // Verify whitespace trimming - inventory parsing applies normalization to barcodes
         InventoryUploadForm form1 = result.get(0);
-        assertEquals("  1  ", form1.getProductName());
+        assertEquals("bar001", form1.getBarcode());
         assertEquals(Integer.valueOf(100), form1.getQuantity());
         
         InventoryUploadForm form2 = result.get(1);
-        assertEquals("  2  ", form2.getProductName());
+        assertEquals("bar002", form2.getBarcode());
         assertEquals(Integer.valueOf(200), form2.getQuantity());
     }
 
     @Test
     void testParseInventoryTsv_MixedValidAndInvalidRows() throws Exception {
-        String tsvContent = "productId\tquantity\n" +
-                "1\t100\n" +           // Valid
-                "invalid\t200\n" +      // Invalid product ID
-                "3\t-50\n" +            // Invalid quantity
-                "1\t300\n" +            // Duplicate product ID
-                "5\t400\n";              // Valid
+        String tsvContent = "barcode\tquantity\n" +
+                "BAR001\t100\n" +           // Valid
+                "invalid\t200\n" +         // Invalid barcode (will fail business validation)
+                "BAR003\t-50\n" +          // Invalid quantity
+                "BAR001\t300\n" +          // Duplicate barcode
+                "BAR005\t400\n";            // Valid
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -135,22 +135,22 @@ class InventoryDtoComprehensiveTest {
         assertEquals(5, result.size());
         
         // Verify parsed data
-        assertEquals("1", result.get(0).getProductName());
+        assertEquals("bar001", result.get(0).getBarcode());
         assertEquals(Integer.valueOf(100), result.get(0).getQuantity());
-        assertEquals("invalid", result.get(1).getProductName());
+        assertEquals("invalid", result.get(1).getBarcode());
         assertEquals(Integer.valueOf(200), result.get(1).getQuantity());
-        assertEquals("3", result.get(2).getProductName());
+        assertEquals("bar003", result.get(2).getBarcode());
         assertEquals(Integer.valueOf(-50), result.get(2).getQuantity()); // -50 can be parsed as integer safely
-        assertEquals("1", result.get(3).getProductName());
+        assertEquals("bar001", result.get(3).getBarcode());
         assertEquals(Integer.valueOf(300), result.get(3).getQuantity());
-        assertEquals("5", result.get(4).getProductName());
+        assertEquals("bar005", result.get(4).getBarcode());
         assertEquals(Integer.valueOf(400), result.get(4).getQuantity());
     }
 
     @Test
     void testParseInventoryTsv_LargeNumbers() throws Exception {
-        String tsvContent = "productId\tquantity\n" +
-                "999999\t999999999\n";
+        String tsvContent = "barcode\tquantity\n" +
+                "BAR999999\t999999999\n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -165,15 +165,15 @@ class InventoryDtoComprehensiveTest {
         assertEquals(1, result.size());
         
         InventoryUploadForm form = result.get(0);
-        assertEquals("999999", form.getProductName());
+        assertEquals("bar999999", form.getBarcode());
         assertEquals(Integer.valueOf(999999999), form.getQuantity());
     }
 
     @Test
     void testUploadTsv_Integration() throws Exception {
-        String tsvContent = "productId\tquantity\n" +
-                "1\t100\n" +
-                "2\t200\n";
+        String tsvContent = "barcode\tquantity\n" +
+                "BAR001\t100\n" +
+                "BAR002\t200\n";
         
         MultipartFile file = new MockMultipartFile(
             "file", 
@@ -188,9 +188,9 @@ class InventoryDtoComprehensiveTest {
         assertEquals(2, result.size());
         
         // Verify parsed data
-        assertEquals("1", result.get(0).getProductName());
+        assertEquals("bar001", result.get(0).getBarcode());
         assertEquals(Integer.valueOf(100), result.get(0).getQuantity());
-        assertEquals("2", result.get(1).getProductName());
+        assertEquals("bar002", result.get(1).getBarcode());
         assertEquals(Integer.valueOf(200), result.get(1).getQuantity());
     }
 }

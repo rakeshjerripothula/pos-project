@@ -26,7 +26,7 @@ public class ProductApi {
     }
 
     @Transactional(readOnly = true)
-    public ProductEntity getProductById(Integer id) {
+    public ProductEntity getCheckProductById(Integer id) {
         return productDao.selectById(id).orElseThrow(() ->
                 new ApiException(ApiStatus.NOT_FOUND, "Product not found", "productId", "Product not found"));
     }
@@ -37,15 +37,7 @@ public class ProductApi {
 
     public ProductEntity createProduct(ProductEntity product) {
 
-        if (productDao.selectByBarcode(product.getBarcode()).isPresent()) {
-            throw new ApiException(ApiStatus.CONFLICT, "Barcode already exists", "barcode", "Barcode already exists");
-        }
-
-        if (productDao.selectByClientIdAndProductNameAndMrp(product.getClientId(), product.getProductName(),
-                product.getMrp()).isPresent()) {
-            throw new ApiException(ApiStatus.CONFLICT, "Product already exists for this client with same name and MRP",
-                    "product", "Duplicate product for client");
-        }
+        validateProduct(product);
 
         return productDao.save(product);
     }
@@ -61,15 +53,14 @@ public class ProductApi {
         }
 
         if (productDao.selectByBarcodeExcludingId(product.getBarcode(), productId).isPresent()) {
-            throw new ApiException(ApiStatus.CONFLICT, "Barcode already exists", "barcode", "Barcode already exists");
+            throw new ApiException(ApiStatus.CONFLICT, "Barcode already exists", "barcode " + product.getBarcode(), "Barcode already exists");
         }
 
-        if (productDao.selectByClientIdAndProductNameAndMrpExcludingId(existing.getClientId(), product.getProductName(),
+        if (productDao.selectByClientIdAndProductNameAndMrpExcludingId(product.getClientId(), product.getProductName(),
                 product.getMrp(), productId).isPresent()) {
             throw new ApiException(ApiStatus.CONFLICT, "Product already exists for this client with same name and MRP",
                     "product", "Duplicate product for client");
         }
-
         existing.setProductName(product.getProductName());
         existing.setMrp(product.getMrp());
         existing.setBarcode(product.getBarcode());
@@ -83,20 +74,7 @@ public class ProductApi {
         return productDao.selectByFilters(clientId, barcode, productName, pageable);
     }
 
-    public List<ProductEntity> getByNames(List<String> names) {
-
-        List<ProductEntity> products = productDao.selectByNameIn(names);
-
-        if (products.size() != names.size()) {
-            throw new ApiException(ApiStatus.NOT_FOUND, "One or more products not found", "productName",
-                    "One or more products not found"
-            );
-        }
-
-        return products;
-    }
-
-    public ProductEntity getByName(String name) {
+    public ProductEntity getCheckByName(String name) {
         ProductEntity product = productDao.selectByName(name);
 
         if(Objects.isNull(product)) {
@@ -104,5 +82,27 @@ public class ProductApi {
                     "Product not found: " + name);
         }
         return product;
+    }
+
+    public ProductEntity getCheckByBarcode(String barcode) {
+        ProductEntity product = productDao.selectByBarcode(barcode).orElse(null);
+
+        if(Objects.isNull(product)) {
+                throw new ApiException(ApiStatus.NOT_FOUND, "Product not found: " + barcode, "barcode",
+                    "Product not found: " + barcode);
+        }
+        return product;
+    }
+
+    public void validateProduct(ProductEntity product) {
+        if (productDao.selectByBarcode(product.getBarcode()).isPresent()) {
+            throw new ApiException(ApiStatus.CONFLICT, "Barcode already exists", "barcode " + product.getBarcode(), "Barcode already exists");
+        }
+
+        if (productDao.selectByClientIdAndProductNameAndMrp(product.getClientId(), product.getProductName(),
+                product.getMrp()).isPresent()) {
+            throw new ApiException(ApiStatus.CONFLICT, "Product already exists for this client with same name and MRP",
+                    "product", "Duplicate product for client");
+        }
     }
 }

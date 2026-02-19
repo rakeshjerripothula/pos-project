@@ -1,5 +1,7 @@
 package com.increff.pos.model;
 
+import com.increff.pos.model.data.InvoiceClientForm;
+import com.increff.pos.model.data.InvoiceItemData;
 import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.model.form.*;
 import org.junit.jupiter.api.Test;
@@ -73,29 +75,8 @@ public class FormTests {
     }
 
     @Test
-    void testInvoiceForm() {
-        InvoiceForm f = new InvoiceForm();
-        f.setInvoiceNumber("INV-001");
-        f.setInvoiceDate(ZonedDateTime.now());
-        f.setClientName("Test Client");
-        f.setTotalAmount(new BigDecimal("500.00"));
-        
-        List<InvoiceItemForm> items = new ArrayList<>();
-        InvoiceItemForm item = new InvoiceItemForm();
-        item.setProductName("Test Product");
-        items.add(item);
-        f.setItems(items);
-        
-        assertEquals("INV-001", f.getInvoiceNumber());
-        assertEquals("Test Client", f.getClientName());
-        assertEquals(new BigDecimal("500.00"), f.getTotalAmount());
-        assertEquals(items, f.getItems());
-        assertEquals("Test Product", f.getItems().get(0).getProductName());
-    }
-
-    @Test
     void testInvoiceItemForm() {
-        InvoiceItemForm f = new InvoiceItemForm();
+        InvoiceItemData f = new InvoiceItemData();
         f.setProductName("Test Product");
         f.setQuantity(5);
         f.setSellingPrice(new BigDecimal("99.99"));

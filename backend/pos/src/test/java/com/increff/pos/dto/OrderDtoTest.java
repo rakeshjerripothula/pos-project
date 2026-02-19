@@ -3,12 +3,12 @@ package com.increff.pos.dto;
 import com.increff.pos.model.domain.OrderStatus;
 import com.increff.pos.entity.InvoiceEntity;
 import com.increff.pos.exception.ApiException;
-import com.increff.pos.model.data.InvoiceData;
+import com.increff.pos.model.data.InvoiceClientForm;
 import com.increff.pos.model.data.InvoiceSummaryData;
 import com.increff.pos.model.data.OrderData;
 import com.increff.pos.model.data.OrderItemData;
 import com.increff.pos.model.data.OrderPageData;
-import com.increff.pos.model.form.InvoiceForm;
+import com.increff.pos.model.form.InvoicePdfData;
 import com.increff.pos.model.form.OrderForm;
 import com.increff.pos.model.form.OrderItemForm;
 import com.increff.pos.model.form.OrderPageForm;
@@ -41,6 +41,9 @@ class OrderDtoTest {
 
     @Mock
     private com.increff.pos.api.ProductApi productApi;
+
+    @Mock
+    private com.increff.pos.api.OrderApi orderApi;
 
     @InjectMocks
     private OrderDto orderDto;
@@ -162,7 +165,7 @@ class OrderDtoTest {
         com.increff.pos.entity.OrderEntity order = createOrderEntity(1, OrderStatus.CREATED);
         Page<com.increff.pos.entity.OrderEntity> orderPage = new PageImpl<>(Arrays.asList(order));
         
-        when(orderFlow.searchOrders(eq(OrderStatus.CREATED), isNull(), isNull(), isNull(), eq(0), eq(10)))
+        when(orderApi.search(eq(OrderStatus.CREATED), isNull(), isNull(), isNull(), eq(0), eq(10)))
             .thenReturn(orderPage);
 
         // Act
@@ -175,7 +178,7 @@ class OrderDtoTest {
         assertEquals(1, result.getTotalElements());
         assertEquals(1, result.getContent().size());
         assertEquals(OrderStatus.CREATED, result.getContent().get(0).getStatus());
-        verify(orderFlow, times(1)).searchOrders(eq(OrderStatus.CREATED), isNull(), isNull(), isNull(), eq(0), eq(10));
+        verify(orderApi, times(1)).search(eq(OrderStatus.CREATED), isNull(), isNull(), isNull(), eq(0), eq(10));
     }
 
     @Test
@@ -188,7 +191,7 @@ class OrderDtoTest {
         ApiException exception = assertThrows(ApiException.class, () -> orderDto.getOrders(form));
         assertEquals("BAD_REQUEST", exception.getStatus().name());
         assertTrue(exception.getMessage().contains("Invalid date format"));
-        verify(orderFlow, never()).searchOrders(any(), any(), any(), any(), anyInt(), anyInt());
+        verify(orderApi, never()).search(any(), any(), any(), any(), anyInt(), anyInt());
     }
 
     @Test
@@ -227,16 +230,16 @@ class OrderDtoTest {
     void testGenerateInvoice() {
         // Arrange
         Integer orderId = 1;
-        InvoiceForm invoiceForm = new InvoiceForm();
-        InvoiceData invoiceData = new InvoiceData();
-        invoiceData.setBase64Pdf("base64pdfcontent");
+        InvoiceClientForm invoiceClientData = new InvoiceClientForm();
+        InvoicePdfData invoicePdfForm = new InvoicePdfData();
+        invoicePdfForm.setBase64Pdf("base64pdfcontent");
         
         InvoiceEntity invoiceEntity = new InvoiceEntity();
         invoiceEntity.setOrderId(orderId);
         invoiceEntity.setFilePath("/path/to/invoice.pdf");
 
-        when(orderFlow.buildInvoiceForm(orderId)).thenReturn(invoiceForm);
-        when(invoiceClient.generate(invoiceForm)).thenReturn(invoiceData);
+        when(orderFlow.buildInvoiceForm(orderId)).thenReturn(invoiceClientData);
+        when(invoiceClient.generate(invoiceClientData)).thenReturn(invoicePdfForm);
         when(orderFlow.saveInvoice(eq(orderId), any())).thenReturn(invoiceEntity);
 
         // Act
@@ -245,7 +248,7 @@ class OrderDtoTest {
         // Assert
         assertNotNull(result);
         verify(orderFlow).buildInvoiceForm(orderId);
-        verify(invoiceClient).generate(invoiceForm);
+        verify(invoiceClient).generate(invoiceClientData);
         verify(orderFlow).saveInvoice(eq(orderId), any());
     }
 

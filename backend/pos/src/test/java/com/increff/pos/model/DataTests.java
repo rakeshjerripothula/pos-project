@@ -106,14 +106,7 @@ public class DataTests {
         assertEquals("Test Product", d.getProductName());
         assertEquals(100, d.getQuantity());
     }
-
-    @Test
-    void testInvoiceData() {
-        InvoiceData d = new InvoiceData();
-        d.setBase64Pdf("base64encodedpdf");
-        assertEquals("base64encodedpdf", d.getBase64Pdf());
-    }
-
+    
     @Test
     void testInvoiceSummaryData() {
         InvoiceSummaryData d = new InvoiceSummaryData();

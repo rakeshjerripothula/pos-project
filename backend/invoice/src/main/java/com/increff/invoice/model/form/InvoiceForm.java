@@ -6,18 +6,14 @@ import lombok.Setter;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.time.ZonedDateTime;
 import java.util.List;
 
 @Getter
 @Setter
 public class InvoiceForm {
 
-    @NotBlank(message = "Invoice number cannot be blank")
-    private String invoiceNumber;
-    
-    @NotNull(message = "Invoice date cannot be null")
-    private ZonedDateTime invoiceDate;
+    @NotNull(message = "Order id cannot be null")
+    private Integer orderId;
     
     @NotBlank(message = "Client name cannot be blank")
     private String clientName;

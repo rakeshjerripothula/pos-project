@@ -15,14 +15,12 @@ public class InvoiceFormTest {
     public void testGettersAndSetters() {
         InvoiceForm form = new InvoiceForm();
         
-        assertNull(form.getInvoiceNumber());
-        assertNull(form.getInvoiceDate());
+        assertNull(form.getOrderId());
         assertNull(form.getClientName());
         assertNull(form.getItems());
         assertNull(form.getTotalAmount());
         
-        String expectedInvoiceNumber = "INV-001";
-        ZonedDateTime expectedInvoiceDate = ZonedDateTime.now();
+        Integer expectedOrderId = 1;
         String expectedClientName = "Test Client";
         InvoiceItemForm expectedItem = new InvoiceItemForm();
         expectedItem.setProductName("Test Product");
@@ -31,14 +29,12 @@ public class InvoiceFormTest {
         expectedItem.setLineTotal(new BigDecimal("100.00"));
         BigDecimal expectedTotalAmount = new BigDecimal("100.00");
         
-        form.setInvoiceNumber(expectedInvoiceNumber);
-        form.setInvoiceDate(expectedInvoiceDate);
+        form.setOrderId(expectedOrderId);
         form.setClientName(expectedClientName);
         form.setItems(Collections.singletonList(expectedItem));
         form.setTotalAmount(expectedTotalAmount);
         
-        assertEquals(expectedInvoiceNumber, form.getInvoiceNumber());
-        assertEquals(expectedInvoiceDate, form.getInvoiceDate());
+        assertEquals(expectedOrderId, form.getOrderId());
         assertEquals(expectedClientName, form.getClientName());
         assertEquals(1, form.getItems().size());
         assertEquals(expectedItem, form.getItems().get(0));
