@@ -30,14 +30,12 @@ public class ClientDto extends AbstractDto {
     @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public List<ClientData> getAll() {
         List<ClientEntity> entities = clientApi.getAll();
-
         return entities.stream().map(ConversionUtil::clientEntityToData).toList();
     }
 
     @PreAuthorize("hasRole('SUPERVISOR')")
     public ClientData createClient(ClientForm form) {
         checkValid(form);
-        
         ClientEntity entity = ConversionUtil.clientFormToEntity(form);
         ClientEntity saved = clientApi.createClient(entity);
         return ConversionUtil.clientEntityToData(saved);
@@ -46,44 +44,31 @@ public class ClientDto extends AbstractDto {
     @PreAuthorize("hasAnyRole('OPERATOR','SUPERVISOR')")
     public PagedResponse<ClientData> listClients(ClientSearchForm form) {
         checkValid(form);
-
-        Pageable pageable = PageRequest.of(
-                form.getPage(),
-                form.getPageSize(),
-                Sort.by("createdAt").descending()
-        );
-
+        Pageable pageable = PageRequest.of(form.getPage(), form.getPageSize(), Sort.by("createdAt").descending());
         Page<ClientEntity> page = clientApi.getClientsList(form.getClientName(), form.getEnabled(), pageable);
-
-        List<ClientData> data = page.getContent()
-                .stream()
-                .map(ConversionUtil::clientEntityToData)
-                .toList();
-
+        List<ClientData> data = page.getContent().stream().map(ConversionUtil::clientEntityToData).toList();
         return new PagedResponse<>(data, page.getTotalElements());
     }
 
     @PreAuthorize("hasAnyRole('SUPERVISOR')")
     public ClientData updateClient(Integer clientId, ClientForm form) {
-        if (Objects.isNull(clientId)) {
-            throw new ApiException(ApiStatus.BAD_REQUEST, "Client ID is required", "clientId", "Client ID is required");
-        }
-        
         checkValid(form);
-        
+        validateClientId(clientId);
         ClientEntity entity = ConversionUtil.clientFormToEntity(form);
         return ConversionUtil.clientEntityToData(clientApi.updateClient(clientId, entity));
     }
 
     @PreAuthorize("hasRole('SUPERVISOR')")
     public ClientData toggleClient(Integer id, ClientToggleForm form) {
+        checkValid(form);
+        validateClientId(id);
+        return ConversionUtil.clientEntityToData(clientApi.toggle(id, form.getEnabled()));
+    }
+
+    private static void validateClientId(Integer id) {
         if (Objects.isNull(id)) {
             throw new ApiException(ApiStatus.BAD_REQUEST, "Client ID is required", "clientId", "Client ID is required");
         }
-        
-        checkValid(form);
-        
-        return ConversionUtil.clientEntityToData(clientApi.toggle(id, form.getEnabled()));
     }
 
 }

@@ -1,5 +1,6 @@
 package com.increff.pos.dto;
 
+import com.increff.pos.api.ClientApi;
 import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.model.data.PagedResponse;
 import com.increff.pos.model.data.ProductData;
@@ -29,6 +30,9 @@ import static com.increff.pos.util.TsvParseUtils.parseProductTsv;
 
 @Service
 public class ProductDto extends AbstractDto {
+
+    @Autowired
+    private ClientApi clientApi;
 
     @Autowired
     private ProductFlow productFlow;
@@ -80,8 +84,7 @@ public class ProductDto extends AbstractDto {
             throw new TsvUploadException(structural.getErrors(), ApiStatus.BAD_REQUEST);
         }
 
-        List<ProductUploadModel> uploads = structural.getData().stream()
-                                                .map(ConversionUtil::convertProductUploadFormToUploadModel).toList();
+        List<ProductUploadForm> uploads = structural.getData();
 
         return createRowWise(uploads);
     }
@@ -107,7 +110,7 @@ public class ProductDto extends AbstractDto {
         return TsvUploadResult.success(forms);
     }
 
-    private TsvUploadResult<ProductData> createRowWise(List<ProductUploadModel> uploads) {
+    private TsvUploadResult<ProductData> createRowWise(List<ProductUploadForm> uploads) {
 
         List<TsvUploadError> errors = new ArrayList<>();
         List<ProductData> success = new ArrayList<>();
@@ -116,11 +119,14 @@ public class ProductDto extends AbstractDto {
 
         for (int i = 0; i < uploads.size(); i++) {
 
-            ProductUploadModel upload = uploads.get(i);
+            ProductUploadForm upload = uploads.get(i);
             int rowNumber = i + 2;
 
             try {
-                ProductEntity entity = productFlow.createFromUpload(upload, compositeSet);
+                Integer clientId = clientApi.getClientIdByName(upload.getClientName());
+                ProductEntity uploadEntity = ConversionUtil.productUploadFormToEntity(upload, clientId);
+                validateProductCombination(clientId, uploadEntity, compositeSet);
+                ProductEntity entity = productFlow.createFromUpload(uploadEntity);
                 success.add(ConversionUtil.productEntityToData(entity));
             } catch (ApiException e) {
                 errors.add(new TsvUploadError(rowNumber, null, e.getMessage()));
@@ -132,6 +138,14 @@ public class ProductDto extends AbstractDto {
         }
 
         return TsvUploadResult.success(success);
+    }
+
+    private static void validateProductCombination(Integer clientId, ProductEntity uploadEntity, Set<String> compositeSet) {
+        String compositeKey = clientId + "|" + uploadEntity.getProductName() + "|" + uploadEntity.getMrp();
+
+        if (!compositeSet.add(compositeKey)) {
+            throw new ApiException(ApiStatus.CONFLICT, "Duplicate product combination in file");
+        }
     }
 
 }

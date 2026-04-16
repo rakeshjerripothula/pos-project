@@ -4,9 +4,6 @@ import com.increff.pos.api.ClientApi;
 import com.increff.pos.api.ProductApi;
 import com.increff.pos.entity.ProductEntity;
 import com.increff.pos.exception.ApiException;
-import com.increff.pos.exception.ApiStatus;
-import com.increff.pos.model.internal.ProductUploadModel;
-import com.increff.pos.util.ConversionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -15,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 
 @Service
 @Transactional
@@ -38,23 +34,10 @@ public class ProductFlow {
     }
 
     @Transactional(rollbackFor = ApiException.class)
-    public ProductEntity createFromUpload(ProductUploadModel upload, Set<String> compositeSet) {
-
-        Integer clientId = clientApi.getClientIdByName(upload.getClientName());
-
-        clientApi.checkClientEnabled(clientId);
-
-        String compositeKey = clientId + "|" + upload.getProductName() + "|" + upload.getMrp();
-
-        if (!compositeSet.add(compositeKey)) {
-            throw new ApiException(ApiStatus.CONFLICT, "Duplicate product combination in file");
-        }
-
-        ProductEntity entity = ConversionUtil.convertProductUploadToEntity(upload, clientId);
-
-        productApi.createProduct(entity);
-
-        return entity;
+    public ProductEntity createFromUpload(ProductEntity uploadEntity) {
+        clientApi.checkClientEnabled(uploadEntity.getClientId());
+        productApi.createProduct(uploadEntity);
+        return uploadEntity;
     }
 
     public ProductEntity updateProduct(Integer productId, ProductEntity product) {

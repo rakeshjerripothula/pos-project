@@ -214,9 +214,6 @@ public final class ConversionUtil {
     }
 
     public static <S, T> T map(S source, Class<T> targetClass) {
-        if (Objects.isNull(source)) {
-            return null;
-        }
         return modelMapper.map(source, targetClass);
     }
 
@@ -234,5 +231,11 @@ public final class ConversionUtil {
         response.setPageSize(pageSize);
         response.setTotalElements(totalElements);
         return response;
+    }
+
+    public static ProductEntity productUploadFormToEntity(ProductUploadForm upload, Integer clientId) {
+        ProductEntity entity = map(upload, ProductEntity.class);
+        entity.setClientId(clientId);
+        return entity;
     }
 }

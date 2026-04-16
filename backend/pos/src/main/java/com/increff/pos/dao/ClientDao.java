@@ -56,7 +56,7 @@ public class ClientDao extends AbstractDao<ClientEntity> {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
         Root<ClientEntity> root = cq.from(ClientEntity.class);
-        cq.select(root).where(cb.equal(root.get("clientName"), clientName));
+        cq.select(root).where(cb.equal(root.get("field2"), clientName));
         return em.createQuery(cq).getResultList().stream().findFirst();
     }
 
@@ -65,7 +65,7 @@ public class ClientDao extends AbstractDao<ClientEntity> {
         CriteriaQuery<ClientEntity> cq = cb.createQuery(ClientEntity.class);
         Root<ClientEntity> root = cq.from(ClientEntity.class);
         cq.select(root).where(cb.and(
-                cb.equal(root.get("clientName"), clientName),
+                cb.equal(root.get("field2"), clientName),
                 cb.notEqual(root.get("id"), clientId)
         ));
         return em.createQuery(cq).getResultList().stream().findFirst();
@@ -91,7 +91,7 @@ public class ClientDao extends AbstractDao<ClientEntity> {
                                             Boolean enabled) {
         List<Predicate> predicates = new ArrayList<>();
         if (clientName != null && !clientName.trim().isEmpty())
-            predicates.add(cb.like(root.get("clientName"), clientName + "%"));
+            predicates.add(cb.like(root.get("field2"), clientName + "%"));
         if (enabled != null)
             predicates.add(cb.equal(root.get("enabled"), enabled));
         return predicates;
